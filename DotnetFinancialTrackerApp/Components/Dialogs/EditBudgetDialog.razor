@@ -1,0 +1,57 @@
+@using DotnetFinancialTrackerApp.Models
+@inherits ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(_model.Id == 0 ? "Add Budget" : "Edit Budget")</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="_model.Category" Label="Category" Required="true" />
+            <MudNumericField @bind-Value="_model.Limit" TValue="decimal" Label="Limit" Required="true" Immediate="true" />
+            <MudDatePicker @bind-Date="_month" Label="Month" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudSpacer />
+        <MudButton Variant="Variant.Text" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Ok">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Budget? Model { get; set; }
+
+    private Budget _model = new();
+    private MudForm? _form;
+    private DateTime? _month;
+
+    protected override void OnInitialized()
+    {
+        if (Model is not null)
+        {
+            _model = new Budget
+            {
+                Id = Model.Id,
+                Category = Model.Category,
+                Limit = Model.Limit,
+                Month = Model.Month
+            };
+        }
+        _month = _model.Month;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+    private async Task Ok()
+    {
+        if (_form is not null)
+        {
+            await _form.Validate();
+            if (!_form.IsValid) return;
+        }
+        _model.Month = _month ?? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        MudDialog.Close(DialogResult.Ok(_model));
+    }
+}
+

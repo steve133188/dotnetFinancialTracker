@@ -1,0 +1,283 @@
+@page "/wellbeing"
+@using DotnetFinancialTrackerApp.Models
+@using DotnetFinancialTrackerApp.Services
+@inject IHydrationService HydrationService
+@inject IMedicationService MedicationService
+@inject IHouseholdTaskService TaskService
+@inject AuthState AuthState
+
+<PageTitle>Wellbeing - Family Tracker</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="pa-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Family Wellbeing Hub</MudText>
+
+    <MudGrid>
+        <!-- Hydration Tracking -->
+        <MudItem xs="12" md="6" lg="4">
+            <MudCard Class="pa-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudIcon Icon="@Icons.Material.Filled.LocalDrink" Class="mr-2" Color="Color.Primary" />
+                        <MudText Typo="Typo.h6">Daily Hydration</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    @if (todayHydration != null)
+                    {
+                        <MudProgressCircular Value="@todayHydration.GetCompletionPercentage()"
+                                           Size="Size.Large"
+                                           Color="Color.Primary">
+                            <MudText Typo="Typo.body2">@todayHydration.GlassesConsumed/@todayHydration.GlassesTarget</MudText>
+                        </MudProgressCircular>
+                        <MudText Typo="Typo.body2" Class="mt-2">
+                            @($"{todayHydration.GetCompletionPercentage():F0}% Complete")
+                        </MudText>
+                        <MudButton Variant="Variant.Filled"
+                                 Color="Color.Primary"
+                                 StartIcon="@Icons.Material.Filled.Add"
+                                 OnClick="AddGlass"
+                                 Class="mt-2"
+                                 Disabled="@(todayHydration.GlassesConsumed >= todayHydration.GlassesTarget)">
+                            Add Glass
+                        </MudButton>
+                    }
+                    else
+                    {
+                        <MudButton Variant="Variant.Filled"
+                                 Color="Color.Primary"
+                                 OnClick="CreateTodayHydration">
+                            Start Tracking Today
+                        </MudButton>
+                    }
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Medication Reminders -->
+        <MudItem xs="12" md="6" lg="4">
+            <MudCard Class="pa-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudIcon Icon="@Icons.Material.Filled.Medication" Class="mr-2" Color="Color.Secondary" />
+                        <MudText Typo="Typo.h6">Today's Medications</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    @if (todayMedications.Any())
+                    {
+                        <MudList>
+                            @foreach (var med in todayMedications.Take(3))
+                            {
+                                <MudListItem Icon="@(med.IsCompleted ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Schedule)"
+                                           IconColor="@(med.IsCompleted ? Color.Success : (med.IsOverdue() ? Color.Error : Color.Warning))">
+                                    <MudText Typo="Typo.body2">@med.MedicationName</MudText>
+                                    <MudText Typo="Typo.caption">@med.GetStatusText()</MudText>
+                                </MudListItem>
+                            }
+                        </MudList>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">No medications for today</MudText>
+                    }
+                    <MudButton Variant="Variant.Text"
+                             Color="Color.Primary"
+                             StartIcon="@Icons.Material.Filled.Add"
+                             OnClick="OpenMedicationDialog"
+                             Class="mt-2">
+                        Add Reminder
+                    </MudButton>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Household Tasks -->
+        <MudItem xs="12" md="6" lg="4">
+            <MudCard Class="pa-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudIcon Icon="@Icons.Material.Filled.Task" Class="mr-2" Color="Color.Tertiary" />
+                        <MudText Typo="Typo.h6">Pending Tasks</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    @if (pendingTasks.Any())
+                    {
+                        <MudList>
+                            @foreach (var task in pendingTasks.Take(3))
+                            {
+                                <MudListItem Icon="@task.GetCategoryIcon()"
+                                           IconColor="@(task.IsOverdue() ? Color.Error : Color.Default)">
+                                    <MudText Typo="Typo.body2">@task.Title</MudText>
+                                    <MudText Typo="Typo.caption">Due: @task.DueDate.ToString("MMM dd")</MudText>
+                                </MudListItem>
+                            }
+                        </MudList>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">All tasks completed!</MudText>
+                    }
+                    <MudButton Variant="Variant.Text"
+                             Color="Color.Primary"
+                             StartIcon="@Icons.Material.Filled.Add"
+                             OnClick="OpenTaskDialog"
+                             Class="mt-2">
+                        Add Task
+                    </MudButton>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Weekly Summary -->
+        <MudItem xs="12" md="6">
+            <MudCard Class="pa-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudIcon Icon="@Icons.Material.Filled.Analytics" Class="mr-2" Color="Color.Info" />
+                        <MudText Typo="Typo.h6">Weekly Summary</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudGrid>
+                        <MudItem xs="6">
+                            <MudText Typo="Typo.subtitle2">Hydration Average</MudText>
+                            <MudText Typo="Typo.h6" Color="Color.Primary">@($"{weeklyHydrationAverage:F0}%")</MudText>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudText Typo="Typo.subtitle2">Tasks Completed</MudText>
+                            <MudText Typo="Typo.h6" Color="Color.Success">@completedTasksThisWeek</MudText>
+                        </MudItem>
+                    </MudGrid>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Quick Actions -->
+        <MudItem xs="12" md="6">
+            <MudCard Class="pa-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudIcon Icon="@Icons.Material.Filled.FlashOn" Class="mr-2" Color="Color.Warning" />
+                        <MudText Typo="Typo.h6">Quick Actions</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudStack>
+                        <MudButton Variant="Variant.Outlined"
+                                 Color="Color.Primary"
+                                 StartIcon="@Icons.Material.Filled.LocalDrink"
+                                 OnClick="AddGlass"
+                                 FullWidth="true">
+                            Log Water Intake
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined"
+                                 Color="Color.Secondary"
+                                 StartIcon="@Icons.Material.Filled.CheckCircle"
+                                 OnClick="MarkMedicationTaken"
+                                 FullWidth="true"
+                                 Disabled="@(!todayMedications.Any(m => !m.IsCompleted))">
+                            Mark Medication Taken
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined"
+                                 Color="Color.Tertiary"
+                                 StartIcon="@Icons.Material.Filled.TaskAlt"
+                                 OnClick="CompleteNextTask"
+                                 FullWidth="true"
+                                 Disabled="@(!pendingTasks.Any())">
+                            Complete Next Task
+                        </MudButton>
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private HydrationEntry? todayHydration;
+    private List<MedicationReminder> todayMedications = new();
+    private List<HouseholdTask> pendingTasks = new();
+    private double weeklyHydrationAverage;
+    private int completedTasksThisWeek;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var user = AuthState.CurrentUser?.Name ?? "You";
+
+        todayHydration = await HydrationService.GetTodayEntryAsync(user);
+        todayMedications = (await MedicationService.GetTodayRemindersAsync(user)).ToList();
+        pendingTasks = (await TaskService.GetTasksByStatusAsync(user, false)).ToList();
+
+        weeklyHydrationAverage = await HydrationService.GetAverageCompletionAsync(user, 7);
+
+        var weekStart = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek);
+        var completedTasks = await TaskService.GetTasksByStatusAsync(user, true);
+        completedTasksThisWeek = completedTasks.Count(t => t.CompletedDate >= weekStart);
+    }
+
+    private async Task CreateTodayHydration()
+    {
+        var user = AuthState.CurrentUser?.Name ?? "You";
+        var entry = new HydrationEntry
+        {
+            AssignedTo = user,
+            Date = DateTime.Today,
+            Title = "Daily Hydration Goal",
+            GlassesTarget = 8
+        };
+
+        todayHydration = await HydrationService.CreateAsync(entry);
+    }
+
+    private async Task AddGlass()
+    {
+        if (todayHydration == null)
+        {
+            await CreateTodayHydration();
+        }
+
+        if (todayHydration != null)
+        {
+            todayHydration.AddGlass();
+            await HydrationService.UpdateAsync(todayHydration);
+        }
+    }
+
+    private async Task MarkMedicationTaken()
+    {
+        var nextMed = todayMedications.FirstOrDefault(m => !m.IsCompleted);
+        if (nextMed != null)
+        {
+            nextMed.MarkCompleted();
+            await MedicationService.UpdateAsync(nextMed);
+            await LoadData();
+        }
+    }
+
+    private async Task CompleteNextTask()
+    {
+        var nextTask = pendingTasks.FirstOrDefault();
+        if (nextTask != null)
+        {
+            nextTask.MarkCompleted();
+            await TaskService.UpdateAsync(nextTask);
+            await LoadData();
+        }
+    }
+
+    private void OpenMedicationDialog()
+    {
+        // TODO: Implement medication dialog
+    }
+
+    private void OpenTaskDialog()
+    {
+        // TODO: Implement task dialog
+    }
+}

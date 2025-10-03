@@ -1,0 +1,37 @@
+@page "/reports"
+@inject DotnetFinancialTrackerApp.Services.ITransactionsService TxSvc
+@inject DotnetFinancialTrackerApp.Services.IExportService ExportSvc
+
+<MudContainer Class="pa-4">
+    <MudText Typo="Typo.h5" Class="mb-2">Reports & Export</MudText>
+    <MudText Typo="Typo.body2" Class="mb-4 text-muted">Export your transactions as CSV or JSON. Files are saved to the app data directory.</MudText>
+
+    <MudStack Row="true" Spacing="2">
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ExportCsv">Export CSV</MudButton>
+        <MudButton Color="Color.Secondary" Variant="Variant.Outlined" OnClick="ExportJson">Export JSON</MudButton>
+    </MudStack>
+
+    @if (!string.IsNullOrEmpty(_lastExportPath))
+    {
+        <MudAlert Severity="Severity.Info" Class="mt-4">
+            Saved to: <b>@_lastExportPath</b>
+        </MudAlert>
+    }
+</MudContainer>
+
+@code {
+    private string _lastExportPath = string.Empty;
+
+    private async Task ExportCsv()
+    {
+        var txs = await TxSvc.GetAsync();
+        _lastExportPath = await ExportSvc.ExportTransactionsCsvAsync(txs);
+    }
+
+    private async Task ExportJson()
+    {
+        var txs = await TxSvc.GetAsync();
+        _lastExportPath = await ExportSvc.ExportTransactionsJsonAsync(txs);
+    }
+}
+

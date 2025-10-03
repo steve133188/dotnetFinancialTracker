@@ -1,0 +1,28 @@
+@inject NavigationManager Nav
+@inject DotnetFinancialTrackerApp.Services.UiState Ui
+
+<MudPaper Class="bottom-nav" Elevation="0">
+    <MudStack Row="true" Justify="Justify.SpaceAround" AlignItems="AlignItems.Center">
+        @foreach (var item in _items)
+        {
+            var active = Nav.Uri.EndsWith(item.Href, StringComparison.OrdinalIgnoreCase);
+            <MudButton Class="@GetClass(active)" Variant="Variant.Text" OnClick="() => Nav.NavigateTo(item.Href)">
+                <MudIcon Icon="@item.Icon" Size="Size.Medium" />
+                <div class="label">@item.Label</div>
+            </MudButton>
+        }
+    </MudStack>
+</MudPaper>
+
+@code {
+    private readonly (string Label, string Href, string Icon)[] _items = new[]
+    {
+        ("Dashboard", "/dashboard", Icons.Material.Outlined.Dashboard),
+        ("Tx", "/transactions", Icons.Material.Outlined.ReceiptLong),
+        ("Budgets", "/budgets", Icons.Material.Outlined.AccountBalanceWallet),
+        ("Wins", "/achievements", Icons.Material.Outlined.EmojiEvents),
+        ("Reports", "/reports", Icons.Material.Outlined.IosShare)
+    };
+
+    private static string GetClass(bool active) => "bottom-nav-btn" + (active ? " active" : string.Empty);
+}

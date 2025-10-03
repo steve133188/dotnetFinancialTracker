@@ -1,0 +1,51 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+Platforms/*/bin/
+Platforms/*/obj/
+
+# Packages
+/packages/
+packages/
+*.nupkg
+*.snupkg
+
+# IDE settings
+.vs/
+.idea/
+riderModule.iml
+/_ReSharper.Caches/
+*.DotSettings.user
+*.suo
+*.user
+*.userprefs
+
+# Logs and diagnostics
+*.log
+*.svclog
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Node (if present)
+node_modules/
+
+# Test/coverage
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Solution state
+*.sln.docstates
+
+# Ignore contributor guide from VCS
+AGENTS.md
+
+# Claude Code files
+.claude/
+CLAUDE.md

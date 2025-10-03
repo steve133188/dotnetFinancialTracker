@@ -1,0 +1,132 @@
+﻿@page "/"
+
+@inject NavigationManager Nav
+@inject DotnetFinancialTrackerApp.Services.ITransactionsService TxSvc
+@inject DotnetFinancialTrackerApp.Services.IBudgetsService BudgetSvc
+@inject DotnetFinancialTrackerApp.Services.IGamificationService Game
+
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-6">
+    <MudStack Spacing="1" Class="mb-4">
+        <MudText Typo="Typo.h4" Class="fw-600">Welcome back</MudText>
+        <MudText Typo="Typo.caption" Class="text-muted">@_subtitle</MudText>
+    </MudStack>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-3">@_error</MudAlert>
+    }
+
+    <MudGrid GutterSize="GutterSize.Small" Class="nav-grid">
+        <MudItem xs="12" sm="6" md="6" lg="6">
+            <MudLink Href="/dashboard" Style="display:block;text-decoration:none;">
+            <MudCard Class="nav-card" Hover="true" Style="cursor:pointer">
+                <MudCardHeader>
+                    <MudText Typo="Typo.h6" Class="text-muted">Insight</MudText>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudText Typo="Typo.body1" Class="text-muted">Net this month</MudText>
+                    <MudText Typo="Typo.h4">@((_income - _expense).ToString("C"))</MudText>
+                </MudCardContent>
+            </MudCard>
+            </MudLink>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="6" lg="6">
+            <MudLink Href="/transactions" Style="display:block;text-decoration:none;">
+            <MudCard Class="nav-card" Hover="true" Style="cursor:pointer">
+                <MudCardHeader>
+                    <MudText Typo="Typo.h6" Class="text-muted">Transactions</MudText>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudText Typo="Typo.body1" Class="text-muted">This month</MudText>
+                    <MudText Typo="Typo.h4">@_txCount items</MudText>
+                    <MudStack Row="true" Spacing="2" Class="mt-1">
+                        <MudChip Color="Color.Success" Variant="Variant.Filled">+@_income.ToString("C0")</MudChip>
+                        <MudChip Color="Color.Error" Variant="Variant.Outlined">-@_expense.ToString("C0")</MudChip>
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+            </MudLink>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="6" lg="6">
+            <MudLink Href="/budgets" Style="display:block;text-decoration:none;">
+            <MudCard Class="nav-card" Hover="true" Style="cursor:pointer">
+                <MudCardHeader>
+                    <MudText Typo="Typo.h6" Class="text-muted">Budgets</MudText>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudText Typo="Typo.body1" Class="text-muted">Usage</MudText>
+                    <MudText Typo="Typo.h4">@((_usagePercent ?? 0).ToString("0"))%</MudText>
+                    <MudProgressLinear Value="@(_usagePercent ?? 0)" Color="Color.Primary" Class="mt-2" />
+                </MudCardContent>
+            </MudCard>
+            </MudLink>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="6" lg="6">
+            <MudLink Href="/achievements" Style="display:block;text-decoration:none;">
+            <MudCard Class="nav-card" Hover="true" Style="cursor:pointer">
+                <MudCardHeader>
+                    <MudText Typo="Typo.h6" Class="text-muted">Achievements</MudText>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudText Typo="Typo.body1" Class="text-muted">Points • Streak</MudText>
+                    <MudText Typo="Typo.h4">@_points pts • @_streak d</MudText>
+                </MudCardContent>
+            </MudCard>
+            </MudLink>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="6" lg="6">
+            <MudLink Href="/reports" Style="display:block;text-decoration:none;">
+            <MudCard Class="nav-card" Hover="true" Style="cursor:pointer">
+                <MudCardHeader>
+                    <MudText Typo="Typo.h6" Class="text-muted">Reports</MudText>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudText Typo="Typo.body1" Class="text-muted">Export & summary</MudText>
+                    <MudText Typo="Typo.h4">CSV • JSON</MudText>
+                </MudCardContent>
+            </MudCard>
+            </MudLink>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private string _subtitle = DateTime.Now.ToString("dddd, dd MMM");
+    private string? _error;
+    private int _txCount;
+    private decimal _income, _expense;
+    private double? _usagePercent;
+    private int _points, _streak;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var first = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+            var next = first.AddMonths(1).AddDays(-1);
+            var txs = await TxSvc.GetAsync(from: first, to: next);
+            _txCount = txs.Count;
+            _income = txs.Where(t => t.IsIncome).Sum(t => t.Amount);
+            _expense = txs.Where(t => !t.IsIncome).Sum(t => t.Amount);
+
+            var budgets = await BudgetSvc.GetAsync(first);
+            var totalBudget = budgets.Sum(b => b.Limit);
+            _usagePercent = totalBudget > 0 ? (double)(_expense / totalBudget) * 100d : 0d;
+
+            await Game.EvaluateAsync();
+            var summary = await Game.GetSummaryAsync();
+            _points = summary.Points;
+            _streak = summary.Streak;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    // navigation handled by MudLink wrappers
+}

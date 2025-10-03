@@ -1,0 +1,96 @@
+@page "/login"
+@inject IUserService Users
+@inject AuthState Auth
+@inject NavigationManager Nav
+
+<MudContainer Class="pa-6" MaxWidth="MaxWidth.ExtraSmall">
+    <MudStack Spacing="2">
+        <MudText Typo="Typo.h5" Class="mb-2">Welcome</MudText>
+        <MudText Typo="Typo.body2" Class="text-muted">Select your profile and enter PIN.</MudText>
+
+        <MudSelect T="int" Label="User" @bind-Value="_selectedUserId" Dense="true" Required="true">
+            @foreach (var u in _users)
+            {
+                <MudSelectItem Value="@u.Id">@u.Name</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudTextField @bind-Value="_pin" Label="PIN" InputType="InputType.Password" Dense="true" Required="true" Immediate="true" />
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SignIn" Disabled="@(_selectedUserId==0 || string.IsNullOrWhiteSpace(_pin))">Sign in</MudButton>
+
+        <MudDivider Class="my-4" />
+        <MudText Typo="Typo.subtitle2">New here?</MudText>
+        <MudButton Variant="Variant.Outlined" OnClick="OpenCreate">Create Profile</MudButton>
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@_error</MudAlert>
+        }
+    </MudStack>
+</MudContainer>
+
+<MudDialog @bind-IsVisible="_createOpen">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Create Profile</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="_newName" Label="Name" Required="true" />
+            <MudTextField @bind-Value="_newPin" Label="PIN" InputType="InputType.Password" Required="true" />
+            <MudTextField @bind-Value="_newPinConfirm" Label="Confirm PIN" InputType="InputType.Password" Required="true" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudSpacer />
+        <MudButton Variant="Variant.Text" OnClick="() => _createOpen=false">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="CreateUser">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<DotnetFinancialTrackerApp.Models.UserProfile> _users = new();
+    private int _selectedUserId;
+    private string _pin = string.Empty;
+    private string? _error;
+
+    private bool _createOpen = false;
+    private MudForm? _form;
+    private string _newName = string.Empty;
+    private string _newPin = string.Empty;
+    private string _newPinConfirm = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _users = await Users.GetUsersAsync();
+    }
+
+    private async Task SignIn()
+    {
+        _error = null;
+        var user = await Users.VerifyAsync(_selectedUserId, _pin);
+        if (user is null)
+        {
+            _error = "Invalid PIN";
+            return;
+        }
+        Auth.SignIn(user);
+        Nav.NavigateTo("/");
+    }
+
+    private void OpenCreate() => _createOpen = true;
+
+    private async Task CreateUser()
+    {
+        await (_form?.Validate() ?? Task.CompletedTask);
+        if (_form != null && !_form.IsValid) return;
+        if (_newPin != _newPinConfirm)
+        {
+            _error = "PINs do not match";
+            return;
+        }
+        var user = await Users.CreateAsync(_newName, _newPin);
+        _users = await Users.GetUsersAsync();
+        _selectedUserId = user.Id;
+        _createOpen = false;
+    }
+}

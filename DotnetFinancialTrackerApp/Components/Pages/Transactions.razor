@@ -1,0 +1,74 @@
+@page "/transactions"
+@inject DotnetFinancialTrackerApp.Services.ITransactionsService TxSvc
+@inject IDialogService DialogService
+
+<MudContainer Class="pa-4">
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+        <MudText Typo="Typo.h5">Transactions</MudText>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="OpenAdd">Add</MudButton>
+    </MudStack>
+
+    <MudTable Items="_items" Hover="true" Dense="true" Elevation="1">
+        <HeaderContent>
+            <MudTh>Date</MudTh>
+            <MudTh>User</MudTh>
+            <MudTh>Category</MudTh>
+            <MudTh class="text-end">Amount</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Date">@context.Date.ToShortDateString()</MudTd>
+            <MudTd DataLabel="User">@context.User</MudTd>
+            <MudTd DataLabel="Category">@context.Category</MudTd>
+            <MudTd DataLabel="Amount" Class="text-end">@((context.IsIncome ? "+" : "-") + context.Amount.ToString("C"))</MudTd>
+            <MudTd Class="text-end">
+                <MudIconButton Icon="@Icons.Material.Outlined.Edit" OnClick="() => OpenEdit(context)" />
+                <MudIconButton Icon="@Icons.Material.Outlined.Delete" Color="Color.Error" OnClick="() => Delete(context.Id)" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private List<DotnetFinancialTrackerApp.Models.Transaction> _items = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _items = await TxSvc.GetAsync();
+        StateHasChanged();
+    }
+
+    private async void OpenAdd()
+    {
+        var dialog = DialogService.Show<DotnetFinancialTrackerApp.Components.Dialogs.EditTransactionDialog>("Add Transaction");
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is DotnetFinancialTrackerApp.Models.Transaction m)
+        {
+            await TxSvc.AddAsync(m);
+            await LoadAsync();
+        }
+    }
+
+    private async void OpenEdit(DotnetFinancialTrackerApp.Models.Transaction tx)
+    {
+        var parameters = new DialogParameters { [nameof(DotnetFinancialTrackerApp.Components.Dialogs.EditTransactionDialog.Model)] = tx };
+        var dialog = DialogService.Show<DotnetFinancialTrackerApp.Components.Dialogs.EditTransactionDialog>("Edit Transaction", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is DotnetFinancialTrackerApp.Models.Transaction m)
+        {
+            await TxSvc.UpdateAsync(m);
+            await LoadAsync();
+        }
+    }
+
+    private async Task Delete(int id)
+    {
+        await TxSvc.DeleteAsync(id);
+        await LoadAsync();
+    }
+}

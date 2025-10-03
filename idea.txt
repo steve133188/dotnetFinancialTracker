@@ -1,0 +1,58 @@
+# 📘 Product Idea & Addressed Problem
+
+## 🧠 Product Title: **Family Budget & Wellbeing Companion**
+
+---
+
+## 💡 Product Idea
+
+The "Family Budget & Wellbeing Companion" is a cross-platform desktop application designed to help families better manage their daily financial activities, health reminders, and household responsibilities—all in one simple interface.
+
+Built with .NET 8 Blazor Hybrid and styled with **MudBlazor**, this app focuses on being accessible, responsive, and easy to use for all age groups in a household, including elderly members with limited tech experience.
+
+---
+
+## 🎯 Motivation
+
+Many families in today’s world face two common pain points:
+
+1. **Financial Stress** – caused by lack of visibility in family expenses, savings, and budgets.
+2. **Family Member Disconnection** – where responsibilities (such as medication reminders or daily tasks) are not clearly shared.
+
+This app acts as a shared digital assistant that helps:
+- Keep track of expenses, bills, and savings goals
+- Schedule and complete shared responsibilities (e.g. cleaning, shopping)
+- Monitor basic wellbeing data (hydration, medication reminders)
+- Export reports for budgeting or medical logs
+
+---
+
+## 🚨 Real-world Problems Addressed
+
+| Problem | Why It Matters | How We Address It |
+|--------|----------------|--------------------|
+| **Lack of Financial Transparency in Households** | Families often don't track shared expenses. This causes stress and surprise bills. | Our app allows all members to log transactions and view the collective family budget in real time. |
+| **Elderly family members can’t use complex finance or health tracking apps** | Many banking or medical apps are too complicated or require internet or phone verification. | Our app is offline-first, desktop-based with large UI components and reminders. |
+| **Families struggle with assigning and tracking daily tasks** | Tasks like grocery shopping or house cleaning often fall on one person. | Our shared task module lets each member view, complete, and get credit for daily household tasks. |
+| **No unified app to combine finance, health, and task tracking** | Using multiple apps is confusing, especially for older users. | We combine budgeting, scheduling, and health tracking into one family-focused interface. |
+
+---
+
+## 🛠️ Technical Highlights
+
+- GUI: **.NET 8 Blazor Hybrid** with responsive **MudBlazor** components
+- Storage: **SQLite** with Entity Framework Core
+- Features:
+  - Budget planner, transaction tracker
+  - Task list with assignments and completion tracking
+  - Hydration and medication daily checklist
+  - Dashboard with Pie/Bar Charts (using MudBlazor components)
+  - Export to CSV/JSON
+
+---
+
+## 🎯 Vision
+
+To empower families—regardless of age, culture, or tech experience—to maintain financial, health, and household wellbeing with one simple app that works on any desktop.
+
+Our goal is to reduce stress, improve transparency, and foster better family collaboration and communication.

@@ -1,0 +1,27 @@
+﻿<Router AppAssembly="@typeof(MauiProgram).Assembly">
+    <Found Context="routeData">
+        <ErrorBoundary>
+            <ChildContent>
+                <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
+            </ChildContent>
+            <ErrorContent>
+                <MudContainer Class="pa-4">
+                    <MudAlert Severity="Severity.Error" Elevation="0">
+                        An error occurred while loading this page.
+                        <MudButton Color="Color.Primary" Class="ms-2" Href="/">Go Home</MudButton>
+                    </MudAlert>
+                </MudContainer>
+            </ErrorContent>
+        </ErrorBoundary>
+        <FocusOnNavigate RouteData="@routeData" Selector="h1"/>
+    </Found>
+    <NotFound>
+        <LayoutView Layout="@typeof(Layout.MainLayout)">
+            <MudContainer Class="pa-4">
+                <MudText Typo="Typo.h5">Page not found</MudText>
+                <MudText Typo="Typo.body2">The page you're looking for doesn't exist.</MudText>
+                <MudButton Class="mt-3" Href="/dashboard" Color="Color.Primary">Go to Dashboard</MudButton>
+            </MudContainer>
+        </LayoutView>
+    </NotFound>
+</Router>
