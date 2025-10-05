@@ -6,87 +6,138 @@
 @inject DotnetFinancialTrackerApp.Services.IGamificationService Game
 
 <MudContainer MaxWidth="MaxWidth.False" Class="pa-6">
-    <MudStack Spacing="1" Class="mb-4">
-        <MudText Typo="Typo.h4" Class="fw-600">Welcome back</MudText>
-        <MudText Typo="Typo.caption" Class="text-muted">@_subtitle</MudText>
-    </MudStack>
+    <MudStack Spacing="3" Class="mb-6">
+        <MudStack Spacing="1">
+            <MudText Typo="Typo.h3" Class="welcome-title">Welcome back</MudText>
+            <MudText Typo="Typo.body1" Class="welcome-subtitle">@_subtitle</MudText>
+        </MudStack>
 
-    @if (!string.IsNullOrEmpty(_error))
-    {
-        <MudAlert Severity="Severity.Error" Class="mb-3">@_error</MudAlert>
-    }
-
-    <MudGrid GutterSize="GutterSize.Small" Class="nav-grid">
-        <MudItem xs="12" sm="6" md="6" lg="6">
-            <MudLink Href="/dashboard" Style="display:block;text-decoration:none;">
-            <MudCard Class="nav-card" Hover="true" Style="cursor:pointer">
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6" Class="text-muted">Insight</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudText Typo="Typo.body1" Class="text-muted">Net this month</MudText>
-                    <MudText Typo="Typo.h4">@((_income - _expense).ToString("C"))</MudText>
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <MudAlert Severity="Severity.Error" Class="alert-enhanced">@_error</MudAlert>
+        }
+        else
+        {
+            <MudCard Class="quick-stats-card" Elevation="0">
+                <MudCardContent Class="pa-4">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.caption" Class="stats-label">Monthly Overview</MudText>
+                            <MudText Typo="Typo.h5" Class="stats-value">@((_income - _expense).ToString("C"))</MudText>
+                        </MudStack>
+                        <MudStack Row="true" Spacing="2">
+                            <MudChip Color="Color.Success" Variant="Variant.Filled" Size="Size.Small">@_txCount transactions</MudChip>
+                            <MudChip Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">@_points pts</MudChip>
+                        </MudStack>
+                    </MudStack>
                 </MudCardContent>
             </MudCard>
-            </MudLink>
-        </MudItem>
+        }
+    </MudStack>
 
-        <MudItem xs="12" sm="6" md="6" lg="6">
-            <MudLink Href="/transactions" Style="display:block;text-decoration:none;">
-            <MudCard Class="nav-card" Hover="true" Style="cursor:pointer">
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6" Class="text-muted">Transactions</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudText Typo="Typo.body1" Class="text-muted">This month</MudText>
-                    <MudText Typo="Typo.h4">@_txCount items</MudText>
-                    <MudStack Row="true" Spacing="2" Class="mt-1">
-                        <MudChip Color="Color.Success" Variant="Variant.Filled">+@_income.ToString("C0")</MudChip>
-                        <MudChip Color="Color.Error" Variant="Variant.Outlined">-@_expense.ToString("C0")</MudChip>
+    <MudGrid Spacing="2" >
+        <MudItem xs="6">
+            <MudLink Href="/dashboard" Style="display:block;text-decoration:none;">
+            <MudCard Class="home-nav-card" Elevation="0">
+                <MudCardContent Class="home-card-content">
+                    <MudStack Spacing="2" AlignItems="AlignItems.Start">
+                        <MudIcon Icon="@Icons.Material.Outlined.Dashboard" Color="Color.Primary" Size="Size.Large" />
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.subtitle1" Class="card-title">Insight</MudText>
+                            <MudText Typo="Typo.body2" Class="card-subtitle">Net this month</MudText>
+                            <MudText Typo="Typo.h5" Class="card-value">@((_income - _expense).ToString("C"))</MudText>
+                        </MudStack>
                     </MudStack>
                 </MudCardContent>
             </MudCard>
             </MudLink>
         </MudItem>
 
-        <MudItem xs="12" sm="6" md="6" lg="6">
+        <MudItem xs="6">
+            <MudLink Href="/transactions" Style="display:block;text-decoration:none;">
+            <MudCard Class="home-nav-card" Elevation="0">
+                <MudCardContent Class="home-card-content">
+                    <MudStack Spacing="2" AlignItems="AlignItems.Start">
+                        <MudIcon Icon="@Icons.Material.Outlined.ReceiptLong" Color="Color.Primary" Size="Size.Large" />
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.subtitle1" Class="card-title">Transactions</MudText>
+                            <MudText Typo="Typo.body2" Class="card-subtitle">This month</MudText>
+                            <MudText Typo="Typo.h5" Class="card-value">@_txCount items</MudText>
+                            <MudStack Row="true" Spacing="1" Class="mt-1">
+                                <MudChip Color="Color.Success" Variant="Variant.Filled" Size="Size.Small">+@_income.ToString("C0")</MudChip>
+                                <MudChip Color="Color.Error" Variant="Variant.Outlined" Size="Size.Small">-@_expense.ToString("C0")</MudChip>
+                            </MudStack>
+                        </MudStack>
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+            </MudLink>
+        </MudItem>
+
+        <MudItem xs="6">
             <MudLink Href="/budgets" Style="display:block;text-decoration:none;">
-            <MudCard Class="nav-card" Hover="true" Style="cursor:pointer">
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6" Class="text-muted">Budgets</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudText Typo="Typo.body1" Class="text-muted">Usage</MudText>
-                    <MudText Typo="Typo.h4">@((_usagePercent ?? 0).ToString("0"))%</MudText>
-                    <MudProgressLinear Value="@(_usagePercent ?? 0)" Color="Color.Primary" Class="mt-2" />
+            <MudCard Class="home-nav-card" Elevation="0">
+                <MudCardContent Class="home-card-content">
+                    <MudStack Spacing="2" AlignItems="AlignItems.Start">
+                        <MudIcon Icon="@Icons.Material.Outlined.AccountBalanceWallet" Color="Color.Primary" Size="Size.Large" />
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.subtitle1" Class="card-title">Budgets</MudText>
+                            <MudText Typo="Typo.body2" Class="card-subtitle">Usage</MudText>
+                            <MudText Typo="Typo.h5" Class="card-value">@((_usagePercent ?? 0).ToString("0"))%</MudText>
+                            <MudProgressLinear Value="@(_usagePercent ?? 0)" Color="Color.Primary" Class="mt-1" Height="6" />
+                        </MudStack>
+                    </MudStack>
                 </MudCardContent>
             </MudCard>
             </MudLink>
         </MudItem>
 
-        <MudItem xs="12" sm="6" md="6" lg="6">
+        <MudItem xs="6">
             <MudLink Href="/achievements" Style="display:block;text-decoration:none;">
-            <MudCard Class="nav-card" Hover="true" Style="cursor:pointer">
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6" Class="text-muted">Achievements</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudText Typo="Typo.body1" Class="text-muted">Points • Streak</MudText>
-                    <MudText Typo="Typo.h4">@_points pts • @_streak d</MudText>
+            <MudCard Class="home-nav-card" Elevation="0">
+                <MudCardContent Class="home-card-content">
+                    <MudStack Spacing="2" AlignItems="AlignItems.Start">
+                        <MudIcon Icon="@Icons.Material.Outlined.EmojiEvents" Color="Color.Primary" Size="Size.Large" />
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.subtitle1" Class="card-title">Achievements</MudText>
+                            <MudText Typo="Typo.body2" Class="card-subtitle">Points • Streak</MudText>
+                            <MudText Typo="Typo.h5" Class="card-value">@_points pts • @_streak d</MudText>
+                        </MudStack>
+                    </MudStack>
                 </MudCardContent>
             </MudCard>
             </MudLink>
         </MudItem>
 
-        <MudItem xs="12" sm="6" md="6" lg="6">
+        <MudItem xs="6">
             <MudLink Href="/reports" Style="display:block;text-decoration:none;">
-            <MudCard Class="nav-card" Hover="true" Style="cursor:pointer">
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6" Class="text-muted">Reports</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudText Typo="Typo.body1" Class="text-muted">Export & summary</MudText>
-                    <MudText Typo="Typo.h4">CSV • JSON</MudText>
+            <MudCard Class="home-nav-card" Elevation="0">
+                <MudCardContent Class="home-card-content">
+                    <MudStack Spacing="2" AlignItems="AlignItems.Start">
+                        <MudIcon Icon="@Icons.Material.Outlined.IosShare" Color="Color.Primary" Size="Size.Large" />
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.subtitle1" Class="card-title">Reports</MudText>
+                            <MudText Typo="Typo.body2" Class="card-subtitle">Export & summary</MudText>
+                            <MudText Typo="Typo.h5" Class="card-value">CSV • JSON</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+            </MudLink>
+        </MudItem>
+
+        <MudItem xs="6">
+            <MudLink Href="/wellbeing" Style="display:block;text-decoration:none;">
+            <MudCard Class="home-nav-card" Elevation="0">
+                <MudCardContent Class="home-card-content">
+                    <MudStack Spacing="2" AlignItems="AlignItems.Start">
+                        <MudIcon Icon="@Icons.Material.Outlined.Favorite" Color="Color.Primary" Size="Size.Large" />
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.subtitle1" Class="card-title">Wellbeing</MudText>
+                            <MudText Typo="Typo.body2" Class="card-subtitle">Health & tasks</MudText>
+                            <MudText Typo="Typo.h5" Class="card-value">Track daily</MudText>
+                        </MudStack>
+                    </MudStack>
                 </MudCardContent>
             </MudCard>
             </MudLink>

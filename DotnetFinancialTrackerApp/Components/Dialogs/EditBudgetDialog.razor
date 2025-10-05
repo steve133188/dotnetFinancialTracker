@@ -6,16 +6,34 @@
         <MudText Typo="Typo.h6">@(_model.Id == 0 ? "Add Budget" : "Edit Budget")</MudText>
     </TitleContent>
     <DialogContent>
-        <MudForm @ref="_form">
-            <MudTextField @bind-Value="_model.Category" Label="Category" Required="true" />
-            <MudNumericField @bind-Value="_model.Limit" TValue="decimal" Label="Limit" Required="true" Immediate="true" />
-            <MudDatePicker @bind-Date="_month" Label="Month" />
-        </MudForm>
+        <CustomForm Title="@(_model.Id == 0 ? "Add Budget" : "Edit Budget")"
+                    Icon="<path d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'/>">
+            <div class="form-fields">
+                <CustomInput @bind-Value="_model.Category"
+                            Label="Category"
+                            Placeholder="Enter budget category"
+                            IsValid="@(string.IsNullOrEmpty(_categoryError))"
+                            ErrorMessage="@_categoryError" />
+
+                <CustomInput @bind-Value="_limitString"
+                            Label="Budget Limit"
+                            InputType="number"
+                            Placeholder="0.00"
+                            IsValid="@(string.IsNullOrEmpty(_limitError))"
+                            ErrorMessage="@_limitError" />
+
+                <CustomInput @bind-Value="_monthString"
+                            Label="Month"
+                            InputType="month"
+                            IsValid="@(string.IsNullOrEmpty(_monthError))"
+                            ErrorMessage="@_monthError" />
+            </div>
+        </CustomForm>
     </DialogContent>
     <DialogActions>
         <MudSpacer />
-        <MudButton Variant="Variant.Text" OnClick="Cancel">Cancel</MudButton>
-        <MudButton Color="Color.Primary" OnClick="Ok">Save</MudButton>
+        <CustomButton ButtonType="secondary" OnClick="Cancel">Cancel</CustomButton>
+        <CustomButton ButtonType="primary" OnClick="Ok">Save</CustomButton>
     </DialogActions>
 </MudDialog>
 
@@ -24,8 +42,12 @@
     [Parameter] public Budget? Model { get; set; }
 
     private Budget _model = new();
-    private MudForm? _form;
-    private DateTime? _month;
+    private string _limitString = "";
+    private string _monthString = "";
+
+    private string _categoryError = "";
+    private string _limitError = "";
+    private string _monthError = "";
 
     protected override void OnInitialized()
     {
@@ -39,19 +61,65 @@
                 Month = Model.Month
             };
         }
-        _month = _model.Month;
+        _limitString = _model.Limit.ToString("F2");
+        _monthString = _model.Month.ToString("yyyy-MM");
     }
 
     private void Cancel() => MudDialog.Cancel();
+
     private async Task Ok()
     {
-        if (_form is not null)
+        ClearErrors();
+
+        if (!ValidateForm())
         {
-            await _form.Validate();
-            if (!_form.IsValid) return;
+            StateHasChanged();
+            return;
         }
-        _model.Month = _month ?? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+
+        if (decimal.TryParse(_limitString, out var limit))
+        {
+            _model.Limit = limit;
+        }
+
+        if (DateTime.TryParse(_monthString + "-01", out var month))
+        {
+            _model.Month = new DateTime(month.Year, month.Month, 1);
+        }
+
         MudDialog.Close(DialogResult.Ok(_model));
+    }
+
+    private void ClearErrors()
+    {
+        _categoryError = "";
+        _limitError = "";
+        _monthError = "";
+    }
+
+    private bool ValidateForm()
+    {
+        bool isValid = true;
+
+        if (string.IsNullOrWhiteSpace(_model.Category))
+        {
+            _categoryError = "Category is required";
+            isValid = false;
+        }
+
+        if (!decimal.TryParse(_limitString, out var limit) || limit <= 0)
+        {
+            _limitError = "Please enter a valid budget limit greater than 0";
+            isValid = false;
+        }
+
+        if (!DateTime.TryParse(_monthString + "-01", out _))
+        {
+            _monthError = "Please select a valid month";
+            isValid = false;
+        }
+
+        return isValid;
     }
 }
 

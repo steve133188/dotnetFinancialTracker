@@ -1,0 +1,74 @@
+@using Microsoft.AspNetCore.Components
+
+<div class="custom-input-group">
+    <label class="custom-input-label">@Label</label>
+    <div class="custom-select-wrapper" @onclick="ToggleDropdown">
+        <div class="custom-select-field @(IsValid ? "" : "invalid")">
+            <span class="select-value">@GetDisplayText()</span>
+            <svg class="select-arrow @(IsOpen ? "open" : "")" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M7 10l5 5 5-5z"/>
+            </svg>
+        </div>
+        @if (IsOpen)
+        {
+            <div class="custom-dropdown-list">
+                @if (Options != null)
+                {
+                    @foreach (var option in Options)
+                    {
+                        <div class="custom-dropdown-item @((option.Value?.ToString() == SelectedValue) ? "selected" : string.Empty)"
+                             @onclick="() => HandleSelect(option.Value?.ToString() ?? string.Empty)">
+                            @option.Text
+                        </div>
+                    }
+                }
+            </div>
+        }
+    </div>
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="custom-input-error">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+            </svg>
+            @ErrorMessage
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string SelectedValue { get; set; } = "";
+    [Parameter] public string Placeholder { get; set; } = "Select an option";
+    [Parameter] public bool IsValid { get; set; } = true;
+    [Parameter] public string ErrorMessage { get; set; } = "";
+    [Parameter] public List<SelectOption> Options { get; set; } = new();
+    [Parameter] public EventCallback<string> SelectedValueChanged { get; set; }
+
+    private bool IsOpen = false;
+
+    public class SelectOption
+    {
+        public string Text { get; set; } = "";
+        public object? Value { get; set; }
+    }
+
+    private string GetDisplayText()
+    {
+        var option = Options?.FirstOrDefault(o => o.Value?.ToString() == SelectedValue);
+        return option?.Text ?? Placeholder;
+    }
+
+    private void ToggleDropdown()
+    {
+        IsOpen = !IsOpen;
+    }
+
+    private async Task HandleSelect(string value)
+    {
+        SelectedValue = value;
+        IsOpen = false;
+        await SelectedValueChanged.InvokeAsync(value);
+        StateHasChanged();
+    }
+}

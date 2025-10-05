@@ -3,47 +3,120 @@
 @inject AuthState Auth
 @inject NavigationManager Nav
 
-<MudContainer Class="pa-6" MaxWidth="MaxWidth.ExtraSmall">
-    <MudStack Spacing="2">
-        <MudText Typo="Typo.h5" Class="mb-2">Welcome</MudText>
-        <MudText Typo="Typo.body2" Class="text-muted">Select your profile and enter PIN.</MudText>
+<div class="login-page">
+    <div class="login-form-wrapper">
+        <div class="login-header">
+            <div class="app-icon">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+            </div>
+            <h1 class="login-title">Welcome Back</h1>
+            <p class="login-subtitle">Sign in to your account</p>
+        </div>
 
-        <MudSelect T="int" Label="User" @bind-Value="_selectedUserId" Dense="true" Required="true">
-            @foreach (var u in _users)
-            {
-                <MudSelectItem Value="@u.Id">@u.Name</MudSelectItem>
-            }
-        </MudSelect>
+        <div class="login-form">
+            <div class="input-group">
+                <label class="input-label">Select User</label>
+                <div class="custom-select" @onclick="ToggleUserDropdown">
+                    <span class="select-value">@GetSelectedUserName()</span>
+                    <svg class="select-arrow" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M7 10l5 5 5-5z"/>
+                    </svg>
+                </div>
+                @if (_showUserDropdown)
+                {
+                    <div class="dropdown-list">
+                        @foreach (var user in _users)
+                        {
+                            <div class="dropdown-item @(user.Id == _selectedUserId ? "selected" : "")"
+                                 @onclick="() => SelectUser(user.Id)">
+                                @user.Name
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
 
-        <MudTextField @bind-Value="_pin" Label="PIN" InputType="InputType.Password" Dense="true" Required="true" Immediate="true" />
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SignIn" Disabled="@(_selectedUserId==0 || string.IsNullOrWhiteSpace(_pin))">Sign in</MudButton>
+            <div class="input-group">
+                <label class="input-label">PIN Code</label>
+                <input type="password"
+                       class="custom-input"
+                       placeholder="Enter your PIN"
+                       @bind="_pin"
+                       @oninput="OnPinInput" />
+            </div>
 
-        <MudDivider Class="my-4" />
-        <MudText Typo="Typo.subtitle2">New here?</MudText>
-        <MudButton Variant="Variant.Outlined" OnClick="OpenCreate">Create Profile</MudButton>
+            <button class="login-btn @(CanSignIn() ? "enabled" : "disabled")"
+                    @onclick="SignIn"
+                    disabled="@(!CanSignIn())">
+                Sign In
+            </button>
+        </div>
+
+        <div class="divider">
+            <span>or</span>
+        </div>
+
+        <button class="create-btn" @onclick="OpenCreate">
+            Create New Account
+        </button>
 
         @if (!string.IsNullOrEmpty(_error))
         {
-            <MudAlert Severity="Severity.Error" Class="mt-3">@_error</MudAlert>
+            <div class="error-message">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                </svg>
+                @_error
+            </div>
         }
-    </MudStack>
-</MudContainer>
+    </div>
+</div>
 
-<MudDialog @bind-IsVisible="_createOpen">
+<MudDialog @bind-IsVisible="_createOpen" Class="create-dialog">
     <TitleContent>
-        <MudText Typo="Typo.h6">Create Profile</MudText>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Outlined.PersonAdd" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">Create New Profile</MudText>
+        </MudStack>
     </TitleContent>
     <DialogContent>
         <MudForm @ref="_form">
-            <MudTextField @bind-Value="_newName" Label="Name" Required="true" />
-            <MudTextField @bind-Value="_newPin" Label="PIN" InputType="InputType.Password" Required="true" />
-            <MudTextField @bind-Value="_newPinConfirm" Label="Confirm PIN" InputType="InputType.Password" Required="true" />
+            <MudStack Spacing="3">
+                <MudTextField @bind-Value="_newName"
+                              Label="Full Name"
+                              Required="true"
+                              Variant="Variant.Outlined"
+                              Class="login-input" />
+                <MudTextField @bind-Value="_newPin"
+                              Label="Create PIN"
+                              InputType="InputType.Password"
+                              Required="true"
+                              Variant="Variant.Outlined"
+                              Class="login-input" />
+                <MudTextField @bind-Value="_newPinConfirm"
+                              Label="Confirm PIN"
+                              InputType="InputType.Password"
+                              Required="true"
+                              Variant="Variant.Outlined"
+                              Class="login-input" />
+            </MudStack>
         </MudForm>
     </DialogContent>
     <DialogActions>
         <MudSpacer />
-        <MudButton Variant="Variant.Text" OnClick="() => _createOpen=false">Cancel</MudButton>
-        <MudButton Color="Color.Primary" OnClick="CreateUser">Create</MudButton>
+        <MudButton Variant="Variant.Text"
+                   OnClick="() => _createOpen=false"
+                   Class="cancel-button">
+            Cancel
+        </MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="CreateUser"
+                   Class="create-action-button">
+            Create Profile
+        </MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -52,6 +125,7 @@
     private int _selectedUserId;
     private string _pin = string.Empty;
     private string? _error;
+    private bool _showUserDropdown = false;
 
     private bool _createOpen = false;
     private MudForm? _form;
@@ -64,13 +138,44 @@
         _users = await Users.GetUsersAsync();
     }
 
+    private string GetSelectedUserName()
+    {
+        var user = _users.FirstOrDefault(u => u.Id == _selectedUserId);
+        return user?.Name ?? "Choose a user";
+    }
+
+    private void ToggleUserDropdown()
+    {
+        _showUserDropdown = !_showUserDropdown;
+    }
+
+    private void SelectUser(int userId)
+    {
+        _selectedUserId = userId;
+        _showUserDropdown = false;
+        StateHasChanged();
+    }
+
+    private void OnPinInput(ChangeEventArgs e)
+    {
+        _pin = e.Value?.ToString() ?? string.Empty;
+        _error = null;
+    }
+
+    private bool CanSignIn()
+    {
+        return _selectedUserId > 0 && !string.IsNullOrWhiteSpace(_pin);
+    }
+
     private async Task SignIn()
     {
+        if (!CanSignIn()) return;
+
         _error = null;
         var user = await Users.VerifyAsync(_selectedUserId, _pin);
         if (user is null)
         {
-            _error = "Invalid PIN";
+            _error = "Invalid PIN code. Please try again.";
             return;
         }
         Auth.SignIn(user);

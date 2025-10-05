@@ -5,25 +5,35 @@
 <MudSnackbarProvider />
 
 <MudLayout class="@(Ui.IsKiosk ? "kiosk" : null)">
-    <MudAppBar Color="Color.Primary" Elevation="4">
+    <MudAppBar Color="Color.Primary" Elevation="0" Class="desktop-appbar">
         @if (!string.IsNullOrEmpty(Nav.ToBaseRelativePath(Nav.Uri)) && !Nav.Uri.EndsWith("/login", StringComparison.OrdinalIgnoreCase))
         {
-            <MudIconButton Icon="@Icons.Material.Outlined.ArrowBack" Color="Color.Inherit" Edge="Edge.Start" OnClick="BackToHome" />
+            <MudIconButton Icon="@Icons.Material.Outlined.ArrowBack" Color="Color.Inherit" Edge="Edge.Start" OnClick="BackToHome" Size="Size.Medium" />
         }
-        <MudText Typo="Typo.h6" Class="ms-2">Financial Tracker</MudText>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="ms-2">
+            <MudIcon Icon="@Icons.Material.Outlined.AccountBalance" Color="Color.Inherit" Size="Size.Medium" />
+            <MudText Typo="Typo.h6" Class="app-title">Family Budget Companion</MudText>
+        </MudStack>
         <MudSpacer />
-        <MudIconButton Icon="@Icons.Material.Outlined.SmartDisplay" Color="Color.Inherit" Title="Kiosk Mode" OnClick="ToggleKiosk" />
-        <MudMenu Icon="@Icons.Material.Outlined.AccountCircle" AnchorOrigin="Origin.TopRight" TransformOrigin="Origin.TopRight">
-            <MudMenuItem Disabled="true">@UserDisplay</MudMenuItem>
-            <MudDivider />
-            <MudMenuItem Href="/">Home</MudMenuItem>
-            <MudMenuItem Disabled="true">Profile (soon)</MudMenuItem>
-            <MudMenuItem OnClick="SignOut">Sign out</MudMenuItem>
-        </MudMenu>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+            <MudIconButton Icon="@Icons.Material.Outlined.SmartDisplay" Color="Color.Inherit" Title="Kiosk Mode" OnClick="ToggleKiosk" Size="Size.Medium" />
+            <MudMenu Icon="@Icons.Material.Outlined.AccountCircle" AnchorOrigin="Origin.TopRight" TransformOrigin="Origin.TopRight" Color="Color.Inherit">
+                <MudMenuItem Disabled="true">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudAvatar Color="Color.Primary" Size="Size.Small">@(Auth.CurrentUser?.Name?.Substring(0, 1).ToUpper())</MudAvatar>
+                        <MudText>@UserDisplay</MudText>
+                    </MudStack>
+                </MudMenuItem>
+                <MudDivider />
+                <MudMenuItem Href="/" Icon="@Icons.Material.Outlined.Home">Home</MudMenuItem>
+                <MudMenuItem Disabled="true" Icon="@Icons.Material.Outlined.Person">Profile (soon)</MudMenuItem>
+                <MudMenuItem OnClick="SignOut" Icon="@Icons.Material.Outlined.Logout">Sign out</MudMenuItem>
+            </MudMenu>
+        </MudStack>
     </MudAppBar>
 
-    <MudMainContent>
-        <MudContainer Class="pa-4">
+    <MudMainContent Class="main-content-enhanced">
+        <MudContainer Class="main-container" MaxWidth="MaxWidth.ExtraLarge">
             @Body
         </MudContainer>
     </MudMainContent>

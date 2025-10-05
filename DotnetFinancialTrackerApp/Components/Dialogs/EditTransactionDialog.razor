@@ -5,19 +5,62 @@
         <MudText Typo="Typo.h6">@(_model.Id == 0 ? "Add Transaction" : "Edit Transaction")</MudText>
     </TitleContent>
     <DialogContent>
-        <MudForm @ref="_form">
-            <MudTextField @bind-Value="_model.User" Label="User" Required="true" />
-            <MudTextField @bind-Value="_model.Category" Label="Category" Required="true" />
-            <MudNumericField @bind-Value="_model.Amount" TValue="decimal" Label="Amount" Required="true" Immediate="true" />
-            <MudDatePicker @bind-Date="_date" Label="Date" />
-            <MudSwitch @bind-Checked="_model.IsIncome" Color="Color.Success">Income</MudSwitch>
-            <MudTextField @bind-Value="_model.Description" Label="Description" />
-        </MudForm>
+        <CustomForm Title="@(_model.Id == 0 ? "Add Transaction" : "Edit Transaction")"
+                    Icon="<path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'/>">
+            <div class="form-fields">
+                <CustomInput @bind-Value="_model.User"
+                            Label="User"
+                            Placeholder="Enter user name"
+                            IsValid="@(string.IsNullOrEmpty(_userError))"
+                            ErrorMessage="@_userError" />
+
+                <CustomInput @bind-Value="_model.Category"
+                            Label="Category"
+                            Placeholder="Enter category"
+                            IsValid="@(string.IsNullOrEmpty(_categoryError))"
+                            ErrorMessage="@_categoryError" />
+
+                <CustomInput @bind-Value="_amountString"
+                            Label="Amount"
+                            InputType="number"
+                            Placeholder="0.00"
+                            IsValid="@(string.IsNullOrEmpty(_amountError))"
+                            ErrorMessage="@_amountError" />
+
+                <CustomInput @bind-Value="_dateString"
+                            Label="Date"
+                            InputType="date"
+                            IsValid="@(string.IsNullOrEmpty(_dateError))"
+                            ErrorMessage="@_dateError" />
+
+                <div class="custom-input-group">
+                    <label class="custom-input-label">Type</label>
+                    <div class="income-toggle" @onclick="ToggleIncomeType">
+                        <div class="toggle-option @(_model.IsIncome ? "" : "active")">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>
+                            </svg>
+                            Expense
+                        </div>
+                        <div class="toggle-option @(_model.IsIncome ? "active" : "")">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>
+                            </svg>
+                            Income
+                        </div>
+                    </div>
+                </div>
+
+                <CustomInput @bind-Value="_model.Description"
+                            Label="Description"
+                            Placeholder="Enter description (optional)" />
+            </div>
+        </CustomForm>
     </DialogContent>
     <DialogActions>
         <MudSpacer />
-        <MudButton Variant="Variant.Text" OnClick="Cancel">Cancel</MudButton>
-        <MudButton Color="Color.Primary" OnClick="Ok">Save</MudButton>
+        <CustomButton ButtonType="secondary" OnClick="Cancel">Cancel</CustomButton>
+        <CustomButton ButtonType="primary" OnClick="Ok">Save</CustomButton>
     </DialogActions>
 </MudDialog>
 
@@ -26,8 +69,13 @@
     [Parameter] public Transaction? Model { get; set; }
 
     private Transaction _model = new();
-    private MudForm? _form;
-    private DateTime? _date;
+    private string _amountString = "";
+    private string _dateString = "";
+
+    private string _userError = "";
+    private string _categoryError = "";
+    private string _amountError = "";
+    private string _dateError = "";
 
     protected override void OnInitialized()
     {
@@ -44,19 +92,76 @@
                 IsIncome = Model.IsIncome
             };
         }
-        _date = _model.Date;
+        _amountString = _model.Amount.ToString("F2");
+        _dateString = _model.Date.ToString("yyyy-MM-dd");
+    }
+
+    private void ToggleIncomeType()
+    {
+        _model.IsIncome = !_model.IsIncome;
     }
 
     private void Cancel() => MudDialog.Cancel();
 
     private async Task Ok()
     {
-        if (_form is not null)
+        ClearErrors();
+
+        if (!ValidateForm())
         {
-            await _form.Validate();
-            if (!_form.IsValid) return;
+            StateHasChanged();
+            return;
         }
-        _model.Date = _date ?? DateTime.Today;
+
+        if (decimal.TryParse(_amountString, out var amount))
+        {
+            _model.Amount = amount;
+        }
+
+        if (DateTime.TryParse(_dateString, out var date))
+        {
+            _model.Date = date;
+        }
+
         MudDialog.Close(DialogResult.Ok(_model));
+    }
+
+    private void ClearErrors()
+    {
+        _userError = "";
+        _categoryError = "";
+        _amountError = "";
+        _dateError = "";
+    }
+
+    private bool ValidateForm()
+    {
+        bool isValid = true;
+
+        if (string.IsNullOrWhiteSpace(_model.User))
+        {
+            _userError = "User is required";
+            isValid = false;
+        }
+
+        if (string.IsNullOrWhiteSpace(_model.Category))
+        {
+            _categoryError = "Category is required";
+            isValid = false;
+        }
+
+        if (!decimal.TryParse(_amountString, out var amount) || amount <= 0)
+        {
+            _amountError = "Please enter a valid amount greater than 0";
+            isValid = false;
+        }
+
+        if (!DateTime.TryParse(_dateString, out _))
+        {
+            _dateError = "Please enter a valid date";
+            isValid = false;
+        }
+
+        return isValid;
     }
 }
