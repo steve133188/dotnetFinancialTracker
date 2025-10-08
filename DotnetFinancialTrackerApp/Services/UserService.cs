@@ -14,6 +14,8 @@ public class UserService : IUserService
 
     public Task<List<UserProfile>> GetUsersAsync() => _db.Users.OrderBy(u => u.Name).ToListAsync();
 
+    public Task<UserProfile?> GetByIdAsync(int userId) => _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+
     public async Task<UserProfile> CreateAsync(string name, string pin)
     {
         var salt = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
@@ -32,6 +34,34 @@ public class UserService : IUserService
         return string.Equals(hash, user.PinHash, StringComparison.Ordinal) ? user : null;
     }
 
+    public async Task<UserProfile?> UpdateNameAsync(int userId, string name)
+    {
+        var trimmed = name.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed)) return null;
+
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        if (user is null) return null;
+
+        user.Name = trimmed;
+        await _db.SaveChangesAsync();
+        return user;
+    }
+
+    public async Task<bool> UpdatePinAsync(int userId, string currentPin, string newPin)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        if (user is null) return false;
+
+        var currentHash = HashPin(currentPin, user.Salt);
+        if (!string.Equals(currentHash, user.PinHash, StringComparison.Ordinal)) return false;
+
+        var newSalt = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
+        user.Salt = newSalt;
+        user.PinHash = HashPin(newPin, newSalt);
+        await _db.SaveChangesAsync();
+        return true;
+    }
+
     private static string HashPin(string pin, string salt)
     {
         using var sha = SHA256.Create();
@@ -40,4 +70,3 @@ public class UserService : IUserService
         return Convert.ToBase64String(hash);
     }
 }
-

@@ -1,4 +1,5 @@
 @page "/transactions"
+@using MudBlazor
 @inject DotnetFinancialTrackerApp.Services.ITransactionsService TxSvc
 @inject IDialogService DialogService
 
@@ -43,9 +44,11 @@
         StateHasChanged();
     }
 
+    private readonly DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true, Position = DialogPosition.Center };
+
     private async void OpenAdd()
     {
-        var dialog = DialogService.Show<DotnetFinancialTrackerApp.Components.Dialogs.EditTransactionDialog>("Add Transaction");
+        var dialog = DialogService.Show<DotnetFinancialTrackerApp.Components.Dialogs.EditTransactionDialog>("Add Transaction", _dialogOptions);
         var result = await dialog.Result;
         if (!result.Canceled && result.Data is DotnetFinancialTrackerApp.Models.Transaction m)
         {
@@ -57,7 +60,7 @@
     private async void OpenEdit(DotnetFinancialTrackerApp.Models.Transaction tx)
     {
         var parameters = new DialogParameters { [nameof(DotnetFinancialTrackerApp.Components.Dialogs.EditTransactionDialog.Model)] = tx };
-        var dialog = DialogService.Show<DotnetFinancialTrackerApp.Components.Dialogs.EditTransactionDialog>("Edit Transaction", parameters);
+        var dialog = DialogService.Show<DotnetFinancialTrackerApp.Components.Dialogs.EditTransactionDialog>("Edit Transaction", parameters, _dialogOptions);
         var result = await dialog.Result;
         if (!result.Canceled && result.Data is DotnetFinancialTrackerApp.Models.Transaction m)
         {

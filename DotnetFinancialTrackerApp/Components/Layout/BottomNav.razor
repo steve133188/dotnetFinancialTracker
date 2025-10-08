@@ -1,28 +1,124 @@
+@using Microsoft.AspNetCore.Components.Routing
+@using DotnetFinancialTrackerApp.Components.Dialogs
+@using DotnetFinancialTrackerApp.Components.Layout
 @inject NavigationManager Nav
-@inject DotnetFinancialTrackerApp.Services.UiState Ui
+@inject IDialogService DialogService
+@implements IDisposable
 
 <MudPaper Class="bottom-nav" Elevation="0">
-    <MudStack Row="true" Justify="Justify.SpaceAround" AlignItems="AlignItems.Center">
-        @foreach (var item in _items)
-        {
-            var active = Nav.Uri.EndsWith(item.Href, StringComparison.OrdinalIgnoreCase);
-            <MudButton Class="@GetClass(active)" Variant="Variant.Text" OnClick="() => Nav.NavigateTo(item.Href)">
-                <MudIcon Icon="@item.Icon" Size="Size.Medium" />
-                <div class="label">@item.Label</div>
-            </MudButton>
-        }
-    </MudStack>
+    <div class="bottom-nav-inner">
+        <div class="bottom-nav-group">
+            @foreach (var item in _leftItems)
+            {
+                var active = IsActive(item.Href);
+                <MudButton Class="@GetClass(active)" Variant="Variant.Text" OnClick="@(() => Navigate(item.Href))">
+                    <MudIcon Icon="@item.Icon" Size="Size.Medium" />
+                    <div class="label">@item.Label</div>
+                </MudButton>
+            }
+        </div>
+
+        <div class="bottom-nav-quick">
+            <MudFab Color="Color.Dark" Size="Size.Large" Variant="Variant.Filled" Class="quick-fab-dark" OnClick="OpenQuickActions" Label="K"/>
+        </div>
+
+        <div class="bottom-nav-group">
+            @foreach (var item in _rightItems)
+            {
+                var active = IsActive(item.Href);
+                <MudButton Class="@GetClass(active)" Variant="Variant.Text" OnClick="@(() => Navigate(item.Href))">
+                    <MudIcon Icon="@item.Icon" Size="Size.Medium" />
+                    <div class="label">@item.Label</div>
+                </MudButton>
+            }
+        </div>
+    </div>
 </MudPaper>
 
 @code {
-    private readonly (string Label, string Href, string Icon)[] _items = new[]
+    private readonly NavItem[] _leftItems =
     {
-        ("Dashboard", "/dashboard", Icons.Material.Outlined.Dashboard),
-        ("Tx", "/transactions", Icons.Material.Outlined.ReceiptLong),
-        ("Budgets", "/budgets", Icons.Material.Outlined.AccountBalanceWallet),
-        ("Wins", "/achievements", Icons.Material.Outlined.EmojiEvents),
-        ("Reports", "/reports", Icons.Material.Outlined.IosShare)
+        new("Home", "/", Icons.Material.Filled.Home),
+        new("Finance", "/finance", Icons.Material.Filled.AccountBalance)
     };
 
-    private static string GetClass(bool active) => "bottom-nav-btn" + (active ? " active" : string.Empty);
+    private readonly NavItem[] _rightItems =
+    {
+        new("Wellbeing", "/wellbeing", Icons.Material.Filled.Spa),
+        new("Insight", "/reports", Icons.Material.Filled.QueryStats)
+    };
+
+    private string _currentPath = string.Empty;
+    private readonly QuickActionOption[] _quickActions =
+    {
+        new("New transaction", "Capture income or expense in seconds.", Icons.Material.Filled.Payments, "/transactions?new=1"),
+        new("Adjust budgets", "Rebalance categories to stay on target.", Icons.Material.Filled.AccountBalanceWallet, "/budgets"),
+        new("Review insights", "Chat through budgets and spending filters.", Icons.Material.Filled.QueryStats, "/reports"),
+        new("Log wellbeing ritual", "Track the latest family wellbeing activity.", Icons.Material.Filled.SelfImprovement, "/wellbeing")
+    };
+
+    protected override void OnInitialized()
+    {
+        UpdatePath();
+        Nav.LocationChanged += HandleLocationChanged;
+    }
+
+    private void HandleLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        UpdatePath();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void Navigate(string href) => Nav.NavigateTo(href);
+
+    private bool IsActive(string href)
+    {
+        return Normalize(href) == _currentPath;
+    }
+
+    private void UpdatePath()
+    {
+        var relative = Nav.ToBaseRelativePath(Nav.Uri);
+        _currentPath = Normalize(relative);
+    }
+
+    private static string Normalize(string path)
+    {
+        var clean = path.Split('?', '#')[0];
+        var trimmed = clean.Trim('/');
+        if (string.IsNullOrEmpty(trimmed)) return "/";
+        return "/" + trimmed.ToLowerInvariant();
+    }
+
+    private static string GetClass(bool active) => active ? "bottom-nav-btn active" : "bottom-nav-btn";
+
+    private async Task OpenQuickActions()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(QuickActionsDialog.Actions)] = _quickActions
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            Position = DialogPosition.Center,
+            CloseOnEscapeKey = true,
+            DisableBackdropClick = false
+        };
+
+        var dialog = DialogService.Show<QuickActionsDialog>("Quick actions", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is QuickActionOption action)
+        {
+            Navigate(action.Route);
+        }
+    }
+
+    public void Dispose()
+    {
+        Nav.LocationChanged -= HandleLocationChanged;
+    }
+
+    private readonly record struct NavItem(string Label, string Href, string Icon);
 }

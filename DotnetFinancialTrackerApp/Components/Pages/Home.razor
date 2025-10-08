@@ -1,177 +1,270 @@
-﻿@page "/"
-
+@page "/"
+@using System.Globalization
+@using DotnetFinancialTrackerApp.Models
 @inject NavigationManager Nav
+@inject AuthState Auth
 @inject DotnetFinancialTrackerApp.Services.ITransactionsService TxSvc
 @inject DotnetFinancialTrackerApp.Services.IBudgetsService BudgetSvc
 @inject DotnetFinancialTrackerApp.Services.IGamificationService Game
 
-<MudContainer MaxWidth="MaxWidth.False" Class="pa-6">
-    <MudStack Spacing="3" Class="mb-6">
-        <MudStack Spacing="1">
-            <MudText Typo="Typo.h3" Class="welcome-title">Welcome back</MudText>
-            <MudText Typo="Typo.body1" Class="welcome-subtitle">@_subtitle</MudText>
-        </MudStack>
+<MudContainer Class="home-shell" MaxWidth="MaxWidth.False">
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <MudAlert Severity="Severity.Error" Elevation="0" Class="mb-3">
+            @_error
+        </MudAlert>
+    }
 
-        @if (!string.IsNullOrEmpty(_error))
-        {
-            <MudAlert Severity="Severity.Error" Class="alert-enhanced">@_error</MudAlert>
-        }
-        else
-        {
-            <MudCard Class="quick-stats-card" Elevation="0">
-                <MudCardContent Class="pa-4">
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudStack Spacing="1">
-                            <MudText Typo="Typo.caption" Class="stats-label">Monthly Overview</MudText>
-                            <MudText Typo="Typo.h5" Class="stats-value">@((_income - _expense).ToString("C"))</MudText>
-                        </MudStack>
-                        <MudStack Row="true" Spacing="2">
-                            <MudChip Color="Color.Success" Variant="Variant.Filled" Size="Size.Small">@_txCount transactions</MudChip>
-                            <MudChip Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">@_points pts</MudChip>
-                        </MudStack>
+    <MudGrid Class="metrics-grid" Gutter="GutterSize.Small">
+        <MudItem xs="12">
+            <MudPaper Elevation="1" Class="home-hero glass-card">
+                <MudStack Row="true" Wrap="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Spacing="3">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.caption" Class="home-hero-overline">@CurrentPeriodLabel · Hello @GreetingName</MudText>
+                        <MudText Typo="Typo.h4" Class="home-hero-balance">@NetBalance.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                        <MudText Typo="Typo.body2" Class="home-hero-sub">Net cashflow after income and spending</MudText>
                     </MudStack>
-                </MudCardContent>
-            </MudCard>
-        }
-    </MudStack>
-
-    <MudGrid Spacing="2" >
-        <MudItem xs="6">
-            <MudLink Href="/dashboard" Style="display:block;text-decoration:none;">
-            <MudCard Class="home-nav-card" Elevation="0">
-                <MudCardContent Class="home-card-content">
-                    <MudStack Spacing="2" AlignItems="AlignItems.Start">
-                        <MudIcon Icon="@Icons.Material.Outlined.Dashboard" Color="Color.Primary" Size="Size.Large" />
-                        <MudStack Spacing="1">
-                            <MudText Typo="Typo.subtitle1" Class="card-title">Insight</MudText>
-                            <MudText Typo="Typo.body2" Class="card-subtitle">Net this month</MudText>
-                            <MudText Typo="Typo.h5" Class="card-value">@((_income - _expense).ToString("C"))</MudText>
-                        </MudStack>
+                    <MudStack Row="true" Wrap="true" Spacing="2" Class="home-hero-chips">
+                        <MudChip Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Medium">Savings rate @SavingsRate.ToString("P0", CultureInfo.CurrentCulture)</MudChip>
+                        <MudChip Color="Color.Secondary" Variant="Variant.Outlined" Size="Size.Medium">@_txCount transactions</MudChip>
+                        <MudChip Color="Color.Primary" Variant="Variant.Filled" Size="Size.Medium">@_summary.Points pts • @_summary.Streak d streak</MudChip>
                     </MudStack>
-                </MudCardContent>
-            </MudCard>
-            </MudLink>
+                </MudStack>
+            </MudPaper>
         </MudItem>
 
-        <MudItem xs="6">
-            <MudLink Href="/transactions" Style="display:block;text-decoration:none;">
-            <MudCard Class="home-nav-card" Elevation="0">
-                <MudCardContent Class="home-card-content">
-                    <MudStack Spacing="2" AlignItems="AlignItems.Start">
-                        <MudIcon Icon="@Icons.Material.Outlined.ReceiptLong" Color="Color.Primary" Size="Size.Large" />
-                        <MudStack Spacing="1">
-                            <MudText Typo="Typo.subtitle1" Class="card-title">Transactions</MudText>
-                            <MudText Typo="Typo.body2" Class="card-subtitle">This month</MudText>
-                            <MudText Typo="Typo.h5" Class="card-value">@_txCount items</MudText>
-                            <MudStack Row="true" Spacing="1" Class="mt-1">
-                                <MudChip Color="Color.Success" Variant="Variant.Filled" Size="Size.Small">+@_income.ToString("C0")</MudChip>
-                                <MudChip Color="Color.Error" Variant="Variant.Outlined" Size="Size.Small">-@_expense.ToString("C0")</MudChip>
-                            </MudStack>
-                        </MudStack>
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="0" Class="metric-card glass-card">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.caption" Class="metric-overline">Cash inflow</MudText>
+                    <MudText Typo="Typo.h5" Class="metric-value">@_income.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                    <MudText Typo="Typo.body2" Class="metric-sub">This month's recorded income</MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="0" Class="metric-card glass-card">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.caption" Class="metric-overline">Cash outflow</MudText>
+                    <MudText Typo="Typo.h5" Class="metric-value">@_expense.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                    <MudText Typo="Typo.body2" Class="metric-sub">Household spending this month</MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="0" Class="metric-card glass-card">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.caption" Class="metric-overline">Average ticket</MudText>
+                    <MudText Typo="Typo.h5" Class="metric-value">@AverageTicket.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                    <MudText Typo="Typo.body2" Class="metric-sub">Per transaction across @_txCount entries</MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Class="home-content-grid" Gutter="GutterSize.Small">
+        <MudItem xs="12" md="7">
+            <MudPaper Elevation="0" Class="home-panel glass-card">
+                <MudStack Spacing="1">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.h6" Class="panel-title">Budget status</MudText>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Href="/budgets">Manage budgets</MudButton>
                     </MudStack>
-                </MudCardContent>
-            </MudCard>
-            </MudLink>
+
+                    @if (_budgetStatuses.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2">Create budgets to see progress for the current month.</MudText>
+                    }
+                    else
+                    {
+                        <MudTable Items="_budgetStatuses" Dense="true" Hover="true">
+                            <HeaderContent>
+                                <MudTh>Category</MudTh>
+                                <MudTh class="text-end">Limit</MudTh>
+                                <MudTh class="text-end">Spent</MudTh>
+                                <MudTh class="text-end">Usage</MudTh>
+                                <MudTh class="text-end">Remaining</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd>@context.Category</MudTd>
+                                <MudTd Class="text-end">@context.Limit.ToString("C0", CultureInfo.CurrentCulture)</MudTd>
+                                <MudTd Class="text-end">@context.Spent.ToString("C0", CultureInfo.CurrentCulture)</MudTd>
+                                <MudTd Class="text-end">
+                                    <MudProgressLinear Value="@context.Usage" Color="@(context.Spent <= context.Limit ? Color.Success : Color.Error)" Class="category-progress" />
+                                </MudTd>
+                                <MudTd Class="text-end">
+                                    @if (context.Spent <= context.Limit)
+                                    {
+                                        <MudChip Color="Color.Success" Variant="Variant.Outlined" Size="Size.Small">@((context.Limit - context.Spent).ToString("C0", CultureInfo.CurrentCulture)) left</MudChip>
+                                    }
+                                    else
+                                    {
+                                        <MudChip Color="Color.Error" Variant="Variant.Outlined" Size="Size.Small">@((context.Spent - context.Limit).ToString("C0", CultureInfo.CurrentCulture)) over</MudChip>
+                                    }
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+                </MudStack>
+            </MudPaper>
         </MudItem>
 
-        <MudItem xs="6">
-            <MudLink Href="/budgets" Style="display:block;text-decoration:none;">
-            <MudCard Class="home-nav-card" Elevation="0">
-                <MudCardContent Class="home-card-content">
-                    <MudStack Spacing="2" AlignItems="AlignItems.Start">
-                        <MudIcon Icon="@Icons.Material.Outlined.AccountBalanceWallet" Color="Color.Primary" Size="Size.Large" />
-                        <MudStack Spacing="1">
-                            <MudText Typo="Typo.subtitle1" Class="card-title">Budgets</MudText>
-                            <MudText Typo="Typo.body2" Class="card-subtitle">Usage</MudText>
-                            <MudText Typo="Typo.h5" Class="card-value">@((_usagePercent ?? 0).ToString("0"))%</MudText>
-                            <MudProgressLinear Value="@(_usagePercent ?? 0)" Color="Color.Primary" Class="mt-1" Height="6" />
-                        </MudStack>
+        <MudItem xs="12" md="5">
+            <MudPaper Elevation="0" Class="home-panel glass-card">
+                <MudText Typo="Typo.h6" Class="panel-title">Top spending categories</MudText>
+                @if (_categoryBreakdown.Count == 0)
+                {
+                    <MudText Typo="Typo.body2">Track expenses to see where money goes.</MudText>
+                }
+                else
+                {
+                    <MudStack Spacing="1">
+                        @foreach (var item in _categoryBreakdown)
+                        {
+                            <div class="category-breakdown-item">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                    <MudText Typo="Typo.subtitle2">@item.Category</MudText>
+                                    <MudText Typo="Typo.caption">@item.Amount.ToString("C", CultureInfo.CurrentCulture) • @item.Share.ToString("0.#", CultureInfo.CurrentCulture)%</MudText>
+                                </MudStack>
+                                <MudProgressLinear Value="@item.Share" Color="Color.Error" Class="category-progress" />
+                            </div>
+                        }
                     </MudStack>
-                </MudCardContent>
-            </MudCard>
-            </MudLink>
+                }
+            </MudPaper>
         </MudItem>
 
-        <MudItem xs="6">
-            <MudLink Href="/achievements" Style="display:block;text-decoration:none;">
-            <MudCard Class="home-nav-card" Elevation="0">
-                <MudCardContent Class="home-card-content">
-                    <MudStack Spacing="2" AlignItems="AlignItems.Start">
-                        <MudIcon Icon="@Icons.Material.Outlined.EmojiEvents" Color="Color.Primary" Size="Size.Large" />
-                        <MudStack Spacing="1">
-                            <MudText Typo="Typo.subtitle1" Class="card-title">Achievements</MudText>
-                            <MudText Typo="Typo.body2" Class="card-subtitle">Points • Streak</MudText>
-                            <MudText Typo="Typo.h5" Class="card-value">@_points pts • @_streak d</MudText>
-                        </MudStack>
+        <MudItem xs="12" md="7">
+            <MudPaper Elevation="0" Class="home-panel glass-card">
+                <MudStack Spacing="1">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.h6" Class="panel-title">Recent transactions</MudText>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Href="/transactions">View all</MudButton>
                     </MudStack>
-                </MudCardContent>
-            </MudCard>
-            </MudLink>
+
+                    @if (_recentTransactions.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2">Add your first transaction to see activity here.</MudText>
+                    }
+                    else
+                    {
+                        <MudList Dense="true" Class="tx-list">
+                            @foreach (var tx in _recentTransactions)
+                            {
+                                <MudListItem>
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="tx-item" Spacing="1">
+                                        <div class="tx-info">
+                                            <MudText Typo="Typo.subtitle2">@tx.Description ?? tx.Category</MudText>
+                        
+                                        <MudText Typo="Typo.caption" Class="tx-meta">@DisplayMember(tx.User) • @tx.Date.ToString("MMM d", CultureInfo.CurrentCulture) • @DisplayCategory(tx.Category)</MudText>
+                                        </div>
+                                        <MudText Typo="Typo.subtitle2" Class="@AmountClass(tx.IsIncome)">
+                                            @(tx.IsIncome ? "+" : "-")@tx.Amount.ToString("C", CultureInfo.CurrentCulture)
+                                        </MudText>
+                                    </MudStack>
+                                </MudListItem>
+                            }
+                        </MudList>
+                    }
+                </MudStack>
+            </MudPaper>
         </MudItem>
 
-        <MudItem xs="6">
-            <MudLink Href="/reports" Style="display:block;text-decoration:none;">
-            <MudCard Class="home-nav-card" Elevation="0">
-                <MudCardContent Class="home-card-content">
-                    <MudStack Spacing="2" AlignItems="AlignItems.Start">
-                        <MudIcon Icon="@Icons.Material.Outlined.IosShare" Color="Color.Primary" Size="Size.Large" />
-                        <MudStack Spacing="1">
-                            <MudText Typo="Typo.subtitle1" Class="card-title">Reports</MudText>
-                            <MudText Typo="Typo.body2" Class="card-subtitle">Export & summary</MudText>
-                            <MudText Typo="Typo.h5" Class="card-value">CSV • JSON</MudText>
-                        </MudStack>
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
-            </MudLink>
-        </MudItem>
+        <MudItem xs="12" md="5">
+            <MudPaper Elevation="0" Class="home-panel glass-card">
+                <MudText Typo="Typo.h6" Class="panel-title">Gamification progress</MudText>
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.body2">Points: @_summary.Points</MudText>
+                    <MudText Typo="Typo.body2">Daily streak: @_summary.Streak</MudText>
+                    <MudText Typo="Typo.body2">Monthly target met: @((_summary.UsagePercent ?? 0d).ToString("0.0", CultureInfo.CurrentCulture))%</MudText>
+                </MudStack>
 
-        <MudItem xs="6">
-            <MudLink Href="/wellbeing" Style="display:block;text-decoration:none;">
-            <MudCard Class="home-nav-card" Elevation="0">
-                <MudCardContent Class="home-card-content">
-                    <MudStack Spacing="2" AlignItems="AlignItems.Start">
-                        <MudIcon Icon="@Icons.Material.Outlined.Favorite" Color="Color.Primary" Size="Size.Large" />
-                        <MudStack Spacing="1">
-                            <MudText Typo="Typo.subtitle1" Class="card-title">Wellbeing</MudText>
-                            <MudText Typo="Typo.body2" Class="card-subtitle">Health & tasks</MudText>
-                            <MudText Typo="Typo.h5" Class="card-value">Track daily</MudText>
-                        </MudStack>
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
-            </MudLink>
+                @if (_recentAchievements.Count > 0)
+                {
+                    <MudDivider Class="my-3" />
+                    <MudText Typo="Typo.subtitle2">Recent achievements</MudText>
+                    <MudList Dense="true">
+                        @foreach (var achievement in _recentAchievements)
+                        {
+                            <MudListItem>
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.subtitle2">@achievement.Title</MudText>
+                                    <MudText Typo="Typo.caption" Class="achievement-meta">@achievement.Description • @achievement.Points pts</MudText>
+                                </MudStack>
+                            </MudListItem>
+                        }
+                    </MudList>
+                }
+            </MudPaper>
         </MudItem>
     </MudGrid>
 </MudContainer>
 
 @code {
-    private string _subtitle = DateTime.Now.ToString("dddd, dd MMM");
+    private string GreetingName => Auth.CurrentUser?.Name?.Split(' ').FirstOrDefault() ?? "Family";
+    private string CurrentPeriodLabel => DateTime.Today.ToString("MMMM yyyy", CultureInfo.CurrentCulture);
+
     private string? _error;
     private int _txCount;
-    private decimal _income, _expense;
-    private double? _usagePercent;
-    private int _points, _streak;
+    private decimal _income;
+    private decimal _expense;
+    private GamificationSummary _summary = new();
+
+    private readonly List<BudgetStatus> _budgetStatuses = new();
+    private readonly List<CategoryBreakdown> _categoryBreakdown = new();
+    private readonly List<Transaction> _recentTransactions = new();
+    private readonly List<Achievement> _recentAchievements = new();
+
+    private decimal NetBalance => _income - _expense;
+    private double SavingsRate => _income == 0 ? 0 : Math.Clamp((double)(NetBalance / _income), -1, 1);
+    private decimal AverageTicket => _txCount == 0 ? 0 : (_income + Math.Abs(_expense)) / _txCount;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            var first = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-            var next = first.AddMonths(1).AddDays(-1);
-            var txs = await TxSvc.GetAsync(from: first, to: next);
-            _txCount = txs.Count;
-            _income = txs.Where(t => t.IsIncome).Sum(t => t.Amount);
-            _expense = txs.Where(t => !t.IsIncome).Sum(t => t.Amount);
+            var periodStart = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+            var periodEnd = periodStart.AddMonths(1).AddTicks(-1);
 
-            var budgets = await BudgetSvc.GetAsync(first);
-            var totalBudget = budgets.Sum(b => b.Limit);
-            _usagePercent = totalBudget > 0 ? (double)(_expense / totalBudget) * 100d : 0d;
+            var transactions = await TxSvc.GetAsync(from: periodStart, to: periodEnd);
+            _txCount = transactions.Count;
+            _income = transactions.Where(t => t.IsIncome).Sum(t => t.Amount);
+            _expense = transactions.Where(t => !t.IsIncome).Sum(t => t.Amount);
+
+            var budgets = await BudgetSvc.GetAsync(periodStart);
+            var spendByCategory = transactions
+                .Where(t => !t.IsIncome)
+                .GroupBy(t => string.IsNullOrWhiteSpace(t.Category) ? "Uncategorized" : t.Category)
+                .Select(g => new { Category = g.Key, Amount = g.Sum(t => t.Amount) })
+                .ToList();
+
+            foreach (var budget in budgets)
+            {
+                var spent = spendByCategory.FirstOrDefault(s => string.Equals(s.Category, budget.Category, StringComparison.OrdinalIgnoreCase))?.Amount ?? 0m;
+                _budgetStatuses.Add(new BudgetStatus(budget.Category, budget.Limit, spent));
+            }
+
+            _budgetStatuses.Sort((a, b) => b.Usage.CompareTo(a.Usage));
+
+            if (_expense > 0)
+            {
+                _categoryBreakdown.AddRange(spendByCategory
+                    .OrderByDescending(s => s.Amount)
+                    .Take(6)
+                    .Select(s => new CategoryBreakdown(s.Category, s.Amount, (double)(s.Amount / _expense * 100m))));
+            }
+
+            _recentTransactions.AddRange(transactions
+                .OrderByDescending(t => t.Date)
+                .ThenByDescending(t => t.Id)
+                .Take(6));
 
             await Game.EvaluateAsync();
-            var summary = await Game.GetSummaryAsync();
-            _points = summary.Points;
-            _streak = summary.Streak;
+            _summary = await Game.GetSummaryAsync();
+            var achievements = await Game.GetAchievementsAsync();
+            _recentAchievements.AddRange(achievements
+                .OrderByDescending(a => a.AchievedAt)
+                .Take(3));
         }
         catch (Exception ex)
         {
@@ -179,5 +272,39 @@
         }
     }
 
-    // navigation handled by MudLink wrappers
+    private static string AmountClass(bool isIncome) => isIncome ? "tx-amount tx-income" : "tx-amount tx-expense";
+
+    private static string DisplayCategory(string category) => string.IsNullOrWhiteSpace(category) ? "Uncategorized" : category;
+
+    private static string DisplayMember(string? user) => string.IsNullOrWhiteSpace(user) ? "Household" : user;
+
+    private sealed class BudgetStatus
+    {
+        public BudgetStatus(string category, decimal limit, decimal spent)
+        {
+            Category = category;
+            Limit = limit;
+            Spent = spent;
+        }
+
+        public string Category { get; }
+        public decimal Limit { get; }
+        public decimal Spent { get; }
+        public decimal Remaining => Limit - Spent;
+        public double Usage => Limit <= 0 ? 0 : Math.Clamp((double)(Spent / Limit * 100m), 0, 999);
+    }
+
+    private sealed class CategoryBreakdown
+    {
+        public CategoryBreakdown(string category, decimal amount, double share)
+        {
+            Category = category;
+            Amount = amount;
+            Share = share;
+        }
+
+        public string Category { get; }
+        public decimal Amount { get; }
+        public double Share { get; }
+    }
 }

@@ -1,37 +1,544 @@
 @page "/reports"
+@using System.Globalization
+@using DotnetFinancialTrackerApp.Models
+@using MudBlazor
 @inject DotnetFinancialTrackerApp.Services.ITransactionsService TxSvc
-@inject DotnetFinancialTrackerApp.Services.IExportService ExportSvc
+@inject DotnetFinancialTrackerApp.Services.IBudgetsService BudgetSvc
 
-<MudContainer Class="pa-4">
-    <MudText Typo="Typo.h5" Class="mb-2">Reports & Export</MudText>
-    <MudText Typo="Typo.body2" Class="mb-4 text-muted">Export your transactions as CSV or JSON. Files are saved to the app data directory.</MudText>
-
-    <MudStack Row="true" Spacing="2">
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ExportCsv">Export CSV</MudButton>
-        <MudButton Color="Color.Secondary" Variant="Variant.Outlined" OnClick="ExportJson">Export JSON</MudButton>
+<MudContainer Class="insight-shell" MaxWidth="MaxWidth.False">
+    <MudStack Spacing="1" Class="mb-2">
+        <MudText Typo="Typo.caption" Class="insight-overline">Analytics</MudText>
+        <MudText Typo="Typo.h4">Spending insights</MudText>
     </MudStack>
+    <MudText Typo="Typo.body2" Class="insight-subtitle">Use filters to compare spending, budgets, and members across periods.</MudText>
 
-    @if (!string.IsNullOrEmpty(_lastExportPath))
-    {
-        <MudAlert Severity="Severity.Info" Class="mt-4">
-            Saved to: <b>@_lastExportPath</b>
-        </MudAlert>
-    }
+    <MudPaper Class="insight-filters glass-card" Elevation="0">
+        <MudStack Row="true" Wrap="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudSelect T="string" Dense="true" Label="Category" Variant="Variant.Outlined" Class="filter-select" Value="_selectedCategory" ValueChanged="OnCategoryChanged">
+                @foreach (var option in _categoryOptions)
+                {
+                    <MudSelectItem Value="@option">@option</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="InsightPeriod" Dense="true" Label="Period" Variant="Variant.Outlined" Class="filter-select" Value="_selectedPeriod" ValueChanged="OnPeriodChanged">
+                @foreach (var option in Enum.GetValues<InsightPeriod>())
+                {
+                    <MudSelectItem Value="@option">@GetPeriodLabel(option)</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="string" Dense="true" Label="Household member" Variant="Variant.Outlined" Class="filter-select" Value="_selectedMember" ValueChanged="OnMemberChanged">
+                @foreach (var option in _memberOptions)
+                {
+                    <MudSelectItem Value="@option">@option</MudSelectItem>
+                }
+            </MudSelect>
+        </MudStack>
+    </MudPaper>
+
+    <MudGrid Class="insight-grid" Gutter="GutterSize.Small">
+        <MudItem xs="12" md="6">
+            <MudPaper Class="insight-card" Elevation="0">
+                <MudText Typo="Typo.h6">Period Summary</MudText>
+                <MudStack Spacing="1">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.body2">Income</MudText>
+                        <MudText Typo="Typo.subtitle1">@_filteredIncome.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                        <MudChip Color="@(DeltaColor(_filteredIncome, _previousIncome))" Variant="Variant.Outlined" Size="Size.Small">@FormatDelta(_filteredIncome, _previousIncome)</MudChip>
+                    </MudStack>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.body2">Spending</MudText>
+                        <MudText Typo="Typo.subtitle1">@_filteredExpense.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                        <MudChip Color="@(DeltaColorReverse(_filteredExpense, _previousExpense))" Variant="Variant.Outlined" Size="Size.Small">@FormatDelta(_filteredExpense, _previousExpense)</MudChip>
+                    </MudStack>
+                    <MudDivider Class="my-2" />
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.body2">Net balance</MudText>
+                        <MudText Typo="Typo.subtitle1">@(_filteredIncome - _filteredExpense).ToString("C", CultureInfo.CurrentCulture)</MudText>
+                        <MudChip Color="@(DeltaColor(_filteredIncome - _filteredExpense, _previousIncome - _previousExpense))" Variant="Variant.Outlined" Size="Size.Small">@FormatDelta(_filteredIncome - _filteredExpense, _previousIncome - _previousExpense)</MudChip>
+                    </MudStack>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.body2">Transactions</MudText>
+                        <MudText Typo="Typo.subtitle1">@_currentTransactionCount</MudText>
+                        <MudChip Color="@(DeltaColor(_currentTransactionCount, _previousTransactionCount))" Variant="Variant.Outlined" Size="Size.Small">@FormatDelta(_currentTransactionCount, _previousTransactionCount)</MudChip>
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Class="insight-card" Elevation="0">
+                <MudText Typo="Typo.h6">Cashflow comparison</MudText>
+                <MudChart ChartType="ChartType.StackedBar" Labels="_stackLabels" ChartSeries="_stackSeries" />
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Class="insight-card" Elevation="0">
+                <MudText Typo="Typo.h6">Top categories vs previous</MudText>
+                @if (_categoryLabels.Length == 0)
+                {
+                    <MudText Typo="Typo.body2">No spending in the selected filters.</MudText>
+                }
+                else
+                {
+                    <MudChart ChartType="ChartType.Bar" Labels="_categoryLabels" ChartSeries="_categorySeries" />
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Class="insight-card" Elevation="0">
+                <MudText Typo="Typo.h6">Category distribution</MudText>
+                @if (_donutSeries.Count == 0)
+                {
+                    <MudText Typo="Typo.body2">No spending to display.</MudText>
+                }
+                else
+                {
+                    <MudChart ChartType="ChartType.Donut" Labels="_donutLabels" ChartSeries="_donutSeries" />
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Class="insight-card" Elevation="0">
+                <MudText Typo="Typo.h6">Heatmap (weekly spend)</MudText>
+                @if (_heatmapWeekLabels.Length == 0)
+                {
+                    <MudText Typo="Typo.body2">No activity detected for this period.</MudText>
+                }
+                else
+                {
+                    <table class="heatmap-table">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                @for (var c = 0; c < _heatmapWeekLabels.Length; c++)
+                                {
+                                    <th>@_heatmapWeekLabels[c]</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var day in _heatmapDays)
+                            {
+                                <tr>
+                                    <td class="heatmap-label">@day</td>
+                                    @for (var c = 0; c < _heatmapWeekLabels.Length; c++)
+                                    {
+                                        var amount = GetHeatmapValue(day, c);
+                                        <td class="heatmap-cell" style="background-color:@GetHeatmapColor(amount)">
+                                            <span>@(amount == 0 ? "-" : amount.ToString("C0", CultureInfo.CurrentCulture))</span>
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Class="insight-card" Elevation="0">
+                <MudText Typo="Typo.h6">Recent transactions</MudText>
+                @if (_highlightTransactions.Count == 0)
+                {
+                    <MudText Typo="Typo.body2">No transactions match the current filters.</MudText>
+                }
+                else
+                {
+                    <MudList Dense="true">
+                        @foreach (var tx in _highlightTransactions)
+                        {
+                            <MudListItem>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="tx-item" Spacing="1">
+                                    <div class="tx-info">
+                                        <MudText Typo="Typo.subtitle2">@tx.Description ?? DisplayCategory(tx.Category)</MudText>
+                                        <MudText Typo="Typo.caption" Class="tx-meta">@DisplayMember(tx.User) • @tx.Date.ToString("MMM d", CultureInfo.CurrentCulture) • @DisplayCategory(tx.Category)</MudText>
+                                    </div>
+                                    <MudText Typo="Typo.subtitle2" Class="@AmountClass(tx.IsIncome)">
+                                        @(tx.IsIncome ? "+" : "-")@tx.Amount.ToString("C", CultureInfo.CurrentCulture)
+                                    </MudText>
+                                </MudStack>
+                            </MudListItem>
+                        }
+                    </MudList>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
 </MudContainer>
 
 @code {
-    private string _lastExportPath = string.Empty;
+    private const string AllCategories = "All categories";
+    private const string AllMembers = "All members";
 
-    private async Task ExportCsv()
+    private readonly List<string> _categoryOptions = new();
+    private readonly List<string> _memberOptions = new();
+    private List<Transaction> _allTransactions = new();
+
+    private string _selectedCategory = AllCategories;
+    private InsightPeriod _selectedPeriod = InsightPeriod.ThisMonth;
+    private string _selectedMember = AllMembers;
+
+    private DateTime _activeRangeStart;
+    private DateTime _activeRangeEnd;
+
+    private decimal _filteredIncome;
+    private decimal _filteredExpense;
+    private decimal _previousIncome;
+    private decimal _previousExpense;
+    private int _currentTransactionCount;
+    private int _previousTransactionCount;
+
+    private string[] _categoryLabels = Array.Empty<string>();
+    private List<ChartSeries> _categorySeries = new();
+    private string[] _donutLabels = Array.Empty<string>();
+    private List<ChartSeries> _donutSeries = new();
+
+    private readonly List<Transaction> _highlightTransactions = new();
+
+    private readonly string[] _heatmapDays = new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
+    private string[] _heatmapWeekLabels = Array.Empty<string>();
+    private Dictionary<string, Dictionary<int, decimal>> _heatmapData = new();
+    private decimal _heatmapMax;
+    private string[] _stackLabels = Array.Empty<string>();
+    private List<ChartSeries> _stackSeries = new();
+
+    protected override async Task OnInitializedAsync()
     {
-        var txs = await TxSvc.GetAsync();
-        _lastExportPath = await ExportSvc.ExportTransactionsCsvAsync(txs);
+        _allTransactions = await TxSvc.GetAsync();
+
+        var categories = _allTransactions
+            .Select(t => NormalizeCategory(t.Category))
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(c => c)
+            .ToList();
+        _categoryOptions.Add(AllCategories);
+        _categoryOptions.AddRange(categories);
+
+        var members = _allTransactions
+            .Select(t => NormalizeMember(t.User))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n)
+            .ToList();
+        _memberOptions.Add(AllMembers);
+        _memberOptions.AddRange(members);
+
+        await RefreshInsightsAsync();
     }
 
-    private async Task ExportJson()
+    private async Task OnCategoryChanged(string value)
     {
-        var txs = await TxSvc.GetAsync();
-        _lastExportPath = await ExportSvc.ExportTransactionsJsonAsync(txs);
+        _selectedCategory = value;
+        await RefreshInsightsAsync();
+    }
+
+    private async Task OnPeriodChanged(InsightPeriod period)
+    {
+        _selectedPeriod = period;
+        await RefreshInsightsAsync();
+    }
+
+    private async Task OnMemberChanged(string value)
+    {
+        _selectedMember = value;
+        await RefreshInsightsAsync();
+    }
+
+    private async Task RefreshInsightsAsync()
+    {
+        (_activeRangeStart, _activeRangeEnd) = GetPeriodRange(_selectedPeriod);
+        var previousRange = GetPreviousPeriodRange(_activeRangeStart, _activeRangeEnd);
+
+        var filteredList = FilterTransactions(_activeRangeStart, _activeRangeEnd);
+        var previousList = FilterTransactions(previousRange.Start, previousRange.End);
+
+        _filteredIncome = filteredList.Where(t => t.IsIncome).Sum(t => t.Amount);
+        _filteredExpense = filteredList.Where(t => !t.IsIncome).Sum(t => t.Amount);
+        _previousIncome = previousList.Where(t => t.IsIncome).Sum(t => t.Amount);
+        _previousExpense = previousList.Where(t => !t.IsIncome).Sum(t => t.Amount);
+        _currentTransactionCount = filteredList.Count;
+        _previousTransactionCount = previousList.Count;
+
+        _highlightTransactions.Clear();
+        _highlightTransactions.AddRange(filteredList
+            .OrderByDescending(t => t.Date)
+            .ThenByDescending(t => t.Id)
+            .Take(6));
+
+        BuildCategoryCharts(filteredList, previousList);
+        BuildDonut(filteredList);
+        BuildHeatmap(filteredList);
+        BuildStackedData();
+
+        await Task.CompletedTask;
+    }
+
+    private List<Transaction> FilterTransactions(DateTime start, DateTime end)
+    {
+        IEnumerable<Transaction> filtered = _allTransactions.Where(t =>
+        {
+            var date = t.Date.Date;
+            return date >= start.Date && date <= end.Date;
+        });
+
+        if (!string.Equals(_selectedCategory, AllCategories, StringComparison.OrdinalIgnoreCase))
+        {
+            filtered = filtered.Where(t => string.Equals(NormalizeCategory(t.Category), _selectedCategory, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.Equals(_selectedMember, AllMembers, StringComparison.OrdinalIgnoreCase))
+        {
+            filtered = filtered.Where(t => string.Equals(NormalizeMember(t.User), _selectedMember, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return filtered.ToList();
+    }
+
+    private void BuildCategoryCharts(List<Transaction> current, List<Transaction> previous)
+    {
+        var currentGroups = current
+            .Where(t => !t.IsIncome)
+            .GroupBy(t => NormalizeCategory(t.Category))
+            .Select(g => new { Category = g.Key, Amount = g.Sum(t => t.Amount) })
+            .Where(x => x.Amount > 0)
+            .OrderByDescending(x => x.Amount)
+            .Take(6)
+            .ToList();
+
+        var previousLookup = previous
+            .Where(t => !t.IsIncome)
+            .GroupBy(t => NormalizeCategory(t.Category))
+            .ToDictionary(g => g.Key, g => g.Sum(t => t.Amount), StringComparer.OrdinalIgnoreCase);
+
+        if (currentGroups.Count == 0)
+        {
+            _categoryLabels = Array.Empty<string>();
+            _categorySeries = new();
+            return;
+        }
+
+        _categoryLabels = currentGroups.Select(g => g.Category).ToArray();
+        var currentData = currentGroups.Select(g => (double)g.Amount).ToArray();
+        var previousData = currentGroups.Select(g => previousLookup.GetValueOrDefault(g.Category)).Select(a => (double)a).ToArray();
+        _categorySeries = new()
+        {
+            new ChartSeries { Name = "This period", Data = currentData },
+            new ChartSeries { Name = "Previous", Data = previousData }
+        };
+    }
+
+    private void BuildDonut(List<Transaction> current)
+    {
+        var groups = current
+            .Where(t => !t.IsIncome)
+            .GroupBy(t => NormalizeCategory(t.Category))
+            .Select(g => new { Category = g.Key, Amount = g.Sum(t => t.Amount) })
+            .Where(x => x.Amount > 0)
+            .OrderByDescending(x => x.Amount)
+            .ToList();
+
+        if (groups.Count == 0)
+        {
+            _donutLabels = Array.Empty<string>();
+            _donutSeries = new();
+            return;
+        }
+
+        _donutLabels = groups.Select(g => g.Category).ToArray();
+        _donutSeries = new()
+        {
+            new ChartSeries { Name = "Spending", Data = groups.Select(g => (double)g.Amount).ToArray() }
+        };
+    }
+
+    private void BuildStackedData()
+    {
+        _stackLabels = new[] { "This period", "Previous" };
+        _stackSeries = new()
+        {
+            new ChartSeries { Name = "Income", Data = new [] { Convert.ToDouble(_filteredIncome), Convert.ToDouble(_previousIncome) } },
+            new ChartSeries { Name = "Spending", Data = new [] { Convert.ToDouble(_filteredExpense), Convert.ToDouble(_previousExpense) } }
+        };
+    }
+
+    private void BuildHeatmap(List<Transaction> current)
+    {
+        var expenseTransactions = current.Where(t => !t.IsIncome).ToList();
+        if (!expenseTransactions.Any())
+        {
+            _heatmapWeekLabels = Array.Empty<string>();
+            _heatmapData = new();
+            _heatmapMax = 0;
+            return;
+        }
+
+        var weekGroups = expenseTransactions
+            .GroupBy(t => StartOfWeek(t.Date))
+            .OrderBy(g => g.Key)
+            .ToList();
+
+        var relevantWeeks = weekGroups.Select(g => g.Key).TakeLast(4).ToList();
+        _heatmapWeekLabels = relevantWeeks.Select((week, index) => index == relevantWeeks.Count - 1 ? "Current" : week.ToString("MMM d", CultureInfo.CurrentCulture)).ToArray();
+
+        _heatmapData = _heatmapDays.ToDictionary(day => day, _ => new Dictionary<int, decimal>());
+        _heatmapMax = 0;
+
+        for (int index = 0; index < relevantWeeks.Count; index++)
+        {
+            var start = relevantWeeks[index];
+            var end = start.AddDays(7);
+            var weekTransactions = expenseTransactions.Where(t => t.Date.Date >= start.Date && t.Date.Date < end.Date);
+            foreach (var tx in weekTransactions)
+            {
+                var day = GetDayLabel(tx.Date.DayOfWeek);
+                var dict = _heatmapData[day];
+                dict[index] = dict.GetValueOrDefault(index) + tx.Amount;
+                if (dict[index] > _heatmapMax)
+                {
+                    _heatmapMax = dict[index];
+                }
+            }
+
+            foreach (var day in _heatmapDays)
+            {
+                var dict = _heatmapData[day];
+                if (!dict.ContainsKey(index))
+                {
+                    dict[index] = 0m;
+                }
+            }
+        }
+    }
+
+    private static (DateTime Start, DateTime End) GetPeriodRange(InsightPeriod period)
+    {
+        var today = DateTime.Today;
+        return period switch
+        {
+            InsightPeriod.LastMonth =>
+                (new DateTime(today.Year, today.Month, 1).AddMonths(-1),
+                 new DateTime(today.Year, today.Month, 1).AddTicks(-1)),
+            InsightPeriod.Last90Days =>
+                (today.AddDays(-89), today),
+            InsightPeriod.YearToDate =>
+                (new DateTime(today.Year, 1, 1), today),
+            _ =>
+                (new DateTime(today.Year, today.Month, 1),
+                 new DateTime(today.Year, today.Month, 1).AddMonths(1).AddTicks(-1))
+        };
+    }
+
+    private static (DateTime Start, DateTime End) GetPreviousPeriodRange(DateTime currentStart, DateTime currentEnd)
+    {
+        var totalDays = (currentEnd.Date - currentStart.Date).TotalDays + 1;
+        var previousEnd = currentStart.AddDays(-1);
+        var previousStart = previousEnd.AddDays(-totalDays + 1);
+        return (previousStart, previousEnd);
+    }
+
+    private static DateTime StartOfWeek(DateTime date)
+    {
+        int diff = (7 + (date.DayOfWeek - DayOfWeek.Monday)) % 7;
+        return date.Date.AddDays(-diff);
+    }
+
+    private static string GetDayLabel(DayOfWeek day)
+        => day switch
+        {
+            DayOfWeek.Monday => "Mon",
+            DayOfWeek.Tuesday => "Tue",
+            DayOfWeek.Wednesday => "Wed",
+            DayOfWeek.Thursday => "Thu",
+            DayOfWeek.Friday => "Fri",
+            DayOfWeek.Saturday => "Sat",
+            _ => "Sun"
+        };
+
+    private decimal GetHeatmapValue(string day, int column)
+    {
+        if (_heatmapData.TryGetValue(day, out var dict) && dict.TryGetValue(column, out var amount))
+        {
+            return amount;
+        }
+        return 0m;
+    }
+
+    private string GetHeatmapColor(decimal amount)
+    {
+        if (_heatmapMax <= 0 || amount <= 0)
+        {
+            return "rgba(0, 194, 255, 0.08)";
+        }
+
+        var ratio = (double)(amount / _heatmapMax);
+        var alpha = Math.Clamp(ratio, 0.1, 1.0);
+        return $"rgba(0, 194, 255, {alpha:0.##})";
+    }
+
+    private static string NormalizeCategory(string? category)
+        => string.IsNullOrWhiteSpace(category) ? "Uncategorized" : category.Trim();
+
+    private static string DisplayCategory(string category) => string.IsNullOrWhiteSpace(category) ? "Uncategorized" : category;
+
+    private static string NormalizeMember(string? user)
+        => string.IsNullOrWhiteSpace(user) ? "Household" : user.Trim();
+
+    private static string DisplayMember(string? user) => NormalizeMember(user);
+
+    private static string AmountClass(bool isIncome) => isIncome ? "tx-amount tx-income" : "tx-amount tx-expense";
+
+    private static string GetPeriodLabel(InsightPeriod period) => period switch
+    {
+        InsightPeriod.ThisMonth => "This month",
+        InsightPeriod.LastMonth => "Last month",
+        InsightPeriod.Last90Days => "Last 90 days",
+        InsightPeriod.YearToDate => "Year to date",
+        _ => "This month"
+    };
+
+    private static Color DeltaColor(decimal current, decimal previous)
+    {
+        if (current == previous) return Color.Default;
+        return current >= previous ? Color.Success : Color.Error;
+    }
+
+    private static Color DeltaColor(int current, int previous)
+        => current == previous ? Color.Default : (current >= previous ? Color.Success : Color.Error);
+
+    private static Color DeltaColorReverse(decimal current, decimal previous)
+    {
+        if (current == previous) return Color.Default;
+        return current <= previous ? Color.Success : Color.Error;
+    }
+
+    private static Color DeltaColorReverse(int current, int previous)
+        => current == previous ? Color.Default : (current <= previous ? Color.Success : Color.Error);
+
+    private static string FormatDelta(decimal current, decimal previous)
+    {
+        if (previous == 0 && current == 0) return "0";
+        if (previous == 0) return $"+{current.ToString("C0", CultureInfo.CurrentCulture)}";
+        var delta = current - previous;
+        return delta >= 0 ? $"+{delta.ToString("C0", CultureInfo.CurrentCulture)}" : delta.ToString("C0", CultureInfo.CurrentCulture);
+    }
+
+    private static string FormatDelta(int current, int previous)
+    {
+        if (previous == 0 && current == 0) return "0";
+        if (previous == 0) return $"+{current}";
+        var delta = current - previous;
+        return delta >= 0 ? $"+{delta}" : delta.ToString();
+    }
+
+    private enum InsightPeriod
+    {
+        ThisMonth,
+        LastMonth,
+        Last90Days,
+        YearToDate
     }
 }
-

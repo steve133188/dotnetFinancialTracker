@@ -136,6 +136,10 @@
     protected override async Task OnInitializedAsync()
     {
         _users = await Users.GetUsersAsync();
+        if (_selectedUserId == 0 && _users.Count > 0)
+        {
+            _selectedUserId = _users[0].Id;
+        }
     }
 
     private string GetSelectedUserName()
@@ -153,6 +157,8 @@
     {
         _selectedUserId = userId;
         _showUserDropdown = false;
+        _pin = string.Empty;
+        _error = null;
         StateHasChanged();
     }
 
@@ -164,7 +170,7 @@
 
     private bool CanSignIn()
     {
-        return _selectedUserId > 0 && !string.IsNullOrWhiteSpace(_pin);
+        return _selectedUserId > 0 && NormalizedPin.Length >= 4;
     }
 
     private async Task SignIn()
@@ -172,7 +178,8 @@
         if (!CanSignIn()) return;
 
         _error = null;
-        var user = await Users.VerifyAsync(_selectedUserId, _pin);
+        var pin = NormalizedPin;
+        var user = await Users.VerifyAsync(_selectedUserId, pin);
         if (user is null)
         {
             _error = "Invalid PIN code. Please try again.";
@@ -188,6 +195,11 @@
     {
         await (_form?.Validate() ?? Task.CompletedTask);
         if (_form != null && !_form.IsValid) return;
+        if (string.IsNullOrWhiteSpace(_newPin) || _newPin.Length < 4)
+        {
+            _error = "PIN must be at least 4 digits.";
+            return;
+        }
         if (_newPin != _newPinConfirm)
         {
             _error = "PINs do not match";
@@ -197,5 +209,9 @@
         _users = await Users.GetUsersAsync();
         _selectedUserId = user.Id;
         _createOpen = false;
+        _pin = string.Empty;
+        _error = null;
     }
+
+    private string NormalizedPin => (_pin ?? string.Empty).Trim();
 }

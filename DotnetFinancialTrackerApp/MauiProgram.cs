@@ -2,6 +2,7 @@
 using MudBlazor.Services;
 using Microsoft.EntityFrameworkCore;
 using DotnetFinancialTrackerApp.Data;
+using DotnetFinancialTrackerApp.Models;
 using DotnetFinancialTrackerApp.Services;
 using Microsoft.Maui.Storage;
 using SQLitePCL;
@@ -40,7 +41,6 @@ public static class MauiProgram
         builder.Services.AddScoped<IValidationService, ValidationService>();
         builder.Services.AddScoped<INotificationService, NotificationService>();
         builder.Services.AddSingleton<AuthState>();
-        builder.Services.AddSingleton<UiState>();
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();

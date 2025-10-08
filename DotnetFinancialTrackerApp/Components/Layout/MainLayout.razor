@@ -1,97 +1,135 @@
 ﻿@inherits LayoutComponentBase
+@implements IDisposable
+@using System.Collections.Generic
+@using Microsoft.AspNetCore.Components.Routing
 
 <MudThemeProvider Theme="_theme" />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<MudLayout class="@(Ui.IsKiosk ? "kiosk" : null)">
-    <MudAppBar Color="Color.Primary" Elevation="0" Class="desktop-appbar">
-        @if (!string.IsNullOrEmpty(Nav.ToBaseRelativePath(Nav.Uri)) && !Nav.Uri.EndsWith("/login", StringComparison.OrdinalIgnoreCase))
-        {
-            <MudIconButton Icon="@Icons.Material.Outlined.ArrowBack" Color="Color.Inherit" Edge="Edge.Start" OnClick="BackToHome" Size="Size.Medium" />
-        }
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="ms-2">
-            <MudIcon Icon="@Icons.Material.Outlined.AccountBalance" Color="Color.Inherit" Size="Size.Medium" />
-            <MudText Typo="Typo.h6" Class="app-title">Family Budget Companion</MudText>
-        </MudStack>
-        <MudSpacer />
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-            <MudIconButton Icon="@Icons.Material.Outlined.SmartDisplay" Color="Color.Inherit" Title="Kiosk Mode" OnClick="ToggleKiosk" Size="Size.Medium" />
-            <MudMenu Icon="@Icons.Material.Outlined.AccountCircle" AnchorOrigin="Origin.TopRight" TransformOrigin="Origin.TopRight" Color="Color.Inherit">
-                <MudMenuItem Disabled="true">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                        <MudAvatar Color="Color.Primary" Size="Size.Small">@(Auth.CurrentUser?.Name?.Substring(0, 1).ToUpper())</MudAvatar>
-                        <MudText>@UserDisplay</MudText>
-                    </MudStack>
-                </MudMenuItem>
-                <MudDivider />
-                <MudMenuItem Href="/" Icon="@Icons.Material.Outlined.Home">Home</MudMenuItem>
-                <MudMenuItem Disabled="true" Icon="@Icons.Material.Outlined.Person">Profile (soon)</MudMenuItem>
-                <MudMenuItem OnClick="SignOut" Icon="@Icons.Material.Outlined.Logout">Sign out</MudMenuItem>
-            </MudMenu>
-        </MudStack>
-    </MudAppBar>
+<MudLayout Class="mobile-shell">
+    @if (_showTopBar)
+    {
+        <header class="mobile-topbar">
+            <div class="topbar-brand">
+                @if (ShouldShowBackButton())
+                {
+                    <MudIconButton Icon="@Icons.Material.Outlined.ArrowBack" Color="Color.Inherit" OnClick="NavigateBack" Size="Size.Medium" Class="topbar-back" />
+                }
+                <MudAvatar Size="Size.Medium" Color="Color.Primary" Class="topbar-avatar">@UserInitial</MudAvatar>
+                <div class="topbar-copy">
+                    <MudText Typo="Typo.h6" Class="topbar-overline" >Kipi Family Bank</MudText>
+                    <MudText Typo="Typo.subtitle1" Class="topbar-title">Keep it simple, together</MudText>
+                </div>
+            </div>
 
-    <MudMainContent Class="main-content-enhanced">
-        <MudContainer Class="main-container" MaxWidth="MaxWidth.ExtraLarge">
+            <div class="topbar-actions">
+                @if (Auth.IsAuthenticated)
+                {
+                    <MudMenu Icon="@Icons.Material.Outlined.AccountCircle" AnchorOrigin="Origin.TopRight" TransformOrigin="Origin.TopRight" Color="Color.Inherit">
+                        <MudMenuItem Disabled="true">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudAvatar Color="Color.Primary" Size="Size.Small">@UserInitial</MudAvatar>
+                                <MudText>@UserDisplay</MudText>
+                            </MudStack>
+                        </MudMenuItem>
+                        <MudDivider />
+                        <MudMenuItem Href="/settings" Icon="@Icons.Material.Outlined.Settings">Settings</MudMenuItem>
+                        <MudMenuItem OnClick="SignOut" Icon="@Icons.Material.Outlined.Logout">Sign out</MudMenuItem>
+                    </MudMenu>
+                }
+                else
+                {
+                    <MudButton Href="/login" Variant="Variant.Outlined" Color="Color.Primary" Class="topbar-signin">Sign in</MudButton>
+                }
+            </div>
+        </header>
+    }
+
+    <MudMainContent Class="@(_showTopBar ? "mobile-main" : "mobile-main mobile-main-auth")">
+        <div class="mobile-main-inner">
             @Body
-        </MudContainer>
+        </div>
     </MudMainContent>
+
+    @if (_showBottomNav)
+    {
+        <BottomNav />
+    }
 </MudLayout>
 
 @code {
     [Inject] private NavigationManager Nav { get; set; } = default!;
     [Inject] private AuthState Auth { get; set; } = default!;
-    [Inject] private DotnetFinancialTrackerApp.Services.UiState Ui { get; set; } = default!;
+
+    private bool _showBottomNav;
+    private bool _showTopBar;
+    private string _currentPath = "/";
+    private string _previousPath = "/";
+    private static readonly HashSet<string> HiddenAuthChromeRoutes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "/login"
+    };
 
     private readonly MudTheme _theme = new()
     {
         Palette = new PaletteLight
         {
-            Primary = "#0066FF",
-            Secondary = "#111827",
+            Primary = "#00C2FF",
+            Secondary = "#0F172A",
             Background = "#FFFFFF",
             Surface = "#FFFFFF",
-            AppbarBackground = "#0066FF",
-            AppbarText = "#FFFFFF",
+            AppbarBackground = "#00C2FF",
+            AppbarText = "#00131A",
             DrawerBackground = "#FFFFFF",
-            DrawerText = "#0B1220",
-            TextPrimary = "#0B1220",
+            DrawerText = "#0B1F2B",
+            TextPrimary = "#0B1F2B",
             TextSecondary = "#475569",
-            Info = "#0EA5E9",
+            Info = "#00B4D8",
             Success = "#16A34A",
             Warning = "#F59E0B",
-            Error = "#EF4444"
+            Error = "#E11D48"
         },
         PaletteDark = new PaletteDark
         {
-            Primary = "#5B8CFF",
+            Primary = "#00E1FF",
             Secondary = "#E5E7EB",
-            Background = "#0B0B10",
-            Surface = "#111317",
-            AppbarBackground = "#0B0B10",
-            AppbarText = "#E5E7EB",
-            DrawerBackground = "#0B0B10",
-            DrawerText = "#E5E7EB",
-            TextPrimary = "#E5E7EB",
-            TextSecondary = "#94A3B8",
-            Info = "#38BDF8",
+            Background = "#05131D",
+            Surface = "#0B1924",
+            AppbarBackground = "#0B1924",
+            AppbarText = "#E5F3F9",
+            DrawerBackground = "#0B1924",
+            DrawerText = "#E5F3F9",
+            TextPrimary = "#E5F3F9",
+            TextSecondary = "#94BFD4",
+            Info = "#00B4D8",
             Success = "#22C55E",
             Warning = "#F59E0B",
             Error = "#FB7185"
         },
         LayoutProperties = new LayoutProperties
         {
-            DefaultBorderRadius = "12px"
+            DefaultBorderRadius = "18px"
         },
         Typography = new Typography
         {
-            Default = new() { FontFamily = new[] { "Airbnb Cereal", "Inter", "Circular", "SF Pro Text", "Segoe UI", "Roboto", "system-ui", "-apple-system", "sans-serif" } },
-            Button = new() { FontWeight = 600, LetterSpacing = ".2px" },
-            H6 = new() { FontWeight = 650 },
-            Body1 = new() { FontWeight = 450 }
+            Default = new()
+            {
+                FontFamily = new[] { "Airbnb Cereal", "Inter", "Circular", "SF Pro Text", "Segoe UI", "Roboto", "system-ui", "-apple-system", "sans-serif" },
+                FontWeight = 500
+            },
+            Button = new() { FontFamily = new[] { "Airbnb Cereal", "system-ui", "-apple-system", "sans-serif" }, FontWeight = 600, LetterSpacing = ".2px" },
+            H6 = new() { FontFamily = new[] { "Airbnb Cereal", "system-ui", "-apple-system", "sans-serif" }, FontWeight = 650 },
+            Body1 = new() { FontFamily = new[] { "Airbnb Cereal", "system-ui", "-apple-system", "sans-serif" }, FontWeight = 450 }
         }
     };
+
+    protected override void OnInitialized()
+    {
+        Auth.Changed += OnAuthChanged;
+        Nav.LocationChanged += OnLocationChanged;
+        UpdateChromeState();
+    }
 
     protected override void OnParametersSet()
     {
@@ -103,12 +141,75 @@
         }
     }
 
+    private void OnAuthChanged()
+    {
+        UpdateChromeState();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        UpdateChromeState();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void UpdateChromeState()
+    {
+        var path = NormalizePath(Nav.ToBaseRelativePath(Nav.Uri));
+        var hideForAuth = HiddenAuthChromeRoutes.Contains(path);
+        _showTopBar = !hideForAuth;
+        _showBottomNav = Auth.IsAuthenticated && !hideForAuth;
+
+        if (!string.Equals(path, _currentPath, StringComparison.OrdinalIgnoreCase))
+        {
+            _previousPath = _currentPath;
+            _currentPath = path;
+        }
+    }
+
     private string UserDisplay => Auth.IsAuthenticated ? $"Signed in as {Auth.CurrentUser!.Name}" : "Not signed in";
-    private void ToggleKiosk() => Ui.SetKiosk(!Ui.IsKiosk);
-    private void BackToHome() => Nav.NavigateTo("/");
+    private string UserInitial => GetInitial(Auth.CurrentUser?.Name);
+    private void NavigateBack()
+    {
+        if (!string.IsNullOrWhiteSpace(_previousPath) && !_previousPath.Equals(_currentPath, StringComparison.OrdinalIgnoreCase))
+        {
+            Nav.NavigateTo(_previousPath);
+        }
+        else
+        {
+            Nav.NavigateTo("/");
+        }
+    }
     private void SignOut()
     {
         Auth.SignOut();
         Nav.NavigateTo("/login");
+    }
+
+    private static string GetInitial(string? name) => string.IsNullOrWhiteSpace(name)
+        ? "K"
+        : name.Substring(0, 1).ToUpperInvariant();
+
+    private static string NormalizePath(string relative)
+    {
+        var clean = relative.Split('?', '#')[0];
+        var path = "/" + clean.Trim('/');
+        if (path == "//" || path == "/")
+        {
+            return "/";
+        }
+
+        return path.ToLowerInvariant();
+    }
+
+    private bool ShouldShowBackButton()
+    {
+        return !_currentPath.Equals("/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public void Dispose()
+    {
+        Auth.Changed -= OnAuthChanged;
+        Nav.LocationChanged -= OnLocationChanged;
     }
 }

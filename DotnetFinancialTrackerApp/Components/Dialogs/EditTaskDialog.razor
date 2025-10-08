@@ -1,0 +1,98 @@
+@using DotnetFinancialTrackerApp.Models
+@using MudBlazor
+
+<MudDialog MaxWidth="MaxWidth.Medium" FullWidth="true">
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(_model.Id == 0 ? "Add Task" : "Edit Task")</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" Model="_model">
+            <MudStack Spacing="2">
+                <MudTextField @bind-Value="_model.Title" Label="Title" Variant="Variant.Outlined" Required="true" Immediate="true" />
+                <MudSelect @bind-Value="_model.Category" Label="Category" Variant="Variant.Outlined" Required="true">
+                    @foreach (var option in Enum.GetValues<TaskCategory>())
+                    {
+                        <MudSelectItem Value="@option">@option</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect @bind-Value="_model.Priority" Label="Priority" Variant="Variant.Outlined" Required="true">
+                    @foreach (var option in Enum.GetValues<TaskPriority>())
+                    {
+                        <MudSelectItem Value="@option">@option</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudDatePicker Label="Due date" Date="_model.DueDate" DateChanged="OnDueDateChanged" Variant="Variant.Outlined" Required="true" />
+                <MudNumericField @bind-Value="_model.EstimatedMinutes" Label="Estimated minutes" Variant="Variant.Outlined" Min="5" Step="5" Immediate="true" />
+                <MudTextField @bind-Value="_model.Notes" Label="Notes" Variant="Variant.Outlined" Lines="3" MaxLines="5" />
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudSpacer />
+        <MudButton Variant="Variant.Text" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance Dialog { get; set; } = default!;
+    [Parameter] public HouseholdTask? Model { get; set; }
+    [Parameter] public string AssignedTo { get; set; } = string.Empty;
+
+    private MudForm? _form;
+    private HouseholdTask _model = new();
+
+    protected override void OnInitialized()
+    {
+        if (Model is not null)
+        {
+            _model = new HouseholdTask
+            {
+                Id = Model.Id,
+                AssignedTo = Model.AssignedTo,
+                Title = Model.Title,
+                Category = Model.Category,
+                Priority = Model.Priority,
+                DueDate = Model.DueDate,
+                EstimatedMinutes = Model.EstimatedMinutes,
+                Notes = Model.Notes
+            };
+        }
+        else
+        {
+            _model = new HouseholdTask
+            {
+                AssignedTo = string.IsNullOrWhiteSpace(AssignedTo) ? "You" : AssignedTo,
+                DueDate = DateTime.Today.AddDays(1),
+                EstimatedMinutes = 30
+            };
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+
+    private async Task Save()
+    {
+        if (_form is not null)
+        {
+            await _form.Validate();
+            if (!_form.IsValid)
+            {
+                return;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(_model.AssignedTo))
+        {
+            _model.AssignedTo = string.IsNullOrWhiteSpace(AssignedTo) ? "You" : AssignedTo;
+        }
+
+        Dialog.Close(DialogResult.Ok(_model));
+    }
+
+    private Task OnDueDateChanged(DateTime? value)
+    {
+        _model.DueDate = (value ?? DateTime.Today).Date;
+        return Task.CompletedTask;
+    }
+}

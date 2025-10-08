@@ -1,0 +1,386 @@
+@page "/finance"
+@using System.Globalization
+@using DotnetFinancialTrackerApp.Models
+@using MudBlazor
+@inject DotnetFinancialTrackerApp.Services.IBudgetsService BudgetSvc
+@inject DotnetFinancialTrackerApp.Services.ITransactionsService TxSvc
+@inject IDialogService DialogService
+
+<MudContainer Class="finance-shell" MaxWidth="MaxWidth.False">
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <MudAlert Severity="Severity.Error" Elevation="0" Class="mb-3">@_error</MudAlert>
+    }
+
+    <MudPaper Class="finance-card finance-card-static" Elevation="1">
+        <MudText Typo="Typo.caption" Class="finance-overline">This month</MudText>
+        <MudText Typo="Typo.h5" Class="mb-3">Budget & cashflow overview</MudText>
+        @if (_budgetCount == 0 || TotalBudgetLimit <= 0)
+        {
+            <MudText Typo="Typo.body2" Class="finance-card-text">Create a budget to start tracking allocations.</MudText>
+        }
+        else
+        {
+            <MudStack Row="true" Wrap="true" AlignItems="AlignItems.Center" Spacing="3">
+                <MudStack AlignItems="AlignItems.Center" Class="finance-donut-wrapper">
+                    <MudChart ChartType="ChartType.Donut" Data="_budgetDonutData" Labels="_budgetDonutLabels" Class="finance-donut" />
+                    <MudText Typo="Typo.subtitle1" Class="mt-2">@SpendPercentLabel of budget</MudText>
+                    <MudChip Color="SpendPercentColor" Variant="Variant.Outlined" Size="Size.Small">Spent @_monthExpense.ToString("C", CultureInfo.CurrentCulture)</MudChip>
+                </MudStack>
+                <MudStack Spacing="1" Class="finance-metric-stack">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.body2">Total limit</MudText>
+                        <MudText Typo="Typo.subtitle2">@TotalBudgetLimit.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                    </MudStack>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.body2">Remaining</MudText>
+                        <MudText Typo="Typo.subtitle2" Class="text-success">@_budgetRemaining.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                    </MudStack>
+                    <MudDivider Class="my-1" />
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.body2">Income</MudText>
+                        <MudText Typo="Typo.subtitle2" Class="text-success">@_monthIncome.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                    </MudStack>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.body2">Spending</MudText>
+                        <MudText Typo="Typo.subtitle2" Class="text-error">@_monthExpense.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                    </MudStack>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.body2">Net balance</MudText>
+                        <MudChip Color="@(NetBalance >= 0 ? Color.Success : Color.Error)" Variant="Variant.Outlined" Size="Size.Small">
+                            @NetBalance.ToString("C", CultureInfo.CurrentCulture)
+                        </MudChip>
+                    </MudStack>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.body2">Transactions</MudText>
+                        <MudText Typo="Typo.subtitle2">@_monthTransactionCount</MudText>
+                    </MudStack>
+                </MudStack>
+            </MudStack>
+        }
+    </MudPaper>
+
+    <MudPaper Class="finance-table-card" Elevation="1">
+        <MudStack Row="true" Wrap="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+            <MudSelect T="FinancePeriod" Dense="true" Label="Period" Variant="Variant.Outlined" Class="filter-select" @bind-Value="TablePeriod">
+                @foreach (var option in Enum.GetValues<FinancePeriod>())
+                {
+                    <MudSelectItem Value="@option">@GetPeriodLabel(option)</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="string" Dense="true" Label="Category" Variant="Variant.Outlined" Class="filter-select" @bind-Value="TableCategory">
+                @foreach (var category in _tableCategoryOptions)
+                {
+                    <MudSelectItem Value="@category">@category</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="string" Dense="true" Label="Member" Variant="Variant.Outlined" Class="filter-select" @bind-Value="TableMember">
+                @foreach (var member in _tableMemberOptions)
+                {
+                    <MudSelectItem Value="@member">@member</MudSelectItem>
+                }
+            </MudSelect>
+            <MudTextField @bind-Value="TableSearch" Immediate="true" Placeholder="Search description" Variant="Variant.Outlined" Dense="true" Class="filter-text" />
+            <MudSpacer />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenAddTransaction">Add transaction</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AccountBalance" OnClick="OpenAddBudget">Setup budget</MudButton>
+        </MudStack>
+
+        <MudTable Items="_tableTransactions" Hover="true" Dense="true">
+            <HeaderContent>
+                <MudTh>Date</MudTh>
+                <MudTh>Member</MudTh>
+                <MudTh>Category</MudTh>
+                <MudTh>Notes</MudTh>
+                <MudTh Class="text-end">Amount</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Date.ToString("MMM d", CultureInfo.CurrentCulture)</MudTd>
+                <MudTd>@DisplayMember(context.User)</MudTd>
+                <MudTd>@DisplayCategory(context.Category)</MudTd>
+                <MudTd>@context.Description</MudTd>
+                <MudTd Class="text-end" Color="@(context.IsIncome ? Color.Success : Color.Error)">@((context.IsIncome ? "+" : "-") + context.Amount.ToString("C", CultureInfo.CurrentCulture))</MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new int[]{10,20,50}" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private const string AllCategoriesOption = "All categories";
+    private const string AllMembersOption = "All members";
+
+    private string? _error;
+    private decimal _monthIncome;
+    private decimal _monthExpense;
+    private int _monthTransactionCount;
+    private decimal TotalBudgetLimit { get; set; }
+    private decimal _budgetRemaining;
+    private int _budgetCount;
+
+    private readonly List<string> _tableCategoryOptions = new();
+    private readonly List<string> _tableMemberOptions = new();
+    private List<Transaction> _allTransactions = new();
+    private List<Transaction> _tableTransactions = new();
+
+    private FinancePeriod _tablePeriod = FinancePeriod.ThisMonth;
+    private string _tableCategory = AllCategoriesOption;
+    private string _tableMember = AllMembersOption;
+    private string _tableSearch = string.Empty;
+
+    private FinancePeriod TablePeriod
+    {
+        get => _tablePeriod;
+        set
+        {
+            if (_tablePeriod != value)
+            {
+                _tablePeriod = value;
+                ApplyTableFilters();
+            }
+        }
+    }
+
+    private string TableCategory
+    {
+        get => _tableCategory;
+        set
+        {
+            if (!string.Equals(_tableCategory, value, StringComparison.Ordinal))
+            {
+                _tableCategory = value;
+                ApplyTableFilters();
+            }
+        }
+    }
+
+    private string TableMember
+    {
+        get => _tableMember;
+        set
+        {
+            if (!string.Equals(_tableMember, value, StringComparison.Ordinal))
+            {
+                _tableMember = value;
+                ApplyTableFilters();
+            }
+        }
+    }
+
+    private string TableSearch
+    {
+        get => _tableSearch;
+        set
+        {
+            _tableSearch = value ?? string.Empty;
+            ApplyTableFilters();
+        }
+    }
+
+    private double[] _budgetDonutData = Array.Empty<double>();
+    private string[] _budgetDonutLabels = Array.Empty<string>();
+
+    private decimal NetBalance => _monthIncome - _monthExpense;
+    private string SpendPercentLabel => TotalBudgetLimit <= 0 ? "0%" : string.Format(CultureInfo.CurrentCulture, "{0:P0}", Math.Max((double)(_monthExpense / TotalBudgetLimit), 0));
+    private Color SpendPercentColor => _monthExpense <= TotalBudgetLimit ? Color.Success : Color.Error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        try
+        {
+            await LoadFinanceDataAsync();
+            BuildFilterOptions();
+            ApplyTableFilters();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task LoadFinanceDataAsync()
+    {
+        var today = DateTime.Today;
+        var periodStart = new DateTime(today.Year, today.Month, 1);
+        var periodEnd = periodStart.AddMonths(1).AddTicks(-1);
+
+        _allTransactions = (await TxSvc.GetAsync()).OrderByDescending(t => t.Date).ThenByDescending(t => t.Id).ToList();
+        var monthTransactions = _allTransactions.Where(t => t.Date >= periodStart && t.Date <= periodEnd).ToList();
+        _monthTransactionCount = monthTransactions.Count;
+        _monthIncome = monthTransactions.Where(t => t.IsIncome).Sum(t => t.Amount);
+        _monthExpense = monthTransactions.Where(t => !t.IsIncome).Sum(t => t.Amount);
+
+        var budgets = await BudgetSvc.GetAsync(periodStart);
+        _budgetCount = budgets.Count;
+        TotalBudgetLimit = budgets.Sum(b => b.Limit);
+        _budgetRemaining = Math.Max(TotalBudgetLimit - _monthExpense, 0m);
+        BuildBudgetDonut();
+    }
+
+    private void BuildBudgetDonut()
+    {
+        if (_budgetCount == 0 || TotalBudgetLimit <= 0)
+        {
+            _budgetDonutLabels = Array.Empty<string>();
+            _budgetDonutData = Array.Empty<double>();
+            return;
+        }
+
+        var spent = Math.Max(Math.Min(_monthExpense, TotalBudgetLimit), 0m);
+        var remaining = Math.Max(TotalBudgetLimit - _monthExpense, 0m);
+        var over = Math.Max(_monthExpense - TotalBudgetLimit, 0m);
+
+        if (over > 0)
+        {
+            _budgetDonutLabels = new[] { "Spent", "Remaining", "Over" };
+            _budgetDonutData = new[]
+            {
+                Convert.ToDouble(spent),
+                0d,
+                Convert.ToDouble(over)
+            };
+        }
+        else
+        {
+            _budgetDonutLabels = new[] { "Spent", "Remaining" };
+            _budgetDonutData = new[]
+            {
+                Convert.ToDouble(spent),
+                Convert.ToDouble(remaining)
+            };
+        }
+    }
+
+    private void BuildFilterOptions()
+    {
+        _tableCategoryOptions.Clear();
+        _tableCategoryOptions.Add(AllCategoriesOption);
+        _tableCategoryOptions.AddRange(_allTransactions
+            .Select(t => DisplayCategory(t.Category))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(c => c));
+        if (!_tableCategoryOptions.Contains(_tableCategory))
+        {
+            _tableCategory = AllCategoriesOption;
+        }
+
+        _tableMemberOptions.Clear();
+        _tableMemberOptions.Add(AllMembersOption);
+        _tableMemberOptions.AddRange(_allTransactions
+            .Select(t => DisplayMember(t.User))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(c => c));
+        if (!_tableMemberOptions.Contains(_tableMember))
+        {
+            _tableMember = AllMembersOption;
+        }
+    }
+
+    private void ApplyTableFilters()
+    {
+        var (start, end) = GetPeriodRange(_tablePeriod);
+        IEnumerable<Transaction> query = _allTransactions;
+
+        if (start is not null)
+        {
+            query = query.Where(t => t.Date.Date >= start.Value.Date);
+        }
+        if (end is not null)
+        {
+            query = query.Where(t => t.Date.Date <= end.Value.Date);
+        }
+        if (!string.Equals(_tableCategory, AllCategoriesOption, StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.Where(t => string.Equals(DisplayCategory(t.Category), _tableCategory, StringComparison.OrdinalIgnoreCase));
+        }
+        if (!string.Equals(_tableMember, AllMembersOption, StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.Where(t => string.Equals(DisplayMember(t.User), _tableMember, StringComparison.OrdinalIgnoreCase));
+        }
+        if (!string.IsNullOrWhiteSpace(_tableSearch))
+        {
+            var term = _tableSearch.Trim();
+            query = query.Where(t => (t.Description ?? string.Empty).Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                                     DisplayCategory(t.Category).Contains(term, StringComparison.OrdinalIgnoreCase));
+        }
+
+        _tableTransactions = query
+            .OrderByDescending(t => t.Date)
+            .ThenByDescending(t => t.Id)
+            .Take(100)
+            .ToList();
+    }
+
+    private async Task OpenAddTransaction()
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true, Position = DialogPosition.Center };
+        var dialog = DialogService.Show<DotnetFinancialTrackerApp.Components.Dialogs.EditTransactionDialog>("Add Transaction", options);
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is Transaction tx)
+        {
+            await TxSvc.AddAsync(tx);
+            await ReloadAsync();
+        }
+    }
+
+    private async Task OpenAddBudget()
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true, Position = DialogPosition.Center };
+        var dialog = DialogService.Show<DotnetFinancialTrackerApp.Components.Dialogs.EditBudgetDialog>("Add Budget", options);
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is Budget budget)
+        {
+            await BudgetSvc.AddAsync(budget);
+            await ReloadAsync();
+        }
+    }
+
+    private (DateTime? Start, DateTime? End) GetPeriodRange(FinancePeriod period)
+    {
+        var today = DateTime.Today;
+        return period switch
+        {
+            FinancePeriod.ThisMonth => (new DateTime(today.Year, today.Month, 1), new DateTime(today.Year, today.Month, 1).AddMonths(1).AddTicks(-1)),
+            FinancePeriod.LastMonth =>
+            (
+                new DateTime(today.Year, today.Month, 1).AddMonths(-1),
+                new DateTime(today.Year, today.Month, 1).AddTicks(-1)
+            ),
+            FinancePeriod.Last90Days => (today.AddDays(-89), today),
+            FinancePeriod.YearToDate => (new DateTime(today.Year, 1, 1), today),
+            _ => (null, null)
+        };
+    }
+
+    private static string GetPeriodLabel(FinancePeriod period) => period switch
+    {
+        FinancePeriod.ThisMonth => "This month",
+        FinancePeriod.LastMonth => "Last month",
+        FinancePeriod.Last90Days => "Last 90 days",
+        FinancePeriod.YearToDate => "Year to date",
+        FinancePeriod.AllTime => "All time",
+        _ => period.ToString()
+    };
+
+    private static string DisplayCategory(string? category)
+        => string.IsNullOrWhiteSpace(category) ? "Uncategorized" : category.Trim();
+
+    private static string DisplayMember(string? user)
+        => string.IsNullOrWhiteSpace(user) ? "Household" : user.Trim();
+
+    private enum FinancePeriod
+    {
+        ThisMonth,
+        LastMonth,
+        Last90Days,
+        YearToDate,
+        AllTime
+    }
+}

@@ -1,15 +1,56 @@
 @page "/wellbeing"
 @using DotnetFinancialTrackerApp.Models
 @using DotnetFinancialTrackerApp.Services
+@using MudBlazor
 @inject IHydrationService HydrationService
 @inject IMedicationService MedicationService
 @inject IHouseholdTaskService TaskService
+@inject DotnetFinancialTrackerApp.Services.IGamificationService GamificationService
 @inject AuthState AuthState
+@inject IDialogService DialogService
 
 <PageTitle>Wellbeing - Family Tracker</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="pa-4">
-    <MudText Typo="Typo.h4" Class="mb-4">Family Wellbeing Hub</MudText>
+    <MudText Typo="Typo.caption" Class="insight-overline mb-1">Wellbeing</MudText>
+    <MudText Typo="Typo.h4" Class="mb-4">Family wellbeing hub</MudText>
+
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4 glass-card" Elevation="0">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <div>
+                        <MudText Typo="Typo.subtitle1">Gamification progress</MudText>
+                        <MudText Typo="Typo.caption" Class="finance-card-meta">Keep logging rituals and tasks to earn badges</MudText>
+                    </div>
+                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                        <MudChip Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small">@_summary.Points pts</MudChip>
+                        <MudChip Variant="Variant.Outlined" Size="Size.Small">@_summary.Streak d streak</MudChip>
+                    </MudStack>
+                </MudStack>
+
+                @if (_achievements.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Class="mt-2">Complete wellbeing actions to unlock your first badge.</MudText>
+                }
+                else
+                {
+                    <MudStack Row="true" Wrap="true" Spacing="1" Class="mt-3">
+                        @foreach (var badge in _achievements.Take(6))
+                        {
+                            <MudPaper Class="badge-card" Elevation="0">
+                                <MudStack Spacing="1" AlignItems="AlignItems.Center">
+                                    <MudAvatar Color="Color.Primary" Size="Size.Medium">@badge.Points</MudAvatar>
+                                    <MudText Typo="Typo.subtitle2" Align="Align.Center">@badge.Title</MudText>
+                                    <MudText Typo="Typo.caption" Align="Align.Center" Class="text-muted">@badge.Description</MudText>
+                                </MudStack>
+                            </MudPaper>
+                        }
+                    </MudStack>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
 
     <MudGrid>
         <!-- Hydration Tracking -->
@@ -93,6 +134,7 @@
 
         <!-- Household Tasks -->
         <MudItem xs="12" md="6" lg="4">
+            <div id="tasks">
             <MudCard Class="pa-4">
                 <MudCardHeader>
                     <CardHeaderContent>
@@ -127,6 +169,7 @@
                     </MudButton>
                 </MudCardContent>
             </MudCard>
+            </div>
         </MudItem>
 
         <!-- Weekly Summary -->
@@ -153,44 +196,7 @@
             </MudCard>
         </MudItem>
 
-        <!-- Quick Actions -->
-        <MudItem xs="12" md="6">
-            <MudCard Class="pa-4">
-                <MudCardHeader>
-                    <CardHeaderContent>
-                        <MudIcon Icon="@Icons.Material.Filled.FlashOn" Class="mr-2" Color="Color.Warning" />
-                        <MudText Typo="Typo.h6">Quick Actions</MudText>
-                    </CardHeaderContent>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudStack>
-                        <MudButton Variant="Variant.Outlined"
-                                 Color="Color.Primary"
-                                 StartIcon="@Icons.Material.Filled.LocalDrink"
-                                 OnClick="AddGlass"
-                                 FullWidth="true">
-                            Log Water Intake
-                        </MudButton>
-                        <MudButton Variant="Variant.Outlined"
-                                 Color="Color.Secondary"
-                                 StartIcon="@Icons.Material.Filled.CheckCircle"
-                                 OnClick="MarkMedicationTaken"
-                                 FullWidth="true"
-                                 Disabled="@(!todayMedications.Any(m => !m.IsCompleted))">
-                            Mark Medication Taken
-                        </MudButton>
-                        <MudButton Variant="Variant.Outlined"
-                                 Color="Color.Tertiary"
-                                 StartIcon="@Icons.Material.Filled.TaskAlt"
-                                 OnClick="CompleteNextTask"
-                                 FullWidth="true"
-                                 Disabled="@(!pendingTasks.Any())">
-                            Complete Next Task
-                        </MudButton>
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
+        
     </MudGrid>
 </MudContainer>
 
@@ -200,6 +206,8 @@
     private List<HouseholdTask> pendingTasks = new();
     private double weeklyHydrationAverage;
     private int completedTasksThisWeek;
+    private DotnetFinancialTrackerApp.Services.GamificationSummary _summary = new();
+    private List<Achievement> _achievements = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -219,6 +227,19 @@
         var weekStart = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek);
         var completedTasks = await TaskService.GetTasksByStatusAsync(user, true);
         completedTasksThisWeek = completedTasks.Count(t => t.CompletedDate >= weekStart);
+
+        try
+        {
+            await GamificationService.EvaluateAsync();
+            _summary = await GamificationService.GetSummaryAsync();
+            _achievements = (await GamificationService.GetAchievementsAsync())
+                .OrderByDescending(a => a.AchievedAt)
+                .ToList();
+        }
+        catch
+        {
+            _achievements = new();
+        }
     }
 
     private async Task CreateTodayHydration()
@@ -276,8 +297,22 @@
         // TODO: Implement medication dialog
     }
 
-    private void OpenTaskDialog()
+    private async Task OpenTaskDialog()
     {
-        // TODO: Implement task dialog
+        var user = AuthState.CurrentUser?.Name ?? "You";
+        var parameters = new DialogParameters
+        {
+            [nameof(DotnetFinancialTrackerApp.Components.Dialogs.EditTaskDialog.AssignedTo)] = user
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true, Position = DialogPosition.Center };
+        var dialog = DialogService.Show<DotnetFinancialTrackerApp.Components.Dialogs.EditTaskDialog>("Add Task", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is HouseholdTask task)
+        {
+            task.AssignedTo = user;
+            await TaskService.CreateAsync(task);
+            await LoadData();
+            StateHasChanged();
+        }
     }
 }

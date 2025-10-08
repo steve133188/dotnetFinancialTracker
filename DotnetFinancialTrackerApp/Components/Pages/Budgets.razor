@@ -1,4 +1,5 @@
 @page "/budgets"
+@using MudBlazor
 @inject DotnetFinancialTrackerApp.Services.IBudgetsService BudgetSvc
 @inject IDialogService DialogService
 
@@ -28,6 +29,7 @@
  </MudContainer>
 
 @code {
+    private readonly DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true, Position = DialogPosition.Center };
     private List<DotnetFinancialTrackerApp.Models.Budget> _items = new();
 
     protected override async Task OnInitializedAsync()
@@ -42,7 +44,7 @@
 
     private async void OpenAdd()
     {
-        var dialog = DialogService.Show<DotnetFinancialTrackerApp.Components.Dialogs.EditBudgetDialog>("Add Budget");
+        var dialog = DialogService.Show<DotnetFinancialTrackerApp.Components.Dialogs.EditBudgetDialog>("Add Budget", _dialogOptions);
         var result = await dialog.Result;
         if (!result.Canceled && result.Data is DotnetFinancialTrackerApp.Models.Budget b)
         {
@@ -54,7 +56,7 @@
     private async void OpenEdit(DotnetFinancialTrackerApp.Models.Budget item)
     {
         var parameters = new DialogParameters { [nameof(DotnetFinancialTrackerApp.Components.Dialogs.EditBudgetDialog.Model)] = item };
-        var dialog = DialogService.Show<DotnetFinancialTrackerApp.Components.Dialogs.EditBudgetDialog>("Edit Budget", parameters);
+        var dialog = DialogService.Show<DotnetFinancialTrackerApp.Components.Dialogs.EditBudgetDialog>("Edit Budget", parameters, _dialogOptions);
         var result = await dialog.Result;
         if (!result.Canceled && result.Data is DotnetFinancialTrackerApp.Models.Budget b)
         {
