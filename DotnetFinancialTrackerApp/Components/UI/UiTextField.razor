@@ -1,0 +1,49 @@
+@typeparam T
+@using System.Linq.Expressions
+@using System.Collections.Generic
+
+<MudTextField T="T"
+              @attributes="AdditionalAttributes"
+              Label="@Label"
+              Variant="Variant"
+              Margin="Margin"
+              Dense="Dense"
+              Immediate="Immediate"
+              InputType="InputType"
+              Placeholder="@Placeholder"
+              AdornmentIcon="@AdornmentIcon"
+              Lines="Lines"
+              HelperText="@HelperText"
+              Required="Required"
+              RequiredError="@RequiredError"
+              OnBlur="OnBlur"
+              Value="Value"
+              ValueChanged="ValueChanged"
+              ValueExpression="ValueExpression"
+              Class="@BuildClass()" />
+
+@code {
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public Variant Variant { get; set; } = Variant.Outlined;
+    [Parameter] public Margin Margin { get; set; } = Margin.None;
+    [Parameter] public bool Dense { get; set; }
+    [Parameter] public bool Immediate { get; set; }
+    [Parameter] public InputType InputType { get; set; } = InputType.Text;
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public string? AdornmentIcon { get; set; }
+    [Parameter] public int Lines { get; set; } = 1;
+    [Parameter] public string? HelperText { get; set; }
+    [Parameter] public bool Required { get; set; }
+    [Parameter] public string? RequiredError { get; set; }
+    [Parameter] public EventCallback<FocusEventArgs> OnBlur { get; set; }
+
+    [Parameter] public T Value { get; set; } = default!;
+    [Parameter] public EventCallback<T> ValueChanged { get; set; }
+    [Parameter] public Expression<Func<T>>? ValueExpression { get; set; }
+
+    [Parameter] public string Class { get; set; } = string.Empty;
+    [Parameter(CaptureUnmatchedValues = true)] public IDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string BuildClass() => string.IsNullOrWhiteSpace(Class) ? "ui-field" : $"ui-field {Class}";
+
+}

@@ -3,7 +3,7 @@
 @using System.Collections.Generic
 @using Microsoft.AspNetCore.Components.Routing
 
-<MudThemeProvider Theme="_theme" />
+<MudThemeProvider Theme="AppTheme.Theme" />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
@@ -69,59 +69,6 @@
     private static readonly HashSet<string> HiddenAuthChromeRoutes = new(StringComparer.OrdinalIgnoreCase)
     {
         "/login"
-    };
-
-    private readonly MudTheme _theme = new()
-    {
-        Palette = new PaletteLight
-        {
-            Primary = "#00C2FF",
-            Secondary = "#0F172A",
-            Background = "#FFFFFF",
-            Surface = "#FFFFFF",
-            AppbarBackground = "#00C2FF",
-            AppbarText = "#00131A",
-            DrawerBackground = "#FFFFFF",
-            DrawerText = "#0B1F2B",
-            TextPrimary = "#0B1F2B",
-            TextSecondary = "#475569",
-            Info = "#00B4D8",
-            Success = "#16A34A",
-            Warning = "#F59E0B",
-            Error = "#E11D48"
-        },
-        PaletteDark = new PaletteDark
-        {
-            Primary = "#00E1FF",
-            Secondary = "#E5E7EB",
-            Background = "#05131D",
-            Surface = "#0B1924",
-            AppbarBackground = "#0B1924",
-            AppbarText = "#E5F3F9",
-            DrawerBackground = "#0B1924",
-            DrawerText = "#E5F3F9",
-            TextPrimary = "#E5F3F9",
-            TextSecondary = "#94BFD4",
-            Info = "#00B4D8",
-            Success = "#22C55E",
-            Warning = "#F59E0B",
-            Error = "#FB7185"
-        },
-        LayoutProperties = new LayoutProperties
-        {
-            DefaultBorderRadius = "18px"
-        },
-        Typography = new Typography
-        {
-            Default = new()
-            {
-                FontFamily = new[] { "Airbnb Cereal", "Inter", "Circular", "SF Pro Text", "Segoe UI", "Roboto", "system-ui", "-apple-system", "sans-serif" },
-                FontWeight = 500
-            },
-            Button = new() { FontFamily = new[] { "Airbnb Cereal", "system-ui", "-apple-system", "sans-serif" }, FontWeight = 600, LetterSpacing = ".2px" },
-            H6 = new() { FontFamily = new[] { "Airbnb Cereal", "system-ui", "-apple-system", "sans-serif" }, FontWeight = 650 },
-            Body1 = new() { FontFamily = new[] { "Airbnb Cereal", "system-ui", "-apple-system", "sans-serif" }, FontWeight = 450 }
-        }
     };
 
     protected override void OnInitialized()

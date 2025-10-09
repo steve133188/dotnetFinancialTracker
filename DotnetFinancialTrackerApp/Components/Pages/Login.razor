@@ -1,217 +1,140 @@
 @page "/login"
+@using DotnetFinancialTrackerApp.Models
+@using Microsoft.AspNetCore.Components.Forms
 @inject IUserService Users
 @inject AuthState Auth
 @inject NavigationManager Nav
 
 <div class="login-page">
-    <div class="login-form-wrapper">
-        <div class="login-header">
-            <div class="app-icon">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                </svg>
-            </div>
-            <h1 class="login-title">Welcome Back</h1>
-            <p class="login-subtitle">Sign in to your account</p>
-        </div>
+    <UiSurface Class="login-form-wrapper">
+        <MudStack Spacing="3">
+            <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                <MudAvatar Class="login-avatar" Color="Color.Primary" Size="Size.Large">
+                    K
+                </MudAvatar>
+                <MudText Typo="Typo.h5" Class="login-title">Welcome Back</MudText>
+                <MudText Typo="Typo.body2" Class="login-subtitle">Sign in to your account</MudText>
+            </MudStack>
 
-        <div class="login-form">
-            <div class="input-group">
-                <label class="input-label">Select User</label>
-                <div class="custom-select" @onclick="ToggleUserDropdown">
-                    <span class="select-value">@GetSelectedUserName()</span>
-                    <svg class="select-arrow" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M7 10l5 5 5-5z"/>
-                    </svg>
-                </div>
-                @if (_showUserDropdown)
-                {
-                    <div class="dropdown-list">
+            <UiForm Model="_formModel"
+                    OnChanged="HandleFormChanged"
+                    OnValidSubmit="HandleSubmit"
+                    OnInvalidSubmit="HandleInvalidSubmit">
+                <MudStack Spacing="3">
+                    <UiSelect T="int"
+                              Label="Select User"
+                              Dense="true"
+                              @bind-Value="_formModel.SelectedUserId"
+                              Disabled="_users.Count == 0">
                         @foreach (var user in _users)
                         {
-                            <div class="dropdown-item @(user.Id == _selectedUserId ? "selected" : "")"
-                                 @onclick="() => SelectUser(user.Id)">
-                                @user.Name
-                            </div>
+                            <MudSelectItem Value="@user.Id">@user.Name</MudSelectItem>
                         }
-                    </div>
-                }
-            </div>
+                    </UiSelect>
+                    <ValidationMessage For="@(() => _formModel.SelectedUserId)" />
 
-            <div class="input-group">
-                <label class="input-label">PIN Code</label>
-                <input type="password"
-                       class="custom-input"
-                       placeholder="Enter your PIN"
-                       @bind="_pin"
-                       @oninput="OnPinInput" />
-            </div>
+                    <UiTextField T="string"
+                                 Label="PIN Code"
+                                 Dense="true"
+                                 InputType="InputType.Password"
+                                 Immediate="true"
+                                 AdornmentIcon="@Icons.Material.Outlined.Lock"
+                                 @bind-Value="_formModel.Pin" />
+                    <ValidationMessage For="@(() => _formModel.Pin)" />
 
-            <button class="login-btn @(CanSignIn() ? "enabled" : "disabled")"
-                    @onclick="SignIn"
-                    disabled="@(!CanSignIn())">
-                Sign In
-            </button>
-        </div>
+                    <UiButton FullWidth="true"
+                              ButtonType="ButtonType.Submit"
+                              Disabled="@(!CanSignIn)">
+                        Sign In
+                    </UiButton>
+                </MudStack>
+            </UiForm>
 
-        <div class="divider">
-            <span>or</span>
-        </div>
-
-        <button class="create-btn" @onclick="OpenCreate">
-            Create New Account
-        </button>
-
-        @if (!string.IsNullOrEmpty(_error))
-        {
-            <div class="error-message">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-                </svg>
-                @_error
-            </div>
-        }
-    </div>
+            @if (!string.IsNullOrEmpty(_error))
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">
+                    @_error
+                </MudAlert>
+            }
+        </MudStack>
+    </UiSurface>
 </div>
 
-<MudDialog @bind-IsVisible="_createOpen" Class="create-dialog">
-    <TitleContent>
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-            <MudIcon Icon="@Icons.Material.Outlined.PersonAdd" Color="Color.Primary" />
-            <MudText Typo="Typo.h6">Create New Profile</MudText>
-        </MudStack>
-    </TitleContent>
-    <DialogContent>
-        <MudForm @ref="_form">
-            <MudStack Spacing="3">
-                <MudTextField @bind-Value="_newName"
-                              Label="Full Name"
-                              Required="true"
-                              Variant="Variant.Outlined"
-                              Class="login-input" />
-                <MudTextField @bind-Value="_newPin"
-                              Label="Create PIN"
-                              InputType="InputType.Password"
-                              Required="true"
-                              Variant="Variant.Outlined"
-                              Class="login-input" />
-                <MudTextField @bind-Value="_newPinConfirm"
-                              Label="Confirm PIN"
-                              InputType="InputType.Password"
-                              Required="true"
-                              Variant="Variant.Outlined"
-                              Class="login-input" />
-            </MudStack>
-        </MudForm>
-    </DialogContent>
-    <DialogActions>
-        <MudSpacer />
-        <MudButton Variant="Variant.Text"
-                   OnClick="() => _createOpen=false"
-                   Class="cancel-button">
-            Cancel
-        </MudButton>
-        <MudButton Color="Color.Primary"
-                   Variant="Variant.Filled"
-                   OnClick="CreateUser"
-                   Class="create-action-button">
-            Create Profile
-        </MudButton>
-    </DialogActions>
-</MudDialog>
-
 @code {
-    private List<DotnetFinancialTrackerApp.Models.UserProfile> _users = new();
-    private int _selectedUserId;
-    private string _pin = string.Empty;
+    private readonly LoginFormModel _formModel = new();
+    private readonly List<UserProfile> _users = new();
+    private ValidationMessageStore? _validationMessages;
+    private EditContext? _currentContext;
     private string? _error;
-    private bool _showUserDropdown = false;
-
-    private bool _createOpen = false;
-    private MudForm? _form;
-    private string _newName = string.Empty;
-    private string _newPin = string.Empty;
-    private string _newPinConfirm = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
-        _users = await Users.GetUsersAsync();
-        if (_selectedUserId == 0 && _users.Count > 0)
+        var users = await Users.GetUsersAsync();
+        _users.AddRange(users);
+        if (_users.Count > 0 && _formModel.SelectedUserId == 0)
         {
-            _selectedUserId = _users[0].Id;
+            _formModel.SelectedUserId = _users[0].Id;
         }
-    }
-
-    private string GetSelectedUserName()
-    {
-        var user = _users.FirstOrDefault(u => u.Id == _selectedUserId);
-        return user?.Name ?? "Choose a user";
-    }
-
-    private void ToggleUserDropdown()
-    {
-        _showUserDropdown = !_showUserDropdown;
-    }
-
-    private void SelectUser(int userId)
-    {
-        _selectedUserId = userId;
-        _showUserDropdown = false;
-        _pin = string.Empty;
-        _error = null;
         StateHasChanged();
     }
 
-    private void OnPinInput(ChangeEventArgs e)
+    private bool CanSignIn => _formModel.SelectedUserId > 0 && (_formModel.Pin?.Trim().Length ?? 0) >= 4;
+
+    private Task HandleFormChanged(EditContext context)
     {
-        _pin = e.Value?.ToString() ?? string.Empty;
+        EnsureValidationStore(context);
+        _validationMessages?.Clear();
+        context.NotifyValidationStateChanged();
         _error = null;
+        StateHasChanged();
+        return Task.CompletedTask;
     }
 
-    private bool CanSignIn()
+    private Task HandleInvalidSubmit(EditContext context)
     {
-        return _selectedUserId > 0 && NormalizedPin.Length >= 4;
+        EnsureValidationStore(context);
+        return Task.CompletedTask;
     }
 
-    private async Task SignIn()
+    private async Task HandleSubmit(EditContext context)
     {
-        if (!CanSignIn()) return;
-
+        EnsureValidationStore(context);
+        _validationMessages?.Clear();
         _error = null;
-        var pin = NormalizedPin;
-        var user = await Users.VerifyAsync(_selectedUserId, pin);
+
+        var pin = (_formModel.Pin ?? string.Empty).Trim();
+        if (!CanSignIn)
+        {
+            AddValidationMessage(context, nameof(LoginFormModel.Pin), "PIN must be at least 4 digits.");
+            return;
+        }
+
+        var user = await Users.VerifyAsync(_formModel.SelectedUserId, pin);
         if (user is null)
         {
             _error = "Invalid PIN code. Please try again.";
+            AddValidationMessage(context, nameof(LoginFormModel.Pin), _error);
             return;
         }
+
         Auth.SignIn(user);
         Nav.NavigateTo("/");
     }
 
-    private void OpenCreate() => _createOpen = true;
-
-    private async Task CreateUser()
+    private void EnsureValidationStore(EditContext context)
     {
-        await (_form?.Validate() ?? Task.CompletedTask);
-        if (_form != null && !_form.IsValid) return;
-        if (string.IsNullOrWhiteSpace(_newPin) || _newPin.Length < 4)
+        if (!ReferenceEquals(_currentContext, context))
         {
-            _error = "PIN must be at least 4 digits.";
-            return;
+            _currentContext = context;
+            _validationMessages = new ValidationMessageStore(context);
         }
-        if (_newPin != _newPinConfirm)
-        {
-            _error = "PINs do not match";
-            return;
-        }
-        var user = await Users.CreateAsync(_newName, _newPin);
-        _users = await Users.GetUsersAsync();
-        _selectedUserId = user.Id;
-        _createOpen = false;
-        _pin = string.Empty;
-        _error = null;
     }
 
-    private string NormalizedPin => (_pin ?? string.Empty).Trim();
+    private void AddValidationMessage(EditContext context, string fieldName, string message)
+    {
+        EnsureValidationStore(context);
+        var fieldIdentifier = context.Field(fieldName);
+        _validationMessages!.Add(fieldIdentifier, message);
+        context.NotifyValidationStateChanged();
+    }
 }

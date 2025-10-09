@@ -1,125 +1,103 @@
 @using DotnetFinancialTrackerApp.Models
-@inherits ComponentBase
 
-<MudDialog>
+<MudDialog MaxWidth="MaxWidth.Small">
     <TitleContent>
-        <MudText Typo="Typo.h6">@(_model.Id == 0 ? "Add Budget" : "Edit Budget")</MudText>
+        <MudText Typo="Typo.h6">@Title</MudText>
     </TitleContent>
+
     <DialogContent>
-        <CustomForm Title="@(_model.Id == 0 ? "Add Budget" : "Edit Budget")"
-                    Icon="<path d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'/>">
-            <div class="form-fields">
-                <CustomInput @bind-Value="_model.Category"
-                            Label="Category"
-                            Placeholder="Enter budget category"
-                            IsValid="@(string.IsNullOrEmpty(_categoryError))"
-                            ErrorMessage="@_categoryError" />
+        <MudForm @ref="_form" @bind-IsValid="_isValid" ValidationDelay="0">
+            <MudStack Spacing="3">
+                <MudTextField T="string"
+                              Label="Category"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              Immediate="true"
+                              @bind-Value="_model.Category"
+                              RequiredError="Category is required" />
 
-                <CustomInput @bind-Value="_limitString"
-                            Label="Budget Limit"
-                            InputType="number"
-                            Placeholder="0.00"
-                            IsValid="@(string.IsNullOrEmpty(_limitError))"
-                            ErrorMessage="@_limitError" />
+                <MudNumericField T="decimal"
+                                 Label="Budget Limit"
+                                 Variant="Variant.Outlined"
+                                 Immediate="true"
+                                 Adornment="Adornment.Start"
+                                 AdornmentText="$"
+                                 @bind-Value="_model.Limit"
+                                 Required="true"
+                                 RequiredError="Budget limit is required"
+                                 Validation="ValidateLimit" />
 
-                <CustomInput @bind-Value="_monthString"
-                            Label="Month"
-                            InputType="month"
-                            IsValid="@(string.IsNullOrEmpty(_monthError))"
-                            ErrorMessage="@_monthError" />
-            </div>
-        </CustomForm>
+                <MudDatePicker Label="Month"
+                               Variant="Variant.Outlined"
+                               @bind-Date="_budgetMonth"
+                               Required="true"
+                               RequiredError="Month is required"
+                               DateFormat="MMMM yyyy"
+                               AdornmentIcon="@Icons.Material.Outlined.CalendarMonth" />
+            </MudStack>
+        </MudForm>
     </DialogContent>
+
     <DialogActions>
         <MudSpacer />
-        <CustomButton ButtonType="secondary" OnClick="Cancel">Cancel</CustomButton>
-        <CustomButton ButtonType="primary" OnClick="Ok">Save</CustomButton>
+        <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Ok">Save</MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public Budget? Model { get; set; }
 
-    private Budget _model = new();
-    private string _limitString = "";
-    private string _monthString = "";
+    private readonly Budget _model = new();
+    private MudForm? _form;
+    private bool _isValid;
+    private DateTime? _budgetMonth;
 
-    private string _categoryError = "";
-    private string _limitError = "";
-    private string _monthError = "";
+    private string Title => _model.Id == 0 ? "Add Budget" : "Edit Budget";
 
     protected override void OnInitialized()
     {
         if (Model is not null)
         {
-            _model = new Budget
-            {
-                Id = Model.Id,
-                Category = Model.Category,
-                Limit = Model.Limit,
-                Month = Model.Month
-            };
+            _model.Id = Model.Id;
+            _model.Category = Model.Category;
+            _model.Limit = Model.Limit;
+            _model.Month = Model.Month;
         }
-        _limitString = _model.Limit.ToString("F2");
-        _monthString = _model.Month.ToString("yyyy-MM");
+
+        _budgetMonth = _model.Month == default ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : _model.Month;
+    }
+
+    private string? ValidateLimit(decimal? value)
+    {
+        if (value is null or <= 0)
+        {
+            return "Budget limit must be greater than zero";
+        }
+
+        return null;
     }
 
     private void Cancel() => MudDialog.Cancel();
 
     private async Task Ok()
     {
-        ClearErrors();
-
-        if (!ValidateForm())
+        if (_form is null)
         {
-            StateHasChanged();
             return;
         }
 
-        if (decimal.TryParse(_limitString, out var limit))
+        await _form.Validate();
+
+        if (!_isValid || _budgetMonth is null)
         {
-            _model.Limit = limit;
+            return;
         }
 
-        if (DateTime.TryParse(_monthString + "-01", out var month))
-        {
-            _model.Month = new DateTime(month.Year, month.Month, 1);
-        }
+        var month = _budgetMonth.Value;
+        _model.Month = new DateTime(month.Year, month.Month, 1);
 
         MudDialog.Close(DialogResult.Ok(_model));
     }
-
-    private void ClearErrors()
-    {
-        _categoryError = "";
-        _limitError = "";
-        _monthError = "";
-    }
-
-    private bool ValidateForm()
-    {
-        bool isValid = true;
-
-        if (string.IsNullOrWhiteSpace(_model.Category))
-        {
-            _categoryError = "Category is required";
-            isValid = false;
-        }
-
-        if (!decimal.TryParse(_limitString, out var limit) || limit <= 0)
-        {
-            _limitError = "Please enter a valid budget limit greater than 0";
-            isValid = false;
-        }
-
-        if (!DateTime.TryParse(_monthString + "-01", out _))
-        {
-            _monthError = "Please select a valid month";
-            isValid = false;
-        }
-
-        return isValid;
-    }
 }
-

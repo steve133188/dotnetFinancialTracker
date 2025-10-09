@@ -1,167 +1,127 @@
 @using DotnetFinancialTrackerApp.Models
 
-<MudDialog>
+<MudDialog MaxWidth="MaxWidth.Small">
     <TitleContent>
-        <MudText Typo="Typo.h6">@(_model.Id == 0 ? "Add Transaction" : "Edit Transaction")</MudText>
+        <MudText Typo="Typo.h6">@Title</MudText>
     </TitleContent>
+
     <DialogContent>
-        <CustomForm Title="@(_model.Id == 0 ? "Add Transaction" : "Edit Transaction")"
-                    Icon="<path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'/>">
-            <div class="form-fields">
-                <CustomInput @bind-Value="_model.User"
-                            Label="User"
-                            Placeholder="Enter user name"
-                            IsValid="@(string.IsNullOrEmpty(_userError))"
-                            ErrorMessage="@_userError" />
+        <MudForm @ref="_form" @bind-IsValid="_isValid" ValidationDelay="0">
+            <MudStack Spacing="3">
+                <MudTextField T="string"
+                              Label="User"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              Immediate="true"
+                              @bind-Value="_model.User"
+                              RequiredError="User is required" />
 
-                <CustomInput @bind-Value="_model.Category"
-                            Label="Category"
-                            Placeholder="Enter category"
-                            IsValid="@(string.IsNullOrEmpty(_categoryError))"
-                            ErrorMessage="@_categoryError" />
+                <MudTextField T="string"
+                              Label="Category"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              Immediate="true"
+                              @bind-Value="_model.Category"
+                              RequiredError="Category is required" />
 
-                <CustomInput @bind-Value="_amountString"
-                            Label="Amount"
-                            InputType="number"
-                            Placeholder="0.00"
-                            IsValid="@(string.IsNullOrEmpty(_amountError))"
-                            ErrorMessage="@_amountError" />
+                <MudNumericField T="decimal"
+                                 Label="Amount"
+                                 Variant="Variant.Outlined"
+                                 Immediate="true"
+                                 Adornment="Adornment.Start"
+                                 AdornmentText="$"
+                                 @bind-Value="_model.Amount"
+                                 Required="true"
+                                 RequiredError="Amount is required"
+                                 Validation="ValidateAmount" />
 
-                <CustomInput @bind-Value="_dateString"
-                            Label="Date"
-                            InputType="date"
-                            IsValid="@(string.IsNullOrEmpty(_dateError))"
-                            ErrorMessage="@_dateError" />
+                <MudDatePicker Label="Date"
+                               Variant="Variant.Outlined"
+                               @bind-Date="_transactionDate"
+                               Required="true"
+                               RequiredError="Date is required"
+                               AdornmentIcon="@Icons.Material.Outlined.Event" />
 
-                <div class="custom-input-group">
-                    <label class="custom-input-label">Type</label>
-                    <div class="income-toggle" @onclick="ToggleIncomeType">
-                        <div class="toggle-option @(_model.IsIncome ? "" : "active")">
-                            <svg viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>
-                            </svg>
-                            Expense
-                        </div>
-                        <div class="toggle-option @(_model.IsIncome ? "active" : "")">
-                            <svg viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>
-                            </svg>
-                            Income
-                        </div>
-                    </div>
-                </div>
+                <MudSelect T="bool"
+                           Label="Type"
+                           Variant="Variant.Outlined"
+                           @bind-Value="_model.IsIncome">
+                    <MudSelectItem Value="false">Expense</MudSelectItem>
+                    <MudSelectItem Value="true">Income</MudSelectItem>
+                </MudSelect>
 
-                <CustomInput @bind-Value="_model.Description"
-                            Label="Description"
-                            Placeholder="Enter description (optional)" />
-            </div>
-        </CustomForm>
+                <MudTextField T="string"
+                              Label="Description"
+                              Variant="Variant.Outlined"
+                              Lines="3"
+                              Immediate="true"
+                              @bind-Value="_model.Description" />
+            </MudStack>
+        </MudForm>
     </DialogContent>
+
     <DialogActions>
         <MudSpacer />
-        <CustomButton ButtonType="secondary" OnClick="Cancel">Cancel</CustomButton>
-        <CustomButton ButtonType="primary" OnClick="Ok">Save</CustomButton>
+        <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Ok">Save</MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public Transaction? Model { get; set; }
 
-    private Transaction _model = new();
-    private string _amountString = "";
-    private string _dateString = "";
+    private readonly Transaction _model = new();
+    private MudForm? _form;
+    private bool _isValid;
+    private DateTime? _transactionDate;
 
-    private string _userError = "";
-    private string _categoryError = "";
-    private string _amountError = "";
-    private string _dateError = "";
+    private string Title => _model.Id == 0 ? "Add Transaction" : "Edit Transaction";
 
     protected override void OnInitialized()
     {
         if (Model is not null)
         {
-            _model = new Transaction
-            {
-                Id = Model.Id,
-                User = Model.User,
-                Category = Model.Category,
-                Amount = Model.Amount,
-                Date = Model.Date,
-                Description = Model.Description,
-                IsIncome = Model.IsIncome
-            };
+            _model.Id = Model.Id;
+            _model.User = Model.User;
+            _model.Category = Model.Category;
+            _model.Amount = Model.Amount;
+            _model.Date = Model.Date;
+            _model.Description = Model.Description;
+            _model.IsIncome = Model.IsIncome;
         }
-        _amountString = _model.Amount.ToString("F2");
-        _dateString = _model.Date.ToString("yyyy-MM-dd");
+
+        _transactionDate = _model.Date == default ? DateTime.Today : _model.Date;
     }
 
-    private void ToggleIncomeType()
+    private string? ValidateAmount(decimal? value)
     {
-        _model.IsIncome = !_model.IsIncome;
+        if (value is null or <= 0)
+        {
+            return "Amount must be greater than zero";
+        }
+
+        return null;
     }
 
     private void Cancel() => MudDialog.Cancel();
 
     private async Task Ok()
     {
-        ClearErrors();
-
-        if (!ValidateForm())
+        if (_form is null)
         {
-            StateHasChanged();
             return;
         }
 
-        if (decimal.TryParse(_amountString, out var amount))
+        await _form.Validate();
+
+        if (!_isValid || _transactionDate is null)
         {
-            _model.Amount = amount;
+            return;
         }
 
-        if (DateTime.TryParse(_dateString, out var date))
-        {
-            _model.Date = date;
-        }
+        _model.Date = _transactionDate.Value;
 
         MudDialog.Close(DialogResult.Ok(_model));
-    }
-
-    private void ClearErrors()
-    {
-        _userError = "";
-        _categoryError = "";
-        _amountError = "";
-        _dateError = "";
-    }
-
-    private bool ValidateForm()
-    {
-        bool isValid = true;
-
-        if (string.IsNullOrWhiteSpace(_model.User))
-        {
-            _userError = "User is required";
-            isValid = false;
-        }
-
-        if (string.IsNullOrWhiteSpace(_model.Category))
-        {
-            _categoryError = "Category is required";
-            isValid = false;
-        }
-
-        if (!decimal.TryParse(_amountString, out var amount) || amount <= 0)
-        {
-            _amountError = "Please enter a valid amount greater than 0";
-            isValid = false;
-        }
-
-        if (!DateTime.TryParse(_dateString, out _))
-        {
-            _dateError = "Please enter a valid date";
-            isValid = false;
-        }
-
-        return isValid;
     }
 }
