@@ -30,6 +30,7 @@ public static class MauiProgram
         var dbPath = Path.Combine(FileSystem.AppDataDirectory, "financial-tracker.db");
         builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite($"Data Source={dbPath}"));
         builder.Services.AddScoped<ITransactionsService, TransactionsService>();
+        builder.Services.AddScoped<ITransactionTemplateService, TransactionTemplateService>();
         builder.Services.AddScoped<IBudgetsService, BudgetsService>();
         builder.Services.AddScoped<IGamificationService, GamificationService>();
         builder.Services.AddScoped<IExportService, ExportService>();
@@ -40,6 +41,11 @@ public static class MauiProgram
         builder.Services.AddScoped<IWellbeingAnalyticsService, WellbeingAnalyticsService>();
         builder.Services.AddScoped<IValidationService, ValidationService>();
         builder.Services.AddScoped<INotificationService, NotificationService>();
+
+        // Family Banking Services
+        builder.Services.AddScoped<IFamilyBankingService, FamilyBankingService>();
+        builder.Services.AddScoped<IFamilyAIService, FamilyAIService>();
+
         builder.Services.AddSingleton<AuthState>();
 
 #if DEBUG
@@ -56,6 +62,10 @@ public static class MauiProgram
             db.Database.EnsureCreated();
             EnsureSchemaUpToDate(db);
             Seed(db);
+
+            // Seed transaction templates after main seeding
+            var templateService = scope.ServiceProvider.GetRequiredService<ITransactionTemplateService>();
+            templateService.SeedDefaultTemplatesAsync().Wait();
         }
 
         return app;
@@ -93,6 +103,137 @@ public static class MauiProgram
             });
         }
 
+        // Seed Family Banking data
+        if (!db.FamilyAccounts.Any())
+        {
+            // Create a sample family account
+            var familyAccount = new Models.FamilyAccount
+            {
+                FamilyName = "Smith Family",
+                TotalBalance = 4495.50m,
+                CreatedAt = DateTime.UtcNow.AddDays(-30),
+                UpdatedAt = DateTime.UtcNow
+            };
+            db.FamilyAccounts.Add(familyAccount);
+
+            // Create family members
+            var parentMember = new Models.FamilyMember
+            {
+                FamilyId = familyAccount.FamilyId,
+                Name = "Mom (Sarah)",
+                Role = "Parent",
+                Balance = 2500m,
+                MonthlyAllowance = 0m,
+                IsOnline = true,
+                LastActivity = DateTime.UtcNow.AddMinutes(-15),
+                SpendingLimit = 5000m,
+                SpentThisMonth = 1200m,
+                TransactionsThisMonth = 23,
+                SavingsGoalProgress = 0.75,
+                AchievementPoints = 150
+            };
+            db.FamilyMembers.Add(parentMember);
+
+            var dadMember = new Models.FamilyMember
+            {
+                FamilyId = familyAccount.FamilyId,
+                Name = "Dad (Mike)",
+                Role = "Parent",
+                Balance = 1800m,
+                MonthlyAllowance = 0m,
+                IsOnline = false,
+                LastActivity = DateTime.UtcNow.AddHours(-2),
+                SpendingLimit = 4000m,
+                SpentThisMonth = 980m,
+                TransactionsThisMonth = 18,
+                SavingsGoalProgress = 0.60,
+                AchievementPoints = 120
+            };
+            db.FamilyMembers.Add(dadMember);
+
+            var teenMember = new Models.FamilyMember
+            {
+                FamilyId = familyAccount.FamilyId,
+                Name = "Emma",
+                Role = "Teen",
+                Balance = 150m,
+                MonthlyAllowance = 200m,
+                IsOnline = true,
+                LastActivity = DateTime.UtcNow.AddMinutes(-5),
+                SpendingLimit = 300m,
+                SpentThisMonth = 180m,
+                TransactionsThisMonth = 12,
+                SavingsGoalProgress = 0.40,
+                AchievementPoints = 85
+            };
+            db.FamilyMembers.Add(teenMember);
+
+            var childMember = new Models.FamilyMember
+            {
+                FamilyId = familyAccount.FamilyId,
+                Name = "Jake",
+                Role = "Child",
+                Balance = 45.50m,
+                MonthlyAllowance = 50m,
+                IsOnline = false,
+                LastActivity = DateTime.UtcNow.AddHours(-4),
+                SpendingLimit = 75m,
+                SpentThisMonth = 35m,
+                TransactionsThisMonth = 6,
+                SavingsGoalProgress = 0.80,
+                AchievementPoints = 65
+            };
+            db.FamilyMembers.Add(childMember);
+
+            // Create virtual cards
+            db.VirtualCards.AddRange(new[]
+            {
+                new Models.VirtualCard { MemberId = parentMember.MemberId, DisplayNumber = "4521", DailyLimit = 500m, CardColor = "#01FFFF", ExpiryDate = DateTime.UtcNow.AddYears(3) },
+                new Models.VirtualCard { MemberId = dadMember.MemberId, DisplayNumber = "7834", DailyLimit = 400m, CardColor = "#01FFFF", ExpiryDate = DateTime.UtcNow.AddYears(3) },
+                new Models.VirtualCard { MemberId = teenMember.MemberId, DisplayNumber = "2910", DailyLimit = 100m, CardColor = "#FF6B6B", ExpiryDate = DateTime.UtcNow.AddYears(3) },
+                new Models.VirtualCard { MemberId = childMember.MemberId, DisplayNumber = "5647", DailyLimit = 25m, CardColor = "#4ECDC4", ExpiryDate = DateTime.UtcNow.AddYears(3) }
+            });
+
+            // Create family goals
+            db.FamilyGoals.AddRange(new[]
+            {
+                new Models.FamilyGoal
+                {
+                    FamilyId = familyAccount.FamilyId,
+                    Title = "Vacation Fund",
+                    Description = "Summer family vacation to Hawaii",
+                    CurrentAmount = 2400m,
+                    TargetAmount = 5000m,
+                    TargetDate = DateTime.UtcNow.AddMonths(6),
+                    Type = Models.GoalType.Vacation,
+                    Priority = Models.GoalPriority.High
+                },
+                new Models.FamilyGoal
+                {
+                    FamilyId = familyAccount.FamilyId,
+                    Title = "Emergency Fund",
+                    Description = "6 months of family expenses",
+                    CurrentAmount = 8500m,
+                    TargetAmount = 10000m,
+                    TargetDate = DateTime.UtcNow.AddMonths(3),
+                    Type = Models.GoalType.Emergency,
+                    Priority = Models.GoalPriority.Critical
+                },
+                new Models.FamilyGoal
+                {
+                    FamilyId = familyAccount.FamilyId,
+                    Title = "College Fund",
+                    Description = "Emma's college education savings",
+                    CurrentAmount = 1200m,
+                    TargetAmount = 1000m,
+                    TargetDate = DateTime.UtcNow.AddMonths(-1),
+                    Type = Models.GoalType.Education,
+                    Priority = Models.GoalPriority.High,
+                    IsArchived = false
+                }
+            });
+        }
+
         db.SaveChanges();
     }
 
@@ -102,8 +243,10 @@ public static class MauiProgram
         {
             var required = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
-                "Transactions", "Budgets", "Achievements", "GamificationStates", "Users",
-                "HydrationEntries", "MedicationReminders", "HouseholdTasks"
+                "Transactions", "TransactionTemplates", "Budgets", "Achievements", "GamificationStates", "Users",
+                "HydrationEntries", "MedicationReminders", "HouseholdTasks",
+                "FamilyAccounts", "FamilyMembers", "VirtualCards", "FamilyGoals", "FamilyInsights",
+                "SpendingLimits", "FamilyMemberGoals", "GoalContributions", "CardTransactions"
             };
             var existing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 

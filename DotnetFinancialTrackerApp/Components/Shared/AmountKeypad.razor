@@ -1,0 +1,257 @@
+@namespace DotnetFinancialTrackerApp.Components.Shared
+
+<div class="amount-keypad">
+    <div class="amount-display">
+        <div class="currency-symbol">$</div>
+        <div class="amount-value">@FormattedAmount</div>
+        <div class="amount-decimal">.@DecimalPart</div>
+    </div>
+
+    <div class="keypad-grid">
+        @foreach (var key in KeypadKeys)
+        {
+            <button class="keypad-key @GetKeyClass(key)"
+                    @onclick="() => HandleKeyPress(key)"
+                    @ontouchstart="() => HandleTouchStart(key)"
+                    @ontouchend="() => HandleTouchEnd(key)">
+                @if (key == "backspace")
+                {
+                    <MudIcon Icon="Icons.Material.Filled.Backspace" Size="Size.Large" />
+                }
+                else if (key == "clear")
+                {
+                    <span class="clear-text">Clear</span>
+                }
+                else
+                {
+                    <span class="key-text">@key</span>
+                }
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public decimal Amount { get; set; }
+    [Parameter] public EventCallback<decimal> AmountChanged { get; set; }
+    [Parameter] public EventCallback OnEnter { get; set; }
+
+    private string _pressedKey = string.Empty;
+    private readonly string[] KeypadKeys = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "clear", "0", "backspace" };
+
+    private string FormattedAmount => ((int)(Amount * 100) / 100).ToString("N0");
+    private string DecimalPart => ((int)(Amount * 100) % 100).ToString("00");
+
+    private async Task HandleKeyPress(string key)
+    {
+        var newAmount = Amount;
+
+        switch (key)
+        {
+            case "clear":
+                newAmount = 0;
+                break;
+            case "backspace":
+                newAmount = Math.Floor(Amount * 10) / 100;
+                break;
+            default:
+                if (int.TryParse(key, out var digit))
+                {
+                    newAmount = (Amount * 10) + (digit * 0.01m);
+                    // Limit to reasonable maximum
+                    if (newAmount > 999999.99m)
+                        newAmount = Amount;
+                }
+                break;
+        }
+
+        Amount = newAmount;
+        await AmountChanged.InvokeAsync(Amount);
+    }
+
+    private void HandleTouchStart(string key)
+    {
+        _pressedKey = key;
+        StateHasChanged();
+    }
+
+    private void HandleTouchEnd(string key)
+    {
+        _pressedKey = string.Empty;
+        StateHasChanged();
+    }
+
+    private string GetKeyClass(string key)
+    {
+        var baseClass = key switch
+        {
+            "clear" => "key-action key-clear",
+            "backspace" => "key-action key-backspace",
+            "0" => "key-zero",
+            _ => "key-number"
+        };
+
+        if (_pressedKey == key)
+            baseClass += " key-pressed";
+
+        return baseClass;
+    }
+}
+
+<style>
+.amount-keypad {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.amount-display {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    padding: 24px 16px;
+    background: rgba(1, 255, 255, 0.05);
+    border-radius: 16px;
+    margin-bottom: 20px;
+    min-height: 80px;
+    border: 1px solid rgba(1, 255, 255, 0.1);
+}
+
+.currency-symbol {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #666;
+    margin-right: 4px;
+}
+
+.amount-value {
+    font-size: 3rem;
+    font-weight: 700;
+    color: #000;
+    line-height: 1;
+    min-width: 60px;
+    text-align: right;
+}
+
+.amount-decimal {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #666;
+    margin-left: 2px;
+}
+
+.keypad-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    padding: 0 8px;
+}
+
+.keypad-key {
+    aspect-ratio: 1;
+    min-height: 64px;
+    border: none;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #000;
+    font-size: 1.5rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+.keypad-key:hover {
+    background: rgba(1, 255, 255, 0.1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.keypad-key:active,
+.keypad-key.key-pressed {
+    transform: translateY(0);
+    background: rgba(1, 255, 255, 0.2);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.key-number {
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.key-action {
+    background: rgba(1, 255, 255, 0.1);
+    color: #000;
+}
+
+.key-clear {
+    background: rgba(244, 67, 54, 0.1);
+    color: #d32f2f;
+}
+
+.key-backspace {
+    background: rgba(255, 152, 0, 0.1);
+    color: #f57c00;
+}
+
+.key-zero {
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.key-text {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.clear-text {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+/* Touch-specific optimizations */
+@@media (pointer: coarse) {
+    .keypad-key {
+        min-height: 72px;
+    }
+
+    .amount-display {
+        min-height: 90px;
+        padding: 28px 16px;
+    }
+
+    .amount-value {
+        font-size: 3.5rem;
+    }
+}
+
+/* Small screens */
+@@media (max-width: 480px) {
+    .keypad-grid {
+        gap: 8px;
+        padding: 0 4px;
+    }
+
+    .amount-display {
+        margin-bottom: 16px;
+    }
+}
+
+/* Large screens - tablet landscape */
+@@media (min-width: 768px) and (orientation: landscape) {
+    .amount-keypad {
+        max-width: 500px;
+    }
+
+    .keypad-key {
+        min-height: 80px;
+    }
+}
+</style>

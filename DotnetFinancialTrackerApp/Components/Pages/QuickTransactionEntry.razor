@@ -1,0 +1,568 @@
+@page "/quick-transaction"
+@using DotnetFinancialTrackerApp.Models
+@using DotnetFinancialTrackerApp.Services
+@using DotnetFinancialTrackerApp.Components.Shared
+@using Microsoft.JSInterop
+@inject ITransactionsService TransactionService
+@inject ITransactionTemplateService TemplateService
+@inject AuthState AuthState
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<div class="quick-transaction-container">
+    <!-- Header -->
+    <div class="quick-header">
+        <MudButton StartIcon="Icons.Material.Filled.ArrowBack"
+                   Variant="Variant.Text"
+                   Color="Color.Default"
+                   Class="back-button"
+                   OnClick="GoBack">
+            Back
+        </MudButton>
+        <h1 class="page-title">Quick Add</h1>
+        <div class="header-spacer"></div>
+    </div>
+
+    <!-- Transaction Type Toggle -->
+    <div class="transaction-type-toggle">
+        <div class="toggle-container">
+            <button class="toggle-button @(IsExpense ? "active" : "")"
+                    @onclick="() => SetTransactionType(false)">
+                <MudIcon Icon="Icons.Material.Filled.Remove" Size="Size.Small" />
+                Expense
+            </button>
+            <button class="toggle-button @(IsIncome ? "active" : "")"
+                    @onclick="() => SetTransactionType(true)">
+                <MudIcon Icon="Icons.Material.Filled.Add" Size="Size.Small" />
+                Income
+            </button>
+        </div>
+    </div>
+
+    <!-- Amount Input -->
+    <div class="amount-section">
+        <AmountKeypad Amount="@Amount" AmountChanged="OnAmountChanged" />
+    </div>
+
+    <!-- Quick Templates -->
+    @if (TemplatePresets.Any())
+    {
+        <div class="templates-section">
+            <h3 class="section-title">Quick Add</h3>
+            <div class="templates-grid">
+                @foreach (var template in TemplatePresets)
+                {
+                    <button class="template-button @(SelectedTemplate?.Id == template.Id ? "selected" : "")"
+                            @onclick="() => SelectTemplate(template)">
+                        <div class="template-icon">@GetTemplateIcon(template.Icon)</div>
+                        <div class="template-info">
+                            <div class="template-name">@template.Name</div>
+                            @if (template.DefaultAmount.HasValue)
+                            {
+                                <div class="template-amount">@template.DefaultAmount.Value.ToString("C")</div>
+                            }
+                        </div>
+                    </button>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Category Selection -->
+    <div class="category-section">
+        <h3 class="section-title">Category</h3>
+        <div class="category-input-container">
+            <MudTextField @bind-Value="SelectedCategory"
+                         Placeholder="Select or type category"
+                         Variant="Variant.Outlined"
+                         Class="category-input"
+                         Immediate="true" />
+        </div>
+        <div class="category-suggestions">
+            @foreach (var category in FilteredCategories.Take(6))
+            {
+                <button class="category-chip @(SelectedCategory == category ? "selected" : "")"
+                        @onclick="() => SelectCategory(category)">
+                    @category
+                </button>
+            }
+        </div>
+    </div>
+
+    <!-- Description (Optional) -->
+    <div class="description-section">
+        <MudTextField @bind-Value="Description"
+                     Placeholder="Add note (optional)"
+                     Variant="Variant.Outlined"
+                     Class="description-input"
+                     Lines="2" />
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <MudButton Color="Color.Success"
+                   Variant="Variant.Filled"
+                   Size="Size.Large"
+                   FullWidth="true"
+                   Class="save-button"
+                   Disabled="@(!CanSave)"
+                   OnClick="SaveTransaction">
+            <MudIcon Icon="Icons.Material.Filled.Check" />
+            Save Transaction
+        </MudButton>
+    </div>
+
+    <!-- Voice Input Button (Future Enhancement) -->
+    <div class="voice-section">
+        <MudButton Color="Color.Default"
+                   Variant="Variant.Outlined"
+                   Size="Size.Large"
+                   FullWidth="true"
+                   Class="voice-button"
+                   Disabled="true">
+            <MudIcon Icon="Icons.Material.Filled.Mic" />
+            Voice Input (Coming Soon)
+        </MudButton>
+    </div>
+</div>
+
+@code {
+    private decimal Amount { get; set; } = 0;
+    private bool IsIncome { get; set; } = false;
+    private bool IsExpense => !IsIncome;
+    private string SelectedCategory { get; set; } = string.Empty;
+    private string Description { get; set; } = string.Empty;
+    private TransactionTemplate? SelectedTemplate { get; set; }
+
+    private List<TransactionTemplate> TemplatePresets { get; set; } = new();
+    private List<string> PopularCategories { get; set; } = new();
+
+    private List<string> FilteredCategories =>
+        string.IsNullOrWhiteSpace(SelectedCategory)
+            ? PopularCategories
+            : PopularCategories.Where(c => c.Contains(SelectedCategory, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    private bool CanSave => Amount > 0 && !string.IsNullOrWhiteSpace(SelectedCategory);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthState.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadTemplatesAndCategories();
+
+        // Auto-focus on amount entry
+        await Task.Delay(100);
+        await JSRuntime.InvokeVoidAsync("focusElement", ".amount-keypad");
+    }
+
+    private async Task LoadTemplatesAndCategories()
+    {
+        var user = AuthState.CurrentUser?.Name ?? "Default";
+
+        try
+        {
+            TemplatePresets = await TemplateService.GetMostUsedTemplatesAsync(user, 6);
+            PopularCategories = await TemplateService.GetPopularCategoriesAsync(user, 8);
+        }
+        catch (Exception)
+        {
+            // Fallback to default categories if service fails
+            PopularCategories = new List<string> { "Food", "Transportation", "Shopping", "Entertainment", "Bills", "Health", "Income", "Other" };
+        }
+    }
+
+    private async Task OnAmountChanged(decimal newAmount)
+    {
+        Amount = newAmount;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void SetTransactionType(bool income)
+    {
+        IsIncome = income;
+        SelectedTemplate = null; // Reset template when type changes
+
+        // Filter templates by type
+        _ = Task.Run(async () =>
+        {
+            var user = AuthState.CurrentUser?.Name ?? "Default";
+            TemplatePresets = (await TemplateService.GetMostUsedTemplatesAsync(user, 6))
+                .Where(t => t.IsIncome == IsIncome)
+                .ToList();
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private async Task SelectTemplate(TransactionTemplate template)
+    {
+        SelectedTemplate = template;
+        SelectedCategory = template.Category;
+
+        if (template.DefaultAmount.HasValue && Amount == 0)
+        {
+            Amount = template.DefaultAmount.Value;
+        }
+
+        // Increment usage count
+        await TemplateService.IncrementUsageAsync(template.Id);
+        StateHasChanged();
+    }
+
+    private void SelectCategory(string category)
+    {
+        SelectedCategory = category;
+        StateHasChanged();
+    }
+
+    private async Task SaveTransaction()
+    {
+        if (!CanSave || !AuthState.IsAuthenticated)
+            return;
+
+        try
+        {
+            var transaction = new Transaction
+            {
+                User = AuthState.CurrentUser!.Name,
+                Amount = Amount,
+                Category = SelectedCategory,
+                Description = Description,
+                IsIncome = IsIncome,
+                Date = DateTime.Now
+            };
+
+            await TransactionService.AddAsync(transaction);
+
+            // Create template if this is a new pattern
+            if (SelectedTemplate == null && !string.IsNullOrWhiteSpace(SelectedCategory))
+            {
+                await CreateTemplateFromTransaction(transaction);
+            }
+
+            // Navigate back with success
+            Navigation.NavigateTo("/");
+        }
+        catch (Exception)
+        {
+            // Handle error - could show toast or error message
+            // For now, just stay on page
+        }
+    }
+
+    private async Task CreateTemplateFromTransaction(Transaction transaction)
+    {
+        try
+        {
+            var template = new TransactionTemplate
+            {
+                Name = GetTemplateNameFromCategory(transaction.Category),
+                Category = transaction.Category,
+                DefaultAmount = transaction.Amount,
+                IsIncome = transaction.IsIncome,
+                Icon = GetDefaultIconForCategory(transaction.Category),
+                Color = "#01FFFF",
+                User = transaction.User,
+                UsageCount = 1,
+                LastUsed = DateTime.Now
+            };
+
+            await TemplateService.CreateTemplateAsync(template);
+        }
+        catch (Exception)
+        {
+            // Silently fail template creation - not critical
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    private string GetTemplateIcon(string iconName)
+    {
+        // Simple mapping - in production could use reflection or more sophisticated mapping
+        return iconName switch
+        {
+            "Icons.Material.Filled.LocalCafe" => "☕",
+            "Icons.Material.Filled.Restaurant" => "🍽️",
+            "Icons.Material.Filled.LocalGasStation" => "⛽",
+            "Icons.Material.Filled.ShoppingCart" => "🛒",
+            "Icons.Material.Filled.LocalParking" => "🅿️",
+            "Icons.Material.Filled.AccountBalance" => "💰",
+            "Icons.Material.Filled.Receipt" => "🧾",
+            "Icons.Material.Filled.Movie" => "🎬",
+            _ => "💳"
+        };
+    }
+
+    private string GetTemplateNameFromCategory(string category)
+    {
+        return category switch
+        {
+            "Food" => "Meal",
+            "Transportation" => "Travel",
+            "Shopping" => "Purchase",
+            "Entertainment" => "Fun",
+            "Bills" => "Bill",
+            "Health" => "Medical",
+            "Income" => "Payment",
+            _ => category
+        };
+    }
+
+    private string GetDefaultIconForCategory(string category)
+    {
+        return category switch
+        {
+            "Food" => "Icons.Material.Filled.Restaurant",
+            "Transportation" => "Icons.Material.Filled.DirectionsCar",
+            "Shopping" => "Icons.Material.Filled.ShoppingCart",
+            "Entertainment" => "Icons.Material.Filled.Movie",
+            "Bills" => "Icons.Material.Filled.Receipt",
+            "Health" => "Icons.Material.Filled.LocalHospital",
+            "Income" => "Icons.Material.Filled.AccountBalance",
+            _ => "Icons.Material.Filled.AccountBalanceWallet"
+        };
+    }
+}
+
+<style>
+.quick-transaction-container {
+    padding: 16px;
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background: linear-gradient(135deg, rgba(1, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0.05) 100%);
+}
+
+.quick-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    padding-top: 8px;
+}
+
+.back-button {
+    min-width: auto;
+    padding: 8px 12px;
+}
+
+.page-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+    color: #000;
+}
+
+.header-spacer {
+    width: 80px; /* Balance the back button */
+}
+
+.transaction-type-toggle {
+    margin-bottom: 24px;
+}
+
+.toggle-container {
+    display: flex;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 12px;
+    padding: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.toggle-button {
+    flex: 1;
+    padding: 12px 16px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #666;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.toggle-button.active {
+    background: rgba(1, 255, 255, 0.2);
+    color: #000;
+    box-shadow: 0 2px 8px rgba(1, 255, 255, 0.3);
+}
+
+.amount-section {
+    margin-bottom: 32px;
+}
+
+.templates-section {
+    margin-bottom: 32px;
+}
+
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 16px 0;
+    color: #000;
+}
+
+.templates-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.template-button {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    text-align: left;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.template-button:hover {
+    background: rgba(1, 255, 255, 0.1);
+    transform: translateY(-1px);
+}
+
+.template-button.selected {
+    background: rgba(1, 255, 255, 0.2);
+    border-color: rgba(1, 255, 255, 0.4);
+    box-shadow: 0 2px 8px rgba(1, 255, 255, 0.3);
+}
+
+.template-icon {
+    font-size: 1.5rem;
+    width: 32px;
+    text-align: center;
+}
+
+.template-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.template-name {
+    font-weight: 600;
+    color: #000;
+    font-size: 0.9rem;
+}
+
+.template-amount {
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: 2px;
+}
+
+.category-section {
+    margin-bottom: 24px;
+}
+
+.category-input-container {
+    margin-bottom: 16px;
+}
+
+.category-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.category-chip {
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #000;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.category-chip:hover {
+    background: rgba(1, 255, 255, 0.1);
+}
+
+.category-chip.selected {
+    background: rgba(1, 255, 255, 0.2);
+    border-color: rgba(1, 255, 255, 0.4);
+    color: #000;
+}
+
+.description-section {
+    margin-bottom: 32px;
+}
+
+.action-buttons {
+    margin-bottom: 16px;
+}
+
+.save-button {
+    height: 56px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 16px;
+}
+
+.voice-section {
+    margin-bottom: 40px;
+}
+
+.voice-button {
+    height: 48px;
+    border-radius: 12px;
+    opacity: 0.6;
+}
+
+/* Focus states for accessibility */
+.template-button:focus,
+.category-chip:focus,
+.toggle-button:focus {
+    outline: 2px solid rgba(1, 255, 255, 0.5);
+    outline-offset: 2px;
+}
+
+/* Touch optimizations */
+@@media (pointer: coarse) {
+    .template-button,
+    .category-chip,
+    .toggle-button {
+        min-height: 48px;
+    }
+
+    .save-button {
+        height: 64px;
+    }
+}
+
+/* Small screens */
+@@media (max-width: 480px) {
+    .quick-transaction-container {
+        padding: 12px;
+    }
+
+    .templates-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Large screens */
+@@media (min-width: 768px) {
+    .templates-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+</style>

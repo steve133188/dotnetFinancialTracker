@@ -1,0 +1,741 @@
+@using System.Globalization
+@using System.Text.RegularExpressions
+
+<div class="family-transaction-entry @AdditionalClasses">
+    <div class="transaction-entry-header">
+        <div class="entry-title">
+            <h2 class="text-headline">@Title</h2>
+            <p class="text-body-small text-muted">@Subtitle</p>
+        </div>
+        @if (AllowVoiceInput)
+        {
+            <button class="voice-input-btn @(IsListening ? "listening" : "")"
+                    @onclick="ToggleVoiceInput"
+                    title="@(IsListening ? "Stop listening" : "Start voice input")">
+                <MudIcon Icon="@(IsListening ? Icons.Material.Filled.MicOff : Icons.Material.Filled.Mic)" Size="Size.Small" />
+            </button>
+        }
+    </div>
+
+    <div class="transaction-amount-section">
+        <div class="amount-currency">@CurrencySymbol</div>
+        <input type="text"
+               class="transaction-amount-input text-hero"
+               @bind="AmountDisplay"
+               @oninput="HandleAmountInput"
+               placeholder="0.00"
+               inputmode="decimal"
+               autocomplete="off"
+               spellcheck="false"
+               aria-label="Transaction amount"
+               @onkeypress:PreventDefault="HandleAmountKeyPress"/>
+    </div>
+
+    @if (ShowQuickAmounts)
+    {
+        <div class="quick-amounts">
+            <div class="quick-amounts-label text-caption">Quick amounts</div>
+            <div class="quick-amounts-grid">
+                @foreach (var amount in QuickAmountOptions)
+                {
+                    <button class="quick-amount-btn focus-banking"
+                            @onclick="() => SetAmount(amount)"
+                            aria-label="Set amount to @amount.ToString("C")">
+                        @amount.ToString("C0", CultureInfo.CurrentCulture)
+                    </button>
+                }
+            </div>
+        </div>
+    }
+
+    <div class="transaction-details-section">
+        <div class="detail-row">
+            <label class="detail-label text-caption" for="transaction-description">Description</label>
+            <input type="text"
+                   id="transaction-description"
+                   class="detail-input focus-banking"
+                   @bind="Description"
+                   placeholder="What's this for?"
+                   maxlength="100"
+                   aria-describedby="description-help" />
+            <div id="description-help" class="input-help text-micro">Optional - helps you remember later</div>
+        </div>
+
+        <div class="detail-row">
+            <label class="detail-label text-caption" for="transaction-category">Category</label>
+            <select id="transaction-category"
+                    class="detail-select focus-banking"
+                    @bind="SelectedCategory"
+                    aria-describedby="category-help">
+                <option value="">Choose category...</option>
+                @foreach (var category in Categories)
+                {
+                    <option value="@category">@category</option>
+                }
+            </select>
+            <div id="category-help" class="input-help text-micro">Helps track spending patterns</div>
+        </div>
+
+        @if (ShowFamilyMemberSelection)
+        {
+            <div class="detail-row">
+                <label class="detail-label text-caption" for="transaction-member">Family Member</label>
+                <select id="transaction-member"
+                        class="detail-select focus-banking"
+                        @bind="SelectedMember"
+                        aria-describedby="member-help">
+                    <option value="">Select member...</option>
+                    @foreach (var member in FamilyMembers)
+                    {
+                        <option value="@member.Name">@member.Name (@member.Role)</option>
+                    }
+                </select>
+                <div id="member-help" class="input-help text-micro">Who made this transaction?</div>
+            </div>
+        }
+
+        <div class="detail-row">
+            <label class="detail-label text-caption">Transaction Type</label>
+            <div class="transaction-type-toggle" role="radiogroup" aria-label="Transaction type">
+                <button type="button"
+                        class="type-toggle-btn @(IsIncome ? "active" : "")"
+                        @onclick="() => SetTransactionType(true)"
+                        role="radio"
+                        aria-checked="@IsIncome"
+                        aria-label="Income transaction">
+                    <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Small" />
+                    <span>Income</span>
+                </button>
+                <button type="button"
+                        class="type-toggle-btn @(!IsIncome ? "active" : "")"
+                        @onclick="() => SetTransactionType(false)"
+                        role="radio"
+                        aria-checked="@(!IsIncome)"
+                        aria-label="Expense transaction">
+                    <MudIcon Icon="@Icons.Material.Filled.TrendingDown" Size="Size.Small" />
+                    <span>Expense</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (ShowKeypad)
+    {
+        <div class="transaction-keypad">
+            <div class="keypad-grid">
+                @for (int i = 1; i <= 9; i++)
+                {
+                    var digit = i;
+                    <button class="keypad-btn focus-banking"
+                            @onclick="() => AddDigit(digit.ToString())"
+                            aria-label="@digit">
+                        @digit
+                    </button>
+                }
+                <button class="keypad-btn keypad-btn--secondary focus-banking"
+                        @onclick='()=> AddDigit(".")'
+                        aria-label="Decimal point">
+                    .
+                </button>
+                <button class="keypad-btn focus-banking"
+                        @onclick='() => AddDigit("0")'
+                        aria-label="Zero">
+                    0
+                </button>
+                <button class="keypad-btn keypad-btn--secondary focus-banking"
+                        @onclick="DeleteDigit"
+                        aria-label="Delete">
+                    <MudIcon Icon="@Icons.Material.Filled.Backspace" Size="Size.Small" />
+                </button>
+            </div>
+        </div>
+    }
+
+    <div class="transaction-actions">
+        @if (ShowPhotoCapture)
+        {
+            <button class="action-btn btn-secondary focus-banking"
+                    @onclick="CapturePhoto"
+                    aria-label="Take photo of receipt">
+                <MudIcon Icon="@Icons.Material.Filled.CameraAlt" Size="Size.Small" />
+                <span>Photo</span>
+            </button>
+        }
+
+        <button class="action-btn btn-ghost focus-banking"
+                @onclick="Cancel"
+                aria-label="Cancel transaction entry">
+            Cancel
+        </button>
+
+        <button class="action-btn btn-primary focus-banking"
+                @onclick="SaveTransaction"
+                disabled="@(!IsValid)"
+                aria-label="Save transaction">
+            <MudIcon Icon="@Icons.Material.Filled.Save" Size="Size.Small" />
+            <span>Save @(IsIncome ? "Income" : "Expense")</span>
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(ValidationMessage))
+    {
+        <div class="validation-message text-error text-body-small" role="alert">
+            <MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Small" />
+            @ValidationMessage
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "New Transaction";
+    [Parameter] public string Subtitle { get; set; } = "Record your income or expense";
+    [Parameter] public decimal Amount { get; set; }
+    [Parameter] public string Description { get; set; } = "";
+    [Parameter] public string SelectedCategory { get; set; } = "";
+    [Parameter] public string SelectedMember { get; set; } = "";
+    [Parameter] public bool IsIncome { get; set; } = false;
+    [Parameter] public bool ShowKeypad { get; set; } = true;
+    [Parameter] public bool ShowQuickAmounts { get; set; } = true;
+    [Parameter] public bool ShowPhotoCapture { get; set; } = true;
+    [Parameter] public bool ShowFamilyMemberSelection { get; set; } = true;
+    [Parameter] public bool AllowVoiceInput { get; set; } = true;
+    [Parameter] public List<string> Categories { get; set; } = new();
+    [Parameter] public List<FamilyMember> FamilyMembers { get; set; } = new();
+    [Parameter] public List<decimal> QuickAmountOptions { get; set; } = new() { 5, 10, 20, 50, 100 };
+    [Parameter] public string CurrencySymbol { get; set; } = "$";
+    [Parameter] public string AdditionalClasses { get; set; } = "";
+    [Parameter] public EventCallback<TransactionData> OnSave { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public EventCallback OnPhotoCapture { get; set; }
+
+    private string AmountDisplay = "";
+    private string ValidationMessage = "";
+    private bool IsListening = false;
+
+    private bool IsValid => Amount > 0 && !string.IsNullOrWhiteSpace(SelectedCategory);
+
+    protected override void OnParametersSet()
+    {
+        if (Amount > 0)
+        {
+            AmountDisplay = Amount.ToString("F2");
+        }
+
+        // Default categories if none provided
+        if (!Categories.Any())
+        {
+            Categories = new List<string>
+            {
+                "Groceries", "Transportation", "Entertainment", "Utilities",
+                "Healthcare", "Shopping", "Dining Out", "Education", "Other"
+            };
+        }
+    }
+
+    private void HandleAmountInput(ChangeEventArgs e)
+    {
+        var input = e.Value?.ToString() ?? "";
+
+        // Remove any non-numeric characters except decimal point
+        var cleaned = Regex.Replace(input, @"[^\d.]", "");
+
+        // Ensure only one decimal point
+        var parts = cleaned.Split('.');
+        if (parts.Length > 2)
+        {
+            cleaned = parts[0] + "." + parts[1];
+        }
+
+        // Limit to 2 decimal places
+        if (parts.Length == 2 && parts[1].Length > 2)
+        {
+            cleaned = parts[0] + "." + parts[1].Substring(0, 2);
+        }
+
+        AmountDisplay = cleaned;
+
+        if (decimal.TryParse(cleaned, out var amount))
+        {
+            Amount = amount;
+            ValidationMessage = "";
+        }
+        else if (!string.IsNullOrEmpty(cleaned))
+        {
+            ValidationMessage = "Please enter a valid amount";
+        }
+    }
+
+    private void HandleAmountKeyPress(KeyboardEventArgs e)
+    {
+        // Allow only numbers, decimal point, backspace, delete, arrow keys
+        var allowedKeys = new[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab" };
+
+        if (!allowedKeys.Contains(e.Key))
+        {
+            return;
+        }
+    }
+
+    private void SetAmount(decimal amount)
+    {
+        Amount = amount;
+        AmountDisplay = amount.ToString("F2");
+        ValidationMessage = "";
+    }
+
+    private void AddDigit(string digit)
+    {
+        if (digit == "." && AmountDisplay.Contains(".")) return;
+
+        if (AmountDisplay.Contains("."))
+        {
+            var decimalPart = AmountDisplay.Split('.')[1];
+            if (decimalPart.Length >= 2) return;
+        }
+
+        AmountDisplay += digit;
+        if (decimal.TryParse(AmountDisplay, out var amount))
+        {
+            Amount = amount;
+            ValidationMessage = "";
+        }
+    }
+
+    private void DeleteDigit()
+    {
+        if (AmountDisplay.Length > 0)
+        {
+            AmountDisplay = AmountDisplay.Substring(0, AmountDisplay.Length - 1);
+            if (decimal.TryParse(AmountDisplay, out var amount))
+            {
+                Amount = amount;
+            }
+            else
+            {
+                Amount = 0;
+            }
+        }
+    }
+
+    private void SetTransactionType(bool income)
+    {
+        IsIncome = income;
+        ValidationMessage = "";
+    }
+
+    private async Task ToggleVoiceInput()
+    {
+        IsListening = !IsListening;
+        if (IsListening)
+        {
+            // Implement voice recognition
+            ValidationMessage = "Voice input feature coming soon...";
+            await Task.Delay(2000);
+            IsListening = false;
+            ValidationMessage = "";
+        }
+    }
+
+    private async Task SaveTransaction()
+    {
+        if (!IsValid) return;
+
+        var transactionData = new TransactionData
+        {
+            Amount = Amount,
+            Description = Description,
+            Category = SelectedCategory,
+            FamilyMember = SelectedMember,
+            IsIncome = IsIncome,
+            Date = DateTime.Now
+        };
+
+        await OnSave.InvokeAsync(transactionData);
+    }
+
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+
+    private async Task CapturePhoto()
+    {
+        await OnPhotoCapture.InvokeAsync();
+    }
+
+    public class TransactionData
+    {
+        public decimal Amount { get; set; }
+        public string Description { get; set; } = "";
+        public string Category { get; set; } = "";
+        public string FamilyMember { get; set; } = "";
+        public bool IsIncome { get; set; }
+        public DateTime Date { get; set; }
+    }
+
+    public class FamilyMember
+    {
+        public string Name { get; set; } = "";
+        public string Role { get; set; } = "";
+    }
+}
+
+<style>
+.family-transaction-entry {
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid rgba(1, 255, 255, 0.3);
+    border-radius: 24px;
+    padding: 32px;
+    box-shadow: 0 16px 64px rgba(0, 0, 0, 0.12);
+    max-width: 480px;
+    width: 100%;
+}
+
+.transaction-entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 32px;
+}
+
+.entry-title {
+    flex: 1;
+}
+
+.voice-input-btn {
+    width: 48px;
+    height: 48px;
+    border: 1px solid rgba(1, 255, 255, 0.2);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #000000;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.voice-input-btn:hover {
+    background: rgba(1, 255, 255, 0.1);
+    border-color: rgba(1, 255, 255, 0.4);
+    transform: scale(1.05);
+}
+
+.voice-input-btn.listening {
+    background: linear-gradient(135deg, #01FFFF 0%, #00E5E5 100%);
+    animation: pulse 1.5s infinite;
+}
+
+.transaction-amount-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 32px;
+    padding: 24px;
+    background: linear-gradient(135deg, rgba(1, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.8) 100%);
+    border-radius: 20px;
+    border: 1px solid rgba(1, 255, 255, 0.2);
+}
+
+.amount-currency {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 700;
+    color: rgba(0, 0, 0, 0.7);
+    margin-right: 8px;
+}
+
+.transaction-amount-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #000000;
+    text-align: center;
+    min-width: 200px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.transaction-amount-input::placeholder {
+    color: rgba(0, 0, 0, 0.3);
+}
+
+.quick-amounts {
+    margin-bottom: 24px;
+}
+
+.quick-amounts-label {
+    margin-bottom: 12px;
+    display: block;
+}
+
+.quick-amounts-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+}
+
+.quick-amount-btn {
+    background: rgba(1, 255, 255, 0.1);
+    border: 1px solid rgba(1, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 12px 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #000000;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.quick-amount-btn:hover {
+    background: rgba(1, 255, 255, 0.2);
+    border-color: rgba(1, 255, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+.transaction-details-section {
+    margin-bottom: 24px;
+}
+
+.detail-row {
+    margin-bottom: 20px;
+}
+
+.detail-label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.detail-input,
+.detail-select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid rgba(1, 255, 255, 0.2);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    font-size: 1rem;
+    color: #000000;
+    transition: all 0.2s ease;
+}
+
+.detail-input:focus,
+.detail-select:focus {
+    border-color: rgba(1, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.95);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(1, 255, 255, 0.1);
+}
+
+.input-help {
+    margin-top: 4px;
+    display: block;
+}
+
+.transaction-type-toggle {
+    display: flex;
+    gap: 8px;
+}
+
+.type-toggle-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border: 1px solid rgba(1, 255, 255, 0.2);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.8);
+    color: #000000;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.type-toggle-btn:hover {
+    background: rgba(1, 255, 255, 0.1);
+    border-color: rgba(1, 255, 255, 0.3);
+}
+
+.type-toggle-btn.active {
+    background: linear-gradient(135deg, rgba(1, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.9) 100%);
+    border-color: rgba(1, 255, 255, 0.4);
+    font-weight: 600;
+}
+
+.transaction-keypad {
+    margin-bottom: 24px;
+}
+
+.keypad-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.keypad-btn {
+    aspect-ratio: 1;
+    border: 1px solid rgba(1, 255, 255, 0.2);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #000000;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.keypad-btn:hover {
+    background: rgba(1, 255, 255, 0.1);
+    transform: scale(1.02);
+    border-color: rgba(1, 255, 255, 0.3);
+}
+
+.keypad-btn:active {
+    transform: scale(0.98);
+}
+
+.keypad-btn--secondary {
+    background: rgba(1, 255, 255, 0.1);
+    border-color: rgba(1, 255, 255, 0.3);
+}
+
+.transaction-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.875rem;
+}
+
+.action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.validation-message {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: rgba(244, 67, 54, 0.1);
+    border: 1px solid rgba(244, 67, 54, 0.2);
+    border-radius: 12px;
+}
+
+@@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* Mobile optimizations */
+@@media (max-width: 767px) {
+    .family-transaction-entry {
+        padding: 24px;
+        border-radius: 20px;
+    }
+
+    .transaction-amount-section {
+        padding: 20px;
+        margin-bottom: 24px;
+    }
+
+    .amount-currency {
+        font-size: 1.5rem;
+    }
+
+    .transaction-amount-input {
+        min-width: 150px;
+    }
+
+    .quick-amounts-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+    }
+
+    .quick-amount-btn {
+        padding: 10px 6px;
+        font-size: 0.75rem;
+    }
+
+    .keypad-grid {
+        gap: 8px;
+    }
+
+    .keypad-btn {
+        font-size: 1.125rem;
+        border-radius: 12px;
+    }
+
+    .transaction-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .action-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Large text support */
+@@media (min-width: 1200px) {
+    .detail-input,
+    .detail-select {
+        font-size: 1.125rem;
+        padding: 14px 18px;
+    }
+
+    .keypad-btn {
+        font-size: 1.5rem;
+    }
+}
+
+/* High contrast mode */
+@@media (prefers-contrast: high) {
+    .detail-input,
+    .detail-select,
+    .keypad-btn,
+    .type-toggle-btn {
+        border-width: 2px;
+    }
+
+    .transaction-amount-section {
+        border-width: 2px;
+    }
+}
+
+/* Focus indicators for keyboard navigation */
+.detail-input:focus-visible,
+.detail-select:focus-visible,
+.keypad-btn:focus-visible,
+.type-toggle-btn:focus-visible,
+.action-btn:focus-visible,
+.quick-amount-btn:focus-visible,
+.voice-input-btn:focus-visible {
+    outline: 2px solid #01FFFF;
+    outline-offset: 2px;
+}
+</style>

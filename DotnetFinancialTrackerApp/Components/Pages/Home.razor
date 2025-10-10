@@ -7,6 +7,14 @@
 @inject DotnetFinancialTrackerApp.Services.IBudgetsService BudgetSvc
 @inject DotnetFinancialTrackerApp.Services.IGamificationService Game
 
+@code {
+    protected override void OnInitialized()
+    {
+        // Redirect to Family Dashboard as the primary interface
+        Nav.NavigateTo("/family-dashboard", replace: true);
+    }
+}
+
 <MudContainer Class="home-shell" MaxWidth="MaxWidth.False">
     @if (!string.IsNullOrEmpty(_error))
     {
@@ -308,3 +316,148 @@
         public double Share { get; }
     }
 }
+
+<style>
+.home-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background-color: #FFFFFF;
+}
+
+.home-hero {
+    border-radius: 26px;
+    padding: 2rem;
+    background: linear-gradient(135deg, rgba(1, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.95) 100%);
+    border: 1px solid rgba(1, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+.home-hero-overline {
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    color: #000000;
+}
+
+.home-hero-balance {
+    font-size: clamp(2.2rem, 4vw, 3rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #000000;
+}
+
+.home-hero-sub {
+    opacity: 0.75;
+    color: #000000;
+}
+
+.home-hero-chips .mud-chip {
+    border-radius: 18px;
+    font-weight: 600;
+}
+
+.metrics-grid {
+    margin-top: 0.5rem;
+}
+
+.metric-card {
+    padding: 1.5rem;
+    border-radius: 20px;
+    background-color: #FFFFFF;
+    border: 1px solid rgba(1, 255, 255, 0.1);
+}
+
+.metric-overline {
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.6;
+    color: #000000;
+}
+
+.metric-value {
+    font-weight: 700;
+    color: #000000;
+}
+
+.metric-sub {
+    opacity: 0.72;
+    color: #000000;
+}
+
+.home-content-grid {
+    margin-top: 0.5rem;
+}
+
+.home-panel {
+    padding: 1.5rem;
+    border-radius: 22px;
+    min-height: 100%;
+    background-color: #FFFFFF;
+    border: 1px solid rgba(1, 255, 255, 0.1);
+}
+
+.panel-title {
+    margin-bottom: 12px;
+    color: #000000;
+}
+
+.tx-list {
+    margin-top: 6px;
+}
+
+.tx-item {
+    width: 100%;
+}
+
+.tx-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.tx-meta {
+    opacity: 0.6;
+    color: #000000;
+}
+
+.tx-amount {
+    font-weight: 650;
+}
+
+.tx-income {
+    color: #01FFFF;
+}
+
+.tx-expense {
+    color: #000000;
+}
+
+.achievement-meta {
+    opacity: 0.65;
+    color: #000000;
+}
+
+.category-breakdown-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.category-progress {
+    height: 8px;
+    border-radius: 6px;
+}
+
+@@media (max-width: 767px) {
+    .home-hero-chips {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .home-panel {
+        padding: 18px;
+    }
+}
+</style>

@@ -160,3 +160,75 @@
         Nav.LocationChanged -= OnLocationChanged;
     }
 }
+
+<style>
+.mobile-shell {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+    background-color: #FFFFFF;
+}
+
+.mobile-topbar {
+    position: sticky;
+    top: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: calc(1rem + env(safe-area-inset-top, 0px)) 1.5rem 1rem;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    background: rgba(255, 255, 255, 0.9);
+    border-bottom: 1px solid rgba(1, 255, 255, 0.1);
+    z-index: 12;
+}
+
+.topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.topbar-avatar {
+    border-radius: 16px;
+}
+
+.topbar-copy {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.topbar-overline {
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.65;
+}
+
+.topbar-title {
+    font-weight: 650;
+}
+
+.topbar-signin {
+    border-radius: 18px;
+}
+
+.mobile-main {
+    padding: 1.5rem 2rem;
+    background-color: #FFFFFF;
+}
+
+.mobile-main-auth {
+    padding-top: 2rem;
+}
+
+.mobile-main-inner {
+    max-width: 1080px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+</style>

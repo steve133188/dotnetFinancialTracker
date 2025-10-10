@@ -1,0 +1,454 @@
+@using System.Globalization
+
+<div class="family-progress-ring @SizeClass @AdditionalClasses" @onclick="OnClick">
+    <div class="progress-ring-container">
+        <svg class="progress-ring" width="@SvgSize" height="@SvgSize" viewBox="0 0 @SvgSize @SvgSize">
+            <!-- Background circle -->
+            <circle class="progress-ring-background"
+                    cx="@Center"
+                    cy="@Center"
+                    r="@Radius"
+                    fill="none"
+                    stroke="@BackgroundColor"
+                    stroke-width="@StrokeWidth"></circle>
+
+            <!-- Progress circle -->
+            <circle class="progress-ring-progress @ProgressClass"
+                    cx="@Center"
+                    cy="@Center"
+                    r="@Radius"
+                    fill="none"
+                    stroke="@ProgressColor"
+                    stroke-width="@StrokeWidth"
+                    stroke-linecap="round"
+                    stroke-dasharray="@Circumference"
+                    stroke-dashoffset="@StrokeDashOffset"
+                    transform="rotate(-90 @Center @Center)"></circle>
+
+            @if (ShowGlow)
+            {
+                <!-- Glow effect -->
+                <circle class="progress-ring-glow"
+                        cx="@Center"
+                        cy="@Center"
+                        r="@Radius"
+                        fill="none"
+                        stroke="@ProgressColor"
+                        stroke-width="@(StrokeWidth + 2)"
+                        stroke-linecap="round"
+                        stroke-dasharray="@Circumference"
+                        stroke-dashoffset="@StrokeDashOffset"
+                        transform="rotate(-90 @Center @Center)"
+                        opacity="0.3"></circle>
+            }
+        </svg>
+
+        <div class="progress-ring-content">
+            @if (DisplayMode == ProgressDisplayMode.Percentage)
+            {
+                <div class="progress-ring-value">@Value.ToString("0")%</div>
+                <div class="progress-ring-label">@Label</div>
+            }
+            else if (DisplayMode == ProgressDisplayMode.Currency)
+            {
+                <div class="progress-ring-value">@CurrentAmount.ToString("C0", CultureInfo.CurrentCulture)</div>
+                <div class="progress-ring-label">of @TargetAmount.ToString("C0", CultureInfo.CurrentCulture)</div>
+                <div class="progress-ring-sublabel">@Label</div>
+            }
+            else if (DisplayMode == ProgressDisplayMode.Counter)
+            {
+                <div class="progress-ring-value">@CurrentCount</div>
+                <div class="progress-ring-label">of @TargetCount</div>
+                <div class="progress-ring-sublabel">@Label</div>
+            }
+            else if (DisplayMode == ProgressDisplayMode.Custom)
+            {
+                @CustomContent
+            }
+        </div>
+
+        @if (ShowStatusBadge && !string.IsNullOrEmpty(StatusText))
+        {
+            <div class="progress-ring-status @StatusClass">@StatusText</div>
+        }
+    </div>
+
+    @if (ShowDetails)
+    {
+        <div class="progress-ring-details">
+            @if (Details?.Any() == true)
+            {
+                @foreach (var detail in Details)
+                {
+                    <div class="progress-detail">
+                        <span class="detail-label">@detail.Label:</span>
+                        <span class="detail-value">@detail.Value</span>
+                    </div>
+                }
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public double Value { get; set; } = 0;
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public ProgressSize Size { get; set; } = ProgressSize.Medium;
+    [Parameter] public ProgressDisplayMode DisplayMode { get; set; } = ProgressDisplayMode.Percentage;
+    [Parameter] public decimal CurrentAmount { get; set; }
+    [Parameter] public decimal TargetAmount { get; set; }
+    [Parameter] public int CurrentCount { get; set; }
+    [Parameter] public int TargetCount { get; set; }
+    [Parameter] public ProgressStyle Style { get; set; } = ProgressStyle.Primary;
+    [Parameter] public bool ShowGlow { get; set; } = true;
+    [Parameter] public bool ShowStatusBadge { get; set; } = false;
+    [Parameter] public string StatusText { get; set; } = "";
+    [Parameter] public string StatusClass { get; set; } = "";
+    [Parameter] public bool ShowDetails { get; set; } = false;
+    [Parameter] public List<ProgressDetail> Details { get; set; } = new();
+    [Parameter] public RenderFragment? CustomContent { get; set; }
+    [Parameter] public string AdditionalClasses { get; set; } = "";
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    private int SvgSize => Size switch
+    {
+        ProgressSize.Small => 80,
+        ProgressSize.Medium => 120,
+        ProgressSize.Large => 160,
+        ProgressSize.ExtraLarge => 200,
+        _ => 120
+    };
+
+    private int Center => SvgSize / 2;
+    private int Radius => Size switch
+    {
+        ProgressSize.Small => 30,
+        ProgressSize.Medium => 50,
+        ProgressSize.Large => 70,
+        ProgressSize.ExtraLarge => 90,
+        _ => 50
+    };
+
+    private int StrokeWidth => Size switch
+    {
+        ProgressSize.Small => 6,
+        ProgressSize.Medium => 8,
+        ProgressSize.Large => 10,
+        ProgressSize.ExtraLarge => 12,
+        _ => 8
+    };
+
+    private double Circumference => 2 * Math.PI * Radius;
+    private double StrokeDashOffset => Circumference - (Math.Min(100, Math.Max(0, Value)) / 100.0 * Circumference);
+
+    private string SizeClass => $"progress-ring--{Size.ToString().ToLower()}";
+    private string ProgressClass => $"progress-ring--{Style.ToString().ToLower()}";
+
+    private string BackgroundColor => Style switch
+    {
+        ProgressStyle.Primary => "rgba(1, 255, 255, 0.1)",
+        ProgressStyle.Success => "rgba(76, 175, 80, 0.1)",
+        ProgressStyle.Warning => "rgba(255, 193, 7, 0.1)",
+        ProgressStyle.Error => "rgba(244, 67, 54, 0.1)",
+        ProgressStyle.Info => "rgba(33, 150, 243, 0.1)",
+        _ => "rgba(1, 255, 255, 0.1)"
+    };
+
+    private string ProgressColor => Style switch
+    {
+        ProgressStyle.Primary => "#01FFFF",
+        ProgressStyle.Success => "#4CAF50",
+        ProgressStyle.Warning => "#FFC107",
+        ProgressStyle.Error => "#F44336",
+        ProgressStyle.Info => "#2196F3",
+        _ => "#01FFFF"
+    };
+
+    protected override void OnParametersSet()
+    {
+        // Auto-calculate value based on display mode
+        if (DisplayMode == ProgressDisplayMode.Currency && TargetAmount > 0)
+        {
+            Value = Math.Min(100, (double)(CurrentAmount / TargetAmount * 100));
+        }
+        else if (DisplayMode == ProgressDisplayMode.Counter && TargetCount > 0)
+        {
+            Value = Math.Min(100, (double)CurrentCount / TargetCount * 100);
+        }
+    }
+
+    public enum ProgressSize
+    {
+        Small,
+        Medium,
+        Large,
+        ExtraLarge
+    }
+
+    public enum ProgressDisplayMode
+    {
+        Percentage,
+        Currency,
+        Counter,
+        Custom
+    }
+
+    public enum ProgressStyle
+    {
+        Primary,
+        Success,
+        Warning,
+        Error,
+        Info
+    }
+
+    public class ProgressDetail
+    {
+        public ProgressDetail(string label, string value)
+        {
+            Label = label;
+            Value = value;
+        }
+
+        public string Label { get; set; }
+        public string Value { get; set; }
+    }
+}
+
+<style>
+.family-progress-ring {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.family-progress-ring:hover {
+    transform: scale(1.02);
+}
+
+.progress-ring-container {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.progress-ring {
+    transform: scale(1);
+    transition: all 0.3s ease;
+}
+
+.progress-ring-background {
+    transition: all 0.3s ease;
+}
+
+.progress-ring-progress {
+    transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(0 0 8px currentColor);
+}
+
+.progress-ring-glow {
+    transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: blur(2px);
+}
+
+.progress-ring--primary .progress-ring-progress {
+    filter: drop-shadow(0 0 8px rgba(1, 255, 255, 0.5));
+}
+
+.progress-ring--success .progress-ring-progress {
+    filter: drop-shadow(0 0 8px rgba(76, 175, 80, 0.5));
+}
+
+.progress-ring--warning .progress-ring-progress {
+    filter: drop-shadow(0 0 8px rgba(255, 193, 7, 0.5));
+}
+
+.progress-ring--error .progress-ring-progress {
+    filter: drop-shadow(0 0 8px rgba(244, 67, 54, 0.5));
+}
+
+.progress-ring--info .progress-ring-progress {
+    filter: drop-shadow(0 0 8px rgba(33, 150, 243, 0.5));
+}
+
+.progress-ring-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 1;
+}
+
+.progress-ring-value {
+    font-weight: 700;
+    color: #000000;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+.progress-ring-label {
+    color: rgba(0, 0, 0, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    line-height: 1;
+}
+
+.progress-ring-sublabel {
+    color: rgba(0, 0, 0, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    line-height: 1;
+    margin-top: 2px;
+}
+
+.progress-ring-status {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #01FFFF;
+    color: #000000;
+    font-size: 0.625rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.progress-ring-status.status-complete {
+    background: #4CAF50;
+    color: #FFFFFF;
+}
+
+.progress-ring-status.status-warning {
+    background: #FFC107;
+    color: #000000;
+}
+
+.progress-ring-status.status-overdue {
+    background: #F44336;
+    color: #FFFFFF;
+}
+
+.progress-ring-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: center;
+    min-width: 120px;
+}
+
+.progress-detail {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+}
+
+.detail-label {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.detail-value {
+    font-weight: 600;
+    color: #000000;
+}
+
+/* Size variations */
+.progress-ring--small .progress-ring-value {
+    font-size: 1rem;
+}
+
+.progress-ring--small .progress-ring-label,
+.progress-ring--small .progress-ring-sublabel {
+    font-size: 0.625rem;
+}
+
+.progress-ring--medium .progress-ring-value {
+    font-size: 1.25rem;
+}
+
+.progress-ring--medium .progress-ring-label,
+.progress-ring--medium .progress-ring-sublabel {
+    font-size: 0.75rem;
+}
+
+.progress-ring--large .progress-ring-value {
+    font-size: 1.5rem;
+}
+
+.progress-ring--large .progress-ring-label,
+.progress-ring--large .progress-ring-sublabel {
+    font-size: 0.875rem;
+}
+
+.progress-ring--extralarge .progress-ring-value {
+    font-size: 2rem;
+}
+
+.progress-ring--extralarge .progress-ring-label,
+.progress-ring--extralarge .progress-ring-sublabel {
+    font-size: 1rem;
+}
+
+/* Responsive adjustments */
+@@media (max-width: 767px) {
+    .progress-ring--large,
+    .progress-ring--extralarge {
+        transform: scale(0.85);
+    }
+
+    .progress-ring-details {
+        min-width: 100px;
+    }
+
+    .progress-detail {
+        font-size: 0.6875rem;
+    }
+}
+
+/* Animation for value changes */
+@@keyframes progressPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.family-progress-ring.animate-pulse .progress-ring-content {
+    animation: progressPulse 0.6s ease-in-out;
+}
+
+/* Accessibility improvements */
+@@media (prefers-reduced-motion: reduce) {
+    .progress-ring-progress,
+    .progress-ring-glow {
+        transition: none;
+    }
+
+    .family-progress-ring:hover {
+        transform: none;
+    }
+}
+
+/* High contrast mode */
+@@media (prefers-contrast: high) {
+    .progress-ring-background {
+        stroke: rgba(0, 0, 0, 0.3) !important;
+    }
+
+    .progress-ring-value,
+    .detail-value {
+        color: #000000 !important;
+    }
+
+    .progress-ring-label,
+    .progress-ring-sublabel,
+    .detail-label {
+        color: rgba(0, 0, 0, 0.8) !important;
+    }
+}
+</style>

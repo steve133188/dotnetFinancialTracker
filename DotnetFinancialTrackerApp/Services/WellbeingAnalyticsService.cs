@@ -70,7 +70,7 @@ public class WellbeingAnalyticsService : IWellbeingAnalyticsService
     public async Task<TResult> AggregateData<T, TResult>(
         Func<IQueryable<T>, TResult> aggregateFunc) where T : WellbeingItem
     {
-        return typeof(T).Name switch
+        return   typeof(T).Name switch
         {
             nameof(HydrationEntry) => aggregateFunc(_context.HydrationEntries.Cast<T>()),
             nameof(MedicationReminder) => aggregateFunc(_context.MedicationReminders.Cast<T>()),

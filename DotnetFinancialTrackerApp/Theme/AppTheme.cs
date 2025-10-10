@@ -9,36 +9,42 @@ public static class AppTheme
         Palette = new PaletteLight
         {
             Primary = "#01FFFF",
-            Secondary = "#66D1DB",
-            Background = "#F4FEFF",
+            Secondary = "#000000",
+            Background = "#FFFFFF",
             Surface = "#FFFFFF",
-            AppbarBackground = "#D9FDFF",
+            AppbarBackground = "#FFFFFF",
             AppbarText = "#000000",
             DrawerBackground = "#FFFFFF",
             DrawerText = "#000000",
             TextPrimary = "#000000",
-            TextSecondary = "#1F1F1F",
-            Info = "#48FBFF",
-            Success = "#16A34A",
-            Warning = "#F59E0B",
-            Error = "#E11D48"
+            TextSecondary = "#000000",
+            Info = "#01FFFF",
+            Success = "#01FFFF",
+            Warning = "#000000",
+            Error = "#000000",
+            ActionDefault = "#000000",
+            ActionDisabled = "rgba(0, 0, 0, 0.26)",
+            ActionDisabledBackground = "rgba(0, 0, 0, 0.12)"
         },
         PaletteDark = new PaletteDark
         {
             Primary = "#01FFFF",
-            Secondary = "#55C7D6",
-            Background = "#F2FDFF",
+            Secondary = "#000000",
+            Background = "#FFFFFF",
             Surface = "#FFFFFF",
-            AppbarBackground = "#D3FBFF",
+            AppbarBackground = "#FFFFFF",
             AppbarText = "#000000",
             DrawerBackground = "#FFFFFF",
             DrawerText = "#000000",
             TextPrimary = "#000000",
-            TextSecondary = "#1F1F1F",
-            Info = "#48FBFF",
-            Success = "#22C55E",
-            Warning = "#F59E0B",
-            Error = "#FB7185"
+            TextSecondary = "#000000",
+            Info = "#01FFFF",
+            Success = "#01FFFF",
+            Warning = "#000000",
+            Error = "#000000",
+            ActionDefault = "#000000",
+            ActionDisabled = "rgba(0, 0, 0, 0.26)",
+            ActionDisabledBackground = "rgba(0, 0, 0, 0.12)"
         },
         LayoutProperties = new LayoutProperties
         {

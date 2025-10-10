@@ -1,0 +1,287 @@
+@using System.Globalization
+
+<div class="family-card-primary @AdditionalClasses" @onclick="OnClick">
+    <div class="family-card-header">
+        <div class="family-card-balance-section">
+            <div class="family-card-overline">@OverlineText</div>
+            <div class="family-card-balance">@Balance.ToString("C", CultureInfo.CurrentCulture)</div>
+            <div class="family-card-subtitle">@SubtitleText</div>
+        </div>
+
+        @if (ShowQuickActions)
+        {
+            <div class="family-card-actions">
+                <button class="family-card-action-btn" @onclick:stopPropagation="true" @onclick="OnQuickTransfer">
+                    <MudIcon Icon="@Icons.Material.Filled.SwapHoriz" Size="Size.Small" />
+                </button>
+                <button class="family-card-action-btn" @onclick:stopPropagation="true" @onclick="OnQuickSave">
+                    <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Size="Size.Small" />
+                </button>
+            </div>
+        }
+    </div>
+
+    @if (ShowMetrics)
+    {
+        <div class="family-card-metrics">
+            <div class="family-card-metric">
+                <div class="metric-value">@SavingsRate.ToString("P0", CultureInfo.CurrentCulture)</div>
+                <div class="metric-label">Savings Rate</div>
+            </div>
+            <div class="family-card-metric">
+                <div class="metric-value">@TransactionCount</div>
+                <div class="metric-label">Transactions</div>
+            </div>
+            <div class="family-card-metric">
+                <div class="metric-value">@Streak</div>
+                <div class="metric-label">Day Streak</div>
+            </div>
+        </div>
+    }
+
+    @if (ShowProgress && ProgressValue.HasValue)
+    {
+        <div class="family-card-progress">
+            <div class="progress-ring-container">
+                <svg class="progress-ring" width="80" height="80">
+                    <circle class="progress-ring-background" cx="40" cy="40" r="36"></circle>
+                    <circle class="progress-ring-progress" cx="40" cy="40" r="36"
+                            style="stroke-dashoffset: @CalculateStrokeDashOffset()"></circle>
+                </svg>
+                <div class="progress-ring-content">
+                    <div class="progress-ring-value">@ProgressValue?.ToString("0")%</div>
+                    <div class="progress-ring-label">@ProgressLabel</div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @ChildContent
+</div>
+
+@code {
+    [Parameter] public decimal Balance { get; set; }
+    [Parameter] public string OverlineText { get; set; } = "Family Balance";
+    [Parameter] public string SubtitleText { get; set; } = "Available to spend";
+    [Parameter] public bool ShowQuickActions { get; set; } = true;
+    [Parameter] public bool ShowMetrics { get; set; } = true;
+    [Parameter] public bool ShowProgress { get; set; } = false;
+    [Parameter] public double? ProgressValue { get; set; }
+    [Parameter] public string ProgressLabel { get; set; } = "Goal";
+    [Parameter] public double SavingsRate { get; set; }
+    [Parameter] public int TransactionCount { get; set; }
+    [Parameter] public int Streak { get; set; }
+    [Parameter] public string AdditionalClasses { get; set; } = "";
+    [Parameter] public EventCallback OnClick { get; set; }
+    [Parameter] public EventCallback OnQuickTransfer { get; set; }
+    [Parameter] public EventCallback OnQuickSave { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private double CalculateStrokeDashOffset()
+    {
+        if (!ProgressValue.HasValue) return 226.2;
+        var circumference = 2 * Math.PI * 36; // radius = 36
+        return circumference - (ProgressValue.Value / 100.0 * circumference);
+    }
+}
+
+<style>
+.family-card-primary {
+    background: linear-gradient(135deg, rgba(1, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.95) 100%);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(1, 255, 255, 0.2);
+    border-radius: 24px;
+    padding: 32px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.family-card-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(135deg, #01FFFF 0%, #00E5E5 100%);
+    border-radius: 24px 24px 0 0;
+}
+
+.family-card-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.12);
+    border-color: rgba(1, 255, 255, 0.4);
+}
+
+.family-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.family-card-balance-section {
+    flex: 1;
+}
+
+.family-card-overline {
+    font-size: 0.875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    color: #000000;
+    margin-bottom: 8px;
+}
+
+.family-card-balance {
+    font-size: clamp(2.2rem, 4vw, 3rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #000000;
+    margin-bottom: 4px;
+    line-height: 1.1;
+}
+
+.family-card-subtitle {
+    font-size: 1rem;
+    opacity: 0.75;
+    color: #000000;
+}
+
+.family-card-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.family-card-action-btn {
+    width: 40px;
+    height: 40px;
+    border: 1px solid rgba(1, 255, 255, 0.3);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #000000;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.family-card-action-btn:hover {
+    background: rgba(1, 255, 255, 0.2);
+    border-color: rgba(1, 255, 255, 0.5);
+    transform: scale(1.05);
+}
+
+.family-card-metrics {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 20px;
+}
+
+.family-card-metric {
+    text-align: center;
+    flex: 1;
+}
+
+.metric-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #000000;
+    margin-bottom: 2px;
+}
+
+.metric-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.6;
+    color: #000000;
+}
+
+.family-card-progress {
+    display: flex;
+    justify-content: center;
+    margin-top: 16px;
+}
+
+.progress-ring-container {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.progress-ring {
+    transform: rotate(-90deg);
+}
+
+.progress-ring-background {
+    fill: none;
+    stroke: rgba(1, 255, 255, 0.1);
+    stroke-width: 6;
+}
+
+.progress-ring-progress {
+    fill: none;
+    stroke: #01FFFF;
+    stroke-width: 6;
+    stroke-linecap: round;
+    stroke-dasharray: 226.2;
+    transition: stroke-dashoffset 0.8s ease;
+    filter: drop-shadow(0 0 8px rgba(1, 255, 255, 0.5));
+}
+
+.progress-ring-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.progress-ring-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #000000;
+    line-height: 1;
+}
+
+.progress-ring-label {
+    font-size: 0.625rem;
+    color: rgba(0, 0, 0, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 2px;
+}
+
+@@media (max-width: 767px) {
+    .family-card-primary {
+        padding: 24px;
+    }
+
+    .family-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .family-card-actions {
+        align-self: flex-end;
+    }
+
+    .family-card-metrics {
+        gap: 16px;
+    }
+
+    .metric-value {
+        font-size: 1.125rem;
+    }
+}
+</style>
