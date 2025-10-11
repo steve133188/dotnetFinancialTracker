@@ -51,7 +51,6 @@ namespace DotnetFinancialTrackerApp.Models
         [ForeignKey(nameof(FamilyId))]
         public virtual FamilyAccount? Family { get; set; }
 
-        public virtual VirtualCard? Card { get; set; }
 
         public virtual ICollection<SpendingLimit> SpendingLimits { get; set; } = new List<SpendingLimit>();
 

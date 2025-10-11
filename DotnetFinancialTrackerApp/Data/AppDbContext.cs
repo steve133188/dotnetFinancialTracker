@@ -22,11 +22,9 @@ public class AppDbContext : DbContext
     // Family Banking DbSets
     public DbSet<FamilyAccount> FamilyAccounts => Set<FamilyAccount>();
     public DbSet<FamilyMember> FamilyMembers => Set<FamilyMember>();
-    public DbSet<VirtualCard> VirtualCards => Set<VirtualCard>();
     public DbSet<FamilyGoal> FamilyGoals => Set<FamilyGoal>();
     public DbSet<FamilyInsights> FamilyInsights => Set<FamilyInsights>();
     public DbSet<SpendingLimit> SpendingLimits => Set<SpendingLimit>();
     public DbSet<FamilyMemberGoal> FamilyMemberGoals => Set<FamilyMemberGoal>();
     public DbSet<GoalContribution> GoalContributions => Set<GoalContribution>();
-    public DbSet<CardTransaction> CardTransactions => Set<CardTransaction>();
 }

@@ -6,7 +6,7 @@
 <MudContainer Class="pa-4">
     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
         <MudText Typo="Typo.h5">Transactions</MudText>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="OpenAdd">Add</MudButton>
+        <MudButton Color="Color.Default" Variant="Variant.Filled" Elevation="0" OnClick="@OpenAdd" Style="background-color: black; color: white;">Add</MudButton>
     </MudStack>
 
     <MudTable Items="_items" Hover="true" Dense="true" Elevation="1">
@@ -23,8 +23,8 @@
             <MudTd DataLabel="Category">@context.Category</MudTd>
             <MudTd DataLabel="Amount" Class="text-end">@((context.IsIncome ? "+" : "-") + context.Amount.ToString("C"))</MudTd>
             <MudTd Class="text-end">
-                <MudIconButton Icon="@Icons.Material.Outlined.Edit" OnClick="() => OpenEdit(context)" />
-                <MudIconButton Icon="@Icons.Material.Outlined.Delete" Color="Color.Error" OnClick="() => Delete(context.Id)" />
+                <MudIconButton Icon="@Icons.Material.Outlined.Edit" OnClick="@(() => OpenEdit(context))" />
+                <MudIconButton Icon="@Icons.Material.Outlined.Delete" Color="Color.Error" OnClick="@(() => Delete(context.Id))" />
             </MudTd>
         </RowTemplate>
     </MudTable>

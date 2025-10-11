@@ -2,6 +2,7 @@
 @using System.Globalization
 @using DotnetFinancialTrackerApp.Models
 @using DotnetFinancialTrackerApp.Components.UI
+@using static DotnetFinancialTrackerApp.Components.UI.FamilyProgressRing
 @inject NavigationManager Nav
 @inject AuthState Auth
 @inject DotnetFinancialTrackerApp.Services.ITransactionsService TxSvc
@@ -45,9 +46,9 @@
                    ShowProgress="true"
                    ProgressValue="@MonthlyBudgetProgress"
                    ProgressLabel="Budget"
-                   OnClick="ViewFamilyDetails"
-                   OnQuickTransfer="OpenTransferDialog"
-                   OnQuickSave="OpenSavingsGoal" />
+                   OnClick="@ViewFamilyDetails"
+                   OnQuickTransfer="@OpenTransferDialog"
+                   OnQuickSave="@OpenSavingsGoal" />
     </div>
 
     <!-- Family Members Section -->
@@ -75,10 +76,10 @@
                                 SavingsGoalProgress="@member.SavingsGoalProgress"
                                 AchievementPoints="@member.AchievementPoints"
                                 CardLastFour="@member.CardLastFour"
-                                OnClick="() => ViewMemberDetails(member)"
-                                OnViewTransactions="() => ViewMemberTransactions(member)"
-                                OnSendMoney="() => SendMoneyToMember(member)"
-                                OnShowCard="() => ShowMemberCard(member)" />
+                                OnClick="@(() => ViewMemberDetails(member))"
+                                OnViewTransactions="@(() => ViewMemberTransactions(member))"
+                                OnSendMoney="@(() => SendMoneyToMember(member))"
+                                OnShowCard="@(() => ShowMemberCard(member))" />
             }
         </div>
     </div>
@@ -96,18 +97,18 @@
         <div class="family-goals-grid">
             @foreach (var goal in FamilyGoals)
             {
-                <FamilyProgressRing DisplayMode="FamilyProgressRing.ProgressDisplayMode.Currency"
+                <FamilyProgressRing DisplayMode="ProgressDisplayMode.Currency"
                                   CurrentAmount="@goal.CurrentAmount"
                                   TargetAmount="@goal.TargetAmount"
                                   Label="@goal.Name"
-                                  Size="FamilyProgressRing.ProgressSize.Large"
+                                  Size="ProgressSize.Large"
                                   Style="@GetGoalStyle(goal)"
                                   ShowStatusBadge="@goal.IsComplete"
                                   StatusText="@(goal.IsComplete ? "Complete" : "")"
                                   StatusClass="@(goal.IsComplete ? "status-complete" : "")"
                                   ShowDetails="true"
                                   Details="@GetGoalDetails(goal)"
-                                  OnClick="() => ViewGoalDetails(goal)" />
+                                  OnClick="@(() => ViewGoalDetails(goal))" />
             }
         </div>
     </div>
@@ -291,6 +292,15 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Load services one by one with individual error handling
+        await LoadTransactionDataAsync();
+        await LoadGameDataAsync();
+        await LoadFamilyDataAsync();
+        await InitializeAIChatAsync();
+    }
+
+    private async Task LoadTransactionDataAsync()
+    {
         try
         {
             var periodStart = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
@@ -300,14 +310,36 @@
             _txCount = transactions.Count;
             _income = transactions.Where(t => t.IsIncome).Sum(t => t.Amount);
             _expense = transactions.Where(t => !t.IsIncome).Sum(t => t.Amount);
+        }
+        catch (Exception ex)
+        {
+            _error += $"Transaction loading error: {ex.Message}\n";
+            // Set defaults
+            _txCount = 0;
+            _income = 0;
+            _expense = 0;
+        }
+    }
 
+    private async Task LoadGameDataAsync()
+    {
+        try
+        {
             await Game.EvaluateAsync();
             _summary = await Game.GetSummaryAsync();
+        }
+        catch (Exception ex)
+        {
+            _error += $"Gamification loading error: {ex.Message}\n";
+            // Set defaults
+            _summary = new() { Points = 0, Streak = 0 };
+        }
+    }
 
-            // Load real family data
-            await LoadFamilyDataAsync();
-
-            // Initialize AI chat with real data
+    private async Task InitializeAIChatAsync()
+    {
+        try
+        {
             _chatMessages.Add(new FamilyAIChat.ChatMessage
             {
                 Content = $"Welcome to your Family Bank dashboard! I can see you have {_realFamilyMembers.Count} family members and are tracking {_txCount} transactions this month. How can I help you today?",
@@ -318,7 +350,15 @@
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            _error += $"AI Chat initialization error: {ex.Message}\n";
+            // Add basic welcome message
+            _chatMessages.Add(new FamilyAIChat.ChatMessage
+            {
+                Content = "Welcome to your Family Bank dashboard! How can I help you today?",
+                IsUser = false,
+                Timestamp = DateTime.Now,
+                Suggestions = new[] { "Show spending summary", "Check savings goals", "Review budgets" }
+            });
         }
     }
 
@@ -347,7 +387,6 @@
                 FamilyMembers.Clear();
                 foreach (var member in _realFamilyMembers)
                 {
-                    var card = await FamilyService.GetMemberCardAsync(member.MemberId);
                     FamilyMembers.Add(new FamilyMember
                     {
                         Name = member.Name,
@@ -361,7 +400,6 @@
                         TransactionsThisMonth = member.TransactionsThisMonth,
                         SavingsGoalProgress = member.SavingsGoalProgress,
                         AchievementPoints = member.AchievementPoints,
-                        CardLastFour = card?.DisplayNumber ?? "0000"
                     });
                 }
             }
@@ -540,7 +578,7 @@
 }
 
 .bank-icon {
-    color: #01FFFF;
+    color: #000000;
 }
 
 .bank-name {

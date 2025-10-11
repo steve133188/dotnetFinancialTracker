@@ -1,463 +1,112 @@
 @page "/"
-@using System.Globalization
-@using DotnetFinancialTrackerApp.Models
-@inject NavigationManager Nav
 @inject AuthState Auth
-@inject DotnetFinancialTrackerApp.Services.ITransactionsService TxSvc
-@inject DotnetFinancialTrackerApp.Services.IBudgetsService BudgetSvc
-@inject DotnetFinancialTrackerApp.Services.IGamificationService Game
+@inject NavigationManager Nav
+
+<PageTitle>Family Dashboard</PageTitle>
+
+<div class="home-container">
+    <div class="welcome-section">
+        <div class="welcome-content">
+            <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Large" Class="welcome-icon" />
+            <div class="welcome-text">
+                <MudText Typo="Typo.h4" Class="welcome-title">Welcome Home</MudText>
+                <MudText Typo="Typo.body1" Class="welcome-subtitle">Family Financial Tracker</MudText>
+            </div>
+        </div>
+    </div>
+
+    <div class="quick-actions">
+        <MudGrid>
+            <MudItem xs="6">
+                <MudCard Class="action-card" Elevation="0" @onclick="NavigateToFinance">
+                    <MudCardContent Class="text-center">
+                        <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Large" Color="Color.Default" Style="color: black;" />
+                        <MudText Typo="Typo.subtitle2" Class="mt-2">Finance</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="6">
+                <MudCard Class="action-card" Elevation="0" @onclick="NavigateToReports">
+                    <MudCardContent Class="text-center">
+                        <MudIcon Icon="@Icons.Material.Filled.Analytics" Size="Size.Large" Color="Color.Default" Style="color: black;" />
+                        <MudText Typo="Typo.subtitle2" Class="mt-2">Reports</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    </div>
+</div>
 
 @code {
     protected override void OnInitialized()
     {
-        // Redirect to Family Dashboard as the primary interface
-        Nav.NavigateTo("/family-dashboard", replace: true);
-    }
-}
-
-<MudContainer Class="home-shell" MaxWidth="MaxWidth.False">
-    @if (!string.IsNullOrEmpty(_error))
-    {
-        <MudAlert Severity="Severity.Error" Elevation="0" Class="mb-3">
-            @_error
-        </MudAlert>
-    }
-
-    <MudGrid Class="metrics-grid" Gutter="GutterSize.Small">
-        <MudItem xs="12">
-            <MudPaper Elevation="1" Class="home-hero glass-card">
-                <MudStack Row="true" Wrap="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Spacing="3">
-                    <MudStack Spacing="1">
-                        <MudText Typo="Typo.caption" Class="home-hero-overline">@CurrentPeriodLabel · Hello @GreetingName</MudText>
-                        <MudText Typo="Typo.h4" Class="home-hero-balance">@NetBalance.ToString("C", CultureInfo.CurrentCulture)</MudText>
-                        <MudText Typo="Typo.body2" Class="home-hero-sub">Net cashflow after income and spending</MudText>
-                    </MudStack>
-                    <MudStack Row="true" Wrap="true" Spacing="2" Class="home-hero-chips">
-                        <MudChip Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Medium">Savings rate @SavingsRate.ToString("P0", CultureInfo.CurrentCulture)</MudChip>
-                        <MudChip Color="Color.Secondary" Variant="Variant.Outlined" Size="Size.Medium">@_txCount transactions</MudChip>
-                        <MudChip Color="Color.Primary" Variant="Variant.Filled" Size="Size.Medium">@_summary.Points pts • @_summary.Streak d streak</MudChip>
-                    </MudStack>
-                </MudStack>
-            </MudPaper>
-        </MudItem>
-
-        <MudItem xs="12" md="4">
-            <MudPaper Elevation="0" Class="metric-card glass-card">
-                <MudStack Spacing="1">
-                    <MudText Typo="Typo.caption" Class="metric-overline">Cash inflow</MudText>
-                    <MudText Typo="Typo.h5" Class="metric-value">@_income.ToString("C", CultureInfo.CurrentCulture)</MudText>
-                    <MudText Typo="Typo.body2" Class="metric-sub">This month's recorded income</MudText>
-                </MudStack>
-            </MudPaper>
-        </MudItem>
-        <MudItem xs="12" md="4">
-            <MudPaper Elevation="0" Class="metric-card glass-card">
-                <MudStack Spacing="1">
-                    <MudText Typo="Typo.caption" Class="metric-overline">Cash outflow</MudText>
-                    <MudText Typo="Typo.h5" Class="metric-value">@_expense.ToString("C", CultureInfo.CurrentCulture)</MudText>
-                    <MudText Typo="Typo.body2" Class="metric-sub">Household spending this month</MudText>
-                </MudStack>
-            </MudPaper>
-        </MudItem>
-        <MudItem xs="12" md="4">
-            <MudPaper Elevation="0" Class="metric-card glass-card">
-                <MudStack Spacing="1">
-                    <MudText Typo="Typo.caption" Class="metric-overline">Average ticket</MudText>
-                    <MudText Typo="Typo.h5" Class="metric-value">@AverageTicket.ToString("C", CultureInfo.CurrentCulture)</MudText>
-                    <MudText Typo="Typo.body2" Class="metric-sub">Per transaction across @_txCount entries</MudText>
-                </MudStack>
-            </MudPaper>
-        </MudItem>
-    </MudGrid>
-
-    <MudGrid Class="home-content-grid" Gutter="GutterSize.Small">
-        <MudItem xs="12" md="7">
-            <MudPaper Elevation="0" Class="home-panel glass-card">
-                <MudStack Spacing="1">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                        <MudText Typo="Typo.h6" Class="panel-title">Budget status</MudText>
-                        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Href="/budgets">Manage budgets</MudButton>
-                    </MudStack>
-
-                    @if (_budgetStatuses.Count == 0)
-                    {
-                        <MudText Typo="Typo.body2">Create budgets to see progress for the current month.</MudText>
-                    }
-                    else
-                    {
-                        <MudTable Items="_budgetStatuses" Dense="true" Hover="true">
-                            <HeaderContent>
-                                <MudTh>Category</MudTh>
-                                <MudTh class="text-end">Limit</MudTh>
-                                <MudTh class="text-end">Spent</MudTh>
-                                <MudTh class="text-end">Usage</MudTh>
-                                <MudTh class="text-end">Remaining</MudTh>
-                            </HeaderContent>
-                            <RowTemplate>
-                                <MudTd>@context.Category</MudTd>
-                                <MudTd Class="text-end">@context.Limit.ToString("C0", CultureInfo.CurrentCulture)</MudTd>
-                                <MudTd Class="text-end">@context.Spent.ToString("C0", CultureInfo.CurrentCulture)</MudTd>
-                                <MudTd Class="text-end">
-                                    <MudProgressLinear Value="@context.Usage" Color="@(context.Spent <= context.Limit ? Color.Success : Color.Error)" Class="category-progress" />
-                                </MudTd>
-                                <MudTd Class="text-end">
-                                    @if (context.Spent <= context.Limit)
-                                    {
-                                        <MudChip Color="Color.Success" Variant="Variant.Outlined" Size="Size.Small">@((context.Limit - context.Spent).ToString("C0", CultureInfo.CurrentCulture)) left</MudChip>
-                                    }
-                                    else
-                                    {
-                                        <MudChip Color="Color.Error" Variant="Variant.Outlined" Size="Size.Small">@((context.Spent - context.Limit).ToString("C0", CultureInfo.CurrentCulture)) over</MudChip>
-                                    }
-                                </MudTd>
-                            </RowTemplate>
-                        </MudTable>
-                    }
-                </MudStack>
-            </MudPaper>
-        </MudItem>
-
-        <MudItem xs="12" md="5">
-            <MudPaper Elevation="0" Class="home-panel glass-card">
-                <MudText Typo="Typo.h6" Class="panel-title">Top spending categories</MudText>
-                @if (_categoryBreakdown.Count == 0)
-                {
-                    <MudText Typo="Typo.body2">Track expenses to see where money goes.</MudText>
-                }
-                else
-                {
-                    <MudStack Spacing="1">
-                        @foreach (var item in _categoryBreakdown)
-                        {
-                            <div class="category-breakdown-item">
-                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                                    <MudText Typo="Typo.subtitle2">@item.Category</MudText>
-                                    <MudText Typo="Typo.caption">@item.Amount.ToString("C", CultureInfo.CurrentCulture) • @item.Share.ToString("0.#", CultureInfo.CurrentCulture)%</MudText>
-                                </MudStack>
-                                <MudProgressLinear Value="@item.Share" Color="Color.Error" Class="category-progress" />
-                            </div>
-                        }
-                    </MudStack>
-                }
-            </MudPaper>
-        </MudItem>
-
-        <MudItem xs="12" md="7">
-            <MudPaper Elevation="0" Class="home-panel glass-card">
-                <MudStack Spacing="1">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                        <MudText Typo="Typo.h6" Class="panel-title">Recent transactions</MudText>
-                        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Href="/transactions">View all</MudButton>
-                    </MudStack>
-
-                    @if (_recentTransactions.Count == 0)
-                    {
-                        <MudText Typo="Typo.body2">Add your first transaction to see activity here.</MudText>
-                    }
-                    else
-                    {
-                        <MudList Dense="true" Class="tx-list">
-                            @foreach (var tx in _recentTransactions)
-                            {
-                                <MudListItem>
-                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="tx-item" Spacing="1">
-                                        <div class="tx-info">
-                                            <MudText Typo="Typo.subtitle2">@tx.Description ?? tx.Category</MudText>
-                        
-                                        <MudText Typo="Typo.caption" Class="tx-meta">@DisplayMember(tx.User) • @tx.Date.ToString("MMM d", CultureInfo.CurrentCulture) • @DisplayCategory(tx.Category)</MudText>
-                                        </div>
-                                        <MudText Typo="Typo.subtitle2" Class="@AmountClass(tx.IsIncome)">
-                                            @(tx.IsIncome ? "+" : "-")@tx.Amount.ToString("C", CultureInfo.CurrentCulture)
-                                        </MudText>
-                                    </MudStack>
-                                </MudListItem>
-                            }
-                        </MudList>
-                    }
-                </MudStack>
-            </MudPaper>
-        </MudItem>
-
-        <MudItem xs="12" md="5">
-            <MudPaper Elevation="0" Class="home-panel glass-card">
-                <MudText Typo="Typo.h6" Class="panel-title">Gamification progress</MudText>
-                <MudStack Spacing="1">
-                    <MudText Typo="Typo.body2">Points: @_summary.Points</MudText>
-                    <MudText Typo="Typo.body2">Daily streak: @_summary.Streak</MudText>
-                    <MudText Typo="Typo.body2">Monthly target met: @((_summary.UsagePercent ?? 0d).ToString("0.0", CultureInfo.CurrentCulture))%</MudText>
-                </MudStack>
-
-                @if (_recentAchievements.Count > 0)
-                {
-                    <MudDivider Class="my-3" />
-                    <MudText Typo="Typo.subtitle2">Recent achievements</MudText>
-                    <MudList Dense="true">
-                        @foreach (var achievement in _recentAchievements)
-                        {
-                            <MudListItem>
-                                <MudStack Spacing="0">
-                                    <MudText Typo="Typo.subtitle2">@achievement.Title</MudText>
-                                    <MudText Typo="Typo.caption" Class="achievement-meta">@achievement.Description • @achievement.Points pts</MudText>
-                                </MudStack>
-                            </MudListItem>
-                        }
-                    </MudList>
-                }
-            </MudPaper>
-        </MudItem>
-    </MudGrid>
-</MudContainer>
-
-@code {
-    private string GreetingName => Auth.CurrentUser?.Name?.Split(' ').FirstOrDefault() ?? "Family";
-    private string CurrentPeriodLabel => DateTime.Today.ToString("MMMM yyyy", CultureInfo.CurrentCulture);
-
-    private string? _error;
-    private int _txCount;
-    private decimal _income;
-    private decimal _expense;
-    private GamificationSummary _summary = new();
-
-    private readonly List<BudgetStatus> _budgetStatuses = new();
-    private readonly List<CategoryBreakdown> _categoryBreakdown = new();
-    private readonly List<Transaction> _recentTransactions = new();
-    private readonly List<Achievement> _recentAchievements = new();
-
-    private decimal NetBalance => _income - _expense;
-    private double SavingsRate => _income == 0 ? 0 : Math.Clamp((double)(NetBalance / _income), -1, 1);
-    private decimal AverageTicket => _txCount == 0 ? 0 : (_income + Math.Abs(_expense)) / _txCount;
-
-    protected override async Task OnInitializedAsync()
-    {
-        try
+        if (!Auth.IsAuthenticated)
         {
-            var periodStart = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-            var periodEnd = periodStart.AddMonths(1).AddTicks(-1);
-
-            var transactions = await TxSvc.GetAsync(from: periodStart, to: periodEnd);
-            _txCount = transactions.Count;
-            _income = transactions.Where(t => t.IsIncome).Sum(t => t.Amount);
-            _expense = transactions.Where(t => !t.IsIncome).Sum(t => t.Amount);
-
-            var budgets = await BudgetSvc.GetAsync(periodStart);
-            var spendByCategory = transactions
-                .Where(t => !t.IsIncome)
-                .GroupBy(t => string.IsNullOrWhiteSpace(t.Category) ? "Uncategorized" : t.Category)
-                .Select(g => new { Category = g.Key, Amount = g.Sum(t => t.Amount) })
-                .ToList();
-
-            foreach (var budget in budgets)
-            {
-                var spent = spendByCategory.FirstOrDefault(s => string.Equals(s.Category, budget.Category, StringComparison.OrdinalIgnoreCase))?.Amount ?? 0m;
-                _budgetStatuses.Add(new BudgetStatus(budget.Category, budget.Limit, spent));
-            }
-
-            _budgetStatuses.Sort((a, b) => b.Usage.CompareTo(a.Usage));
-
-            if (_expense > 0)
-            {
-                _categoryBreakdown.AddRange(spendByCategory
-                    .OrderByDescending(s => s.Amount)
-                    .Take(6)
-                    .Select(s => new CategoryBreakdown(s.Category, s.Amount, (double)(s.Amount / _expense * 100m))));
-            }
-
-            _recentTransactions.AddRange(transactions
-                .OrderByDescending(t => t.Date)
-                .ThenByDescending(t => t.Id)
-                .Take(6));
-
-            await Game.EvaluateAsync();
-            _summary = await Game.GetSummaryAsync();
-            var achievements = await Game.GetAchievementsAsync();
-            _recentAchievements.AddRange(achievements
-                .OrderByDescending(a => a.AchievedAt)
-                .Take(3));
-        }
-        catch (Exception ex)
-        {
-            _error = ex.Message;
+            Nav.NavigateTo("/login");
         }
     }
 
-    private static string AmountClass(bool isIncome) => isIncome ? "tx-amount tx-income" : "tx-amount tx-expense";
-
-    private static string DisplayCategory(string category) => string.IsNullOrWhiteSpace(category) ? "Uncategorized" : category;
-
-    private static string DisplayMember(string? user) => string.IsNullOrWhiteSpace(user) ? "Household" : user;
-
-    private sealed class BudgetStatus
-    {
-        public BudgetStatus(string category, decimal limit, decimal spent)
-        {
-            Category = category;
-            Limit = limit;
-            Spent = spent;
-        }
-
-        public string Category { get; }
-        public decimal Limit { get; }
-        public decimal Spent { get; }
-        public decimal Remaining => Limit - Spent;
-        public double Usage => Limit <= 0 ? 0 : Math.Clamp((double)(Spent / Limit * 100m), 0, 999);
-    }
-
-    private sealed class CategoryBreakdown
-    {
-        public CategoryBreakdown(string category, decimal amount, double share)
-        {
-            Category = category;
-            Amount = amount;
-            Share = share;
-        }
-
-        public string Category { get; }
-        public decimal Amount { get; }
-        public double Share { get; }
-    }
+    private void NavigateToFinance() => Nav.NavigateTo("/finance");
+    private void NavigateToReports() => Nav.NavigateTo("/reports");
 }
 
 <style>
-.home-shell {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    padding: 1.5rem;
-    background-color: #FFFFFF;
+.home-container {
+    padding: 24px;
+    background: #FFFFFF;
+    min-height: 100vh;
 }
 
-.home-hero {
-    border-radius: 26px;
-    padding: 2rem;
+.welcome-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 32px;
+    padding: 24px 32px;
     background: linear-gradient(135deg, rgba(1, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.95) 100%);
     border: 1px solid rgba(1, 255, 255, 0.2);
+    border-radius: 24px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
 }
 
-.home-hero-overline {
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    opacity: 0.7;
-    color: #000000;
-}
-
-.home-hero-balance {
-    font-size: clamp(2.2rem, 4vw, 3rem);
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: #000000;
-}
-
-.home-hero-sub {
-    opacity: 0.75;
-    color: #000000;
-}
-
-.home-hero-chips .mud-chip {
-    border-radius: 18px;
-    font-weight: 600;
-}
-
-.metrics-grid {
-    margin-top: 0.5rem;
-}
-
-.metric-card {
-    padding: 1.5rem;
-    border-radius: 20px;
-    background-color: #FFFFFF;
-    border: 1px solid rgba(1, 255, 255, 0.1);
-}
-
-.metric-overline {
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    opacity: 0.6;
-    color: #000000;
-}
-
-.metric-value {
-    font-weight: 700;
-    color: #000000;
-}
-
-.metric-sub {
-    opacity: 0.72;
-    color: #000000;
-}
-
-.home-content-grid {
-    margin-top: 0.5rem;
-}
-
-.home-panel {
-    padding: 1.5rem;
-    border-radius: 22px;
-    min-height: 100%;
-    background-color: #FFFFFF;
-    border: 1px solid rgba(1, 255, 255, 0.1);
-}
-
-.panel-title {
-    margin-bottom: 12px;
-    color: #000000;
-}
-
-.tx-list {
-    margin-top: 6px;
-}
-
-.tx-item {
-    width: 100%;
-}
-
-.tx-info {
+.welcome-content {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    align-items: center;
+    gap: 16px;
 }
 
-.tx-meta {
-    opacity: 0.6;
-    color: #000000;
-}
-
-.tx-amount {
-    font-weight: 650;
-}
-
-.tx-income {
+.welcome-icon {
     color: #01FFFF;
 }
 
-.tx-expense {
+.welcome-title {
     color: #000000;
+    font-weight: 700;
+    margin: 0;
 }
 
-.achievement-meta {
-    opacity: 0.65;
-    color: #000000;
+.welcome-subtitle {
+    color: rgba(0, 0, 0, 0.7);
+    margin: 0;
 }
 
-.category-breakdown-item {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+.quick-actions {
+    margin-bottom: 32px;
 }
 
-.category-progress {
-    height: 8px;
-    border-radius: 6px;
+.action-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(1, 255, 255, 0.2);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.25s ease;
 }
 
-@@media (max-width: 767px) {
-    .home-hero-chips {
-        width: 100%;
-        justify-content: flex-start;
-    }
-
-    .home-panel {
-        padding: 18px;
-    }
+.action-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    border-color: rgba(1, 255, 255, 0.4);
 }
 </style>

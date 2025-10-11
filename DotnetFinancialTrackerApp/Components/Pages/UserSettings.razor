@@ -11,7 +11,7 @@
 @if (!_ready)
 {
     <MudContainer Class="pa-4">
-        <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+        <MudProgressCircular Color="Color.Default" Size="Size.Large" Indeterminate="true" Style="color: black;" />
     </MudContainer>
 }
 else if (!_signedIn)
@@ -19,7 +19,7 @@ else if (!_signedIn)
     <MudContainer Class="pa-4">
         <MudAlert Severity="Severity.Warning" Elevation="0">
             Please sign in to manage household accounts.
-            <MudButton Class="ms-3" Color="Color.Primary" Variant="Variant.Filled" Href="/login">Go to login</MudButton>
+            <MudButton Class="ms-3" Color="Color.Default" Variant="Variant.Filled" Elevation="0" Href="/login" Style="background-color: black; color: white;">Go to login</MudButton>
         </MudAlert>
     </MudContainer>
 }
@@ -42,10 +42,10 @@ else
                                       Variant="Variant.Outlined" />
 
                         <MudStack Row="true" Spacing="2" Class="mt-4">
-                            <MudButton Type="Button" Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveName">
+                            <MudButton Type="Button" Variant="Variant.Filled" Color="Color.Default" Elevation="0" OnClick="@SaveName" Style="background-color: black; color: white;">
                                 Save name
                             </MudButton>
-                            <MudButton Variant="Variant.Text" OnClick="ResetName">Reset</MudButton>
+                            <MudButton Variant="Variant.Text" Elevation="0" OnClick="@ResetName">Reset</MudButton>
                         </MudStack>
                     </MudForm>
                 </MudPaper>
@@ -81,7 +81,7 @@ else
                                       Immediate="true"
                                       Class="mt-3" />
 
-                        <MudButton Type="Button" Variant="Variant.Filled" Color="Color.Primary" OnClick="ChangePin" Class="mt-4">
+                        <MudButton Type="Button" Variant="Variant.Filled" Color="Color.Default" Elevation="0" OnClick="@ChangePin" Class="mt-4" Style="background-color: black; color: white;">
                             Update PIN
                         </MudButton>
                     </MudForm>
@@ -119,7 +119,7 @@ else
                                       Immediate="true"
                                       Class="mt-3" />
 
-                        <MudButton Type="Button" Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateUser" Class="mt-4">
+                        <MudButton Type="Button" Variant="Variant.Filled" Color="Color.Default" Elevation="0" OnClick="@CreateUser" Class="mt-4" Style="background-color: black; color: white;">
                             Add user
                         </MudButton>
                     </MudForm>
@@ -142,7 +142,7 @@ else
                             {
                                 <MudListItem Class="household-list-item">
                                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                        <MudAvatar Size="Size.Medium" Color="Color.Primary">@GetInitial(member.Name)</MudAvatar>
+                                        <MudAvatar Size="Size.Medium" Color="Color.Default" Style="background-color: black; color: white;">@GetInitial(member.Name)</MudAvatar>
                                         <MudStack>
                                             <MudText Typo="Typo.subtitle2">@member.Name</MudText>
                                             <MudText Typo="Typo.caption" Class="household-caption">Member since @member.CreatedAt.ToLocalTime().ToString("MMM yyyy")</MudText>
@@ -150,7 +150,7 @@ else
                                         <MudSpacer />
                                         @if (member.Id == Auth.CurrentUser!.Id)
                                         {
-                                            <MudChip Color="Color.Primary" Variant="Variant.Filled" Class="household-chip">You</MudChip>
+                                            <MudChip Color="Color.Default" Variant="Variant.Filled" Class="household-chip" Style="background-color: black; color: white;">You</MudChip>
                                         }
                                     </MudStack>
                                 </MudListItem>

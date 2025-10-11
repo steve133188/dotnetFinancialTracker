@@ -23,7 +23,6 @@ namespace DotnetFinancialTrackerApp.Services
         {
             return await _context.FamilyAccounts
                 .Include(f => f.Members)
-                    .ThenInclude(m => m.Card)
                 .Include(f => f.Goals)
                 .Include(f => f.Insights)
                 .FirstOrDefaultAsync(f => f.FamilyId == familyId);
@@ -55,17 +54,6 @@ namespace DotnetFinancialTrackerApp.Services
 
             _context.FamilyMembers.Add(parentMember);
 
-            // Create virtual card for parent
-            var virtualCard = new VirtualCard
-            {
-                MemberId = parentMember.MemberId,
-                DisplayNumber = GenerateCardNumber(),
-                DailyLimit = 500m,
-                CardColor = "#01FFFF",
-                ExpiryDate = DateTime.UtcNow.AddYears(3)
-            };
-
-            _context.VirtualCards.Add(virtualCard);
 
             await _context.SaveChangesAsync();
             return familyAccount;
@@ -107,7 +95,6 @@ namespace DotnetFinancialTrackerApp.Services
         public async Task<List<FamilyMember>> GetFamilyMembersAsync(string familyId)
         {
             return await _context.FamilyMembers
-                .Include(m => m.Card)
                 .Include(m => m.SpendingLimits)
                 .Where(m => m.FamilyId == familyId && m.IsActive)
                 .OrderBy(m => m.Role == "Parent" ? 0 : m.Role == "Teen" ? 1 : 2)
@@ -118,7 +105,6 @@ namespace DotnetFinancialTrackerApp.Services
         public async Task<FamilyMember?> GetFamilyMemberAsync(string memberId)
         {
             return await _context.FamilyMembers
-                .Include(m => m.Card)
                 .Include(m => m.SpendingLimits)
                 .Include(m => m.Goals)
                 .FirstOrDefaultAsync(m => m.MemberId == memberId);
@@ -151,29 +137,6 @@ namespace DotnetFinancialTrackerApp.Services
 
             _context.FamilyMembers.Add(member);
 
-            // Create virtual card
-            var card = new VirtualCard
-            {
-                MemberId = member.MemberId,
-                DisplayNumber = GenerateCardNumber(),
-                DailyLimit = role switch
-                {
-                    "Parent" => 500m,
-                    "Teen" => 100m,
-                    "Child" => 25m,
-                    _ => 50m
-                },
-                CardColor = role switch
-                {
-                    "Parent" => "#01FFFF",
-                    "Teen" => "#FF6B6B",
-                    "Child" => "#4ECDC4",
-                    _ => "#95E1D3"
-                },
-                ExpiryDate = DateTime.UtcNow.AddYears(3)
-            };
-
-            _context.VirtualCards.Add(card);
 
             await _context.SaveChangesAsync();
             return member;
@@ -263,80 +226,6 @@ namespace DotnetFinancialTrackerApp.Services
             }
         }
 
-        // Virtual Card Management
-        public async Task<VirtualCard?> GetMemberCardAsync(string memberId)
-        {
-            return await _context.VirtualCards
-                .Include(c => c.Member)
-                .FirstOrDefaultAsync(c => c.MemberId == memberId);
-        }
-
-        public async Task<VirtualCard> CreateVirtualCardAsync(string memberId, decimal dailyLimit, string cardColor = "#01FFFF")
-        {
-            var card = new VirtualCard
-            {
-                MemberId = memberId,
-                DisplayNumber = GenerateCardNumber(),
-                DailyLimit = dailyLimit,
-                CardColor = cardColor,
-                ExpiryDate = DateTime.UtcNow.AddYears(3)
-            };
-
-            _context.VirtualCards.Add(card);
-            await _context.SaveChangesAsync();
-            return card;
-        }
-
-        public async Task<bool> UpdateCardLimitsAsync(string cardId, decimal dailyLimit)
-        {
-            try
-            {
-                var card = await _context.VirtualCards.FindAsync(cardId);
-                if (card == null) return false;
-
-                card.DailyLimit = dailyLimit;
-                await _context.SaveChangesAsync();
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        public async Task<bool> ToggleCardStatusAsync(string cardId, bool isActive)
-        {
-            try
-            {
-                var card = await _context.VirtualCards.FindAsync(cardId);
-                if (card == null) return false;
-
-                card.IsActive = isActive;
-                await _context.SaveChangesAsync();
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        public async Task<bool> RegenerateCardAsync(string cardId)
-        {
-            try
-            {
-                var card = await _context.VirtualCards.FindAsync(cardId);
-                if (card == null) return false;
-
-                card.RegenerateCard();
-                await _context.SaveChangesAsync();
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
 
         // Balance and Transaction Management
         public async Task<decimal> GetRealTimeBalanceAsync(string memberId)
@@ -375,49 +264,6 @@ namespace DotnetFinancialTrackerApp.Services
             }
         }
 
-        public async Task<bool> RecordCardTransactionAsync(string cardId, decimal amount, string? merchantName = null, string? category = null)
-        {
-            try
-            {
-                var card = await _context.VirtualCards.Include(c => c.Member).FirstOrDefaultAsync(c => c.CardId == cardId);
-                if (card?.Member == null || !card.CanSpend(amount)) return false;
-
-                card.RecordSpending(amount);
-                card.Member.RecordTransaction(amount, false);
-
-                // Record card transaction
-                var cardTransaction = new CardTransaction
-                {
-                    CardId = cardId,
-                    Amount = amount,
-                    MerchantName = merchantName ?? "Unknown Merchant",
-                    Category = category ?? "General",
-                    TransactionDate = DateTime.UtcNow,
-                    Status = TransactionStatus.Completed
-                };
-
-                _context.CardTransactions.Add(cardTransaction);
-
-                // Record in main transactions
-                var transaction = new Transaction
-                {
-                    Amount = amount,
-                    IsIncome = false,
-                    Description = merchantName ?? "Card Transaction",
-                    Category = category ?? "General",
-                    User = card.Member.Name,
-                    Date = DateTime.UtcNow
-                };
-
-                await _transactionsService.AddAsync(transaction);
-                await _context.SaveChangesAsync();
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
 
         // Spending Limits (simplified implementation)
         public async Task<List<SpendingLimit>> GetMemberSpendingLimitsAsync(string memberId)
@@ -866,10 +712,5 @@ namespace DotnetFinancialTrackerApp.Services
             return insights.SavingsRate;
         }
 
-        private static string GenerateCardNumber()
-        {
-            var random = new Random();
-            return random.Next(1000, 9999).ToString();
-        }
     }
 }

@@ -214,32 +214,6 @@ namespace DotnetFinancialTrackerApp.Models
         public virtual FamilyMember? Member { get; set; }
     }
 
-    public class CardTransaction
-    {
-        [Key]
-        public string TransactionId { get; set; } = Guid.NewGuid().ToString();
-
-        [Required]
-        public string CardId { get; set; } = "";
-
-        public decimal Amount { get; set; }
-
-        public string? MerchantName { get; set; }
-
-        public string? Category { get; set; }
-
-        public DateTime TransactionDate { get; set; } = DateTime.UtcNow;
-
-        public TransactionStatus Status { get; set; } = TransactionStatus.Completed;
-
-        public string? Description { get; set; }
-
-        public string? Location { get; set; }
-
-        // Navigation properties
-        [ForeignKey(nameof(CardId))]
-        public virtual VirtualCard? Card { get; set; }
-    }
 
     public enum LimitType
     {
@@ -264,12 +238,4 @@ namespace DotnetFinancialTrackerApp.Models
         Exceeded = 2
     }
 
-    public enum TransactionStatus
-    {
-        Pending = 0,
-        Completed = 1,
-        Failed = 2,
-        Cancelled = 3,
-        Refunded = 4
-    }
 }

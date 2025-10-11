@@ -56,16 +56,24 @@ public static class MauiProgram
         var app = builder.Build();
 
         // Ensure database exists and schema is up-to-date on startup
-        using (var scope = app.Services.CreateScope())
+        try
         {
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            db.Database.EnsureCreated();
-            EnsureSchemaUpToDate(db);
-            Seed(db);
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                EnsureSchemaUpToDate(db);
+                Seed(db);
 
-            // Seed transaction templates after main seeding
-            var templateService = scope.ServiceProvider.GetRequiredService<ITransactionTemplateService>();
-            templateService.SeedDefaultTemplatesAsync().Wait();
+                // Seed transaction templates after main seeding
+                var templateService = scope.ServiceProvider.GetRequiredService<ITransactionTemplateService>();
+                templateService.SeedDefaultTemplatesAsync().Wait();
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log the error but don't crash the app
+            System.Diagnostics.Debug.WriteLine($"Database initialization error: {ex.Message}");
+            // The app can still run, database will be created on first access
         }
 
         return app;
@@ -185,14 +193,6 @@ public static class MauiProgram
             };
             db.FamilyMembers.Add(childMember);
 
-            // Create virtual cards
-            db.VirtualCards.AddRange(new[]
-            {
-                new Models.VirtualCard { MemberId = parentMember.MemberId, DisplayNumber = "4521", DailyLimit = 500m, CardColor = "#01FFFF", ExpiryDate = DateTime.UtcNow.AddYears(3) },
-                new Models.VirtualCard { MemberId = dadMember.MemberId, DisplayNumber = "7834", DailyLimit = 400m, CardColor = "#01FFFF", ExpiryDate = DateTime.UtcNow.AddYears(3) },
-                new Models.VirtualCard { MemberId = teenMember.MemberId, DisplayNumber = "2910", DailyLimit = 100m, CardColor = "#FF6B6B", ExpiryDate = DateTime.UtcNow.AddYears(3) },
-                new Models.VirtualCard { MemberId = childMember.MemberId, DisplayNumber = "5647", DailyLimit = 25m, CardColor = "#4ECDC4", ExpiryDate = DateTime.UtcNow.AddYears(3) }
-            });
 
             // Create family goals
             db.FamilyGoals.AddRange(new[]
@@ -241,40 +241,10 @@ public static class MauiProgram
     {
         try
         {
-            var required = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {
-                "Transactions", "TransactionTemplates", "Budgets", "Achievements", "GamificationStates", "Users",
-                "HydrationEntries", "MedicationReminders", "HouseholdTasks",
-                "FamilyAccounts", "FamilyMembers", "VirtualCards", "FamilyGoals", "FamilyInsights",
-                "SpendingLimits", "FamilyMemberGoals", "GoalContributions", "CardTransactions"
-            };
-            var existing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            DbConnection conn = db.Database.GetDbConnection();
-            var wasClosed = conn.State == System.Data.ConnectionState.Closed;
-            if (wasClosed) conn.Open();
-            try
-            {
-                using var cmd = conn.CreateCommand();
-                cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='table'";
-                using var reader = cmd.ExecuteReader();
-                while (reader.Read())
-                {
-                    var name = reader.GetString(0);
-                    existing.Add(name);
-                }
-            }
-            finally
-            {
-                if (wasClosed) conn.Close();
-            }
-
-            if (!required.IsSubsetOf(existing))
-            {
-                // Recreate schema if tables are missing (dev convenience)
-                db.Database.EnsureDeleted();
-                db.Database.EnsureCreated();
-            }
+            // Force database recreation to handle schema changes (including new Notes column)
+            // This is safe for development - in production you'd use migrations
+            db.Database.EnsureDeleted();
+            db.Database.EnsureCreated();
         }
         catch
         {

@@ -15,8 +15,9 @@
         <MudButton StartIcon="Icons.Material.Filled.ArrowBack"
                    Variant="Variant.Text"
                    Color="Color.Default"
+                   Elevation="0"
                    Class="back-button"
-                   OnClick="GoBack">
+                   OnClick="@GoBack">
             Back
         </MudButton>
         <h1 class="page-title">Quick Add</h1>
@@ -104,9 +105,10 @@
                    Variant="Variant.Filled"
                    Size="Size.Large"
                    FullWidth="true"
+                   Elevation="0"
                    Class="save-button"
                    Disabled="@(!CanSave)"
-                   OnClick="SaveTransaction">
+                   OnClick="@SaveTransaction">
             <MudIcon Icon="Icons.Material.Filled.Check" />
             Save Transaction
         </MudButton>
@@ -118,6 +120,7 @@
                    Variant="Variant.Outlined"
                    Size="Size.Large"
                    FullWidth="true"
+                   Elevation="0"
                    Class="voice-button"
                    Disabled="true">
             <MudIcon Icon="Icons.Material.Filled.Mic" />

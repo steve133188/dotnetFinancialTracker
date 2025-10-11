@@ -5,7 +5,7 @@
            Variant="Variant"
            Color="Color"
            Disabled="Disabled"
-           OnClick="OnClick"
+           OnClick="@OnClick"
            FullWidth="FullWidth"
            Class="@BuildClass()"
            StartIcon="@StartIcon"
@@ -14,7 +14,8 @@
            Href="@Href"
            Target="@Target"
            Size="@Size"
-           ButtonType="@ButtonType">
+           ButtonType="@ButtonType"
+           Elevation="@Elevation">
     @ChildContent
 </MudButton>
 
@@ -33,6 +34,7 @@
     [Parameter] public string? Target { get; set; }
     [Parameter] public Size Size { get; set; } = Size.Large;
     [Parameter] public ButtonType ButtonType { get; set; } = ButtonType.Button;
+    [Parameter] public int Elevation { get; set; } = 0;
     [Parameter(CaptureUnmatchedValues = true)] public IDictionary<string, object>? AdditionalAttributes { get; set; }
 
     private string BuildClass() => string.IsNullOrWhiteSpace(Class) ? "ui-button" : $"ui-button {Class}";

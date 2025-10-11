@@ -8,6 +8,7 @@ public class Transaction
     public decimal Amount { get; set; }
     public DateTime Date { get; set; } = DateTime.Today;
     public string? Description { get; set; }
+    public string? Notes { get; set; }
     public bool IsIncome { get; set; } = false;
 }
 

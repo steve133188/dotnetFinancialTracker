@@ -11,7 +11,7 @@
             @foreach (var item in _leftItems)
             {
                 var active = IsActive(item.Href);
-                <MudButton Class="@GetClass(active)" Variant="Variant.Text" OnClick="@(() => Navigate(item.Href))">
+                <MudButton Class="@GetClass(active)" Variant="Variant.Text" Elevation="0" OnClick="@(() => Navigate(item.Href))">
                     <MudIcon Icon="@item.Icon" Size="Size.Medium" />
                     <div class="label">@item.Label</div>
                 </MudButton>
@@ -19,14 +19,14 @@
         </div>
 
         <div class="bottom-nav-quick">
-            <MudFab Color="Color.Dark" Size="Size.Large" Variant="Variant.Filled" Class="quick-fab-dark" OnClick="OpenQuickActions" Label="K"/>
+            <MudFab Color="Color.Dark" Size="Size.Large" Variant="Variant.Filled" Elevation="0" Class="quick-fab-dark" OnClick="@OpenQuickActions" Label="K"/>
         </div>
 
         <div class="bottom-nav-group">
             @foreach (var item in _rightItems)
             {
                 var active = IsActive(item.Href);
-                <MudButton Class="@GetClass(active)" Variant="Variant.Text" OnClick="@(() => Navigate(item.Href))">
+                <MudButton Class="@GetClass(active)" Variant="Variant.Text" Elevation="0" OnClick="@(() => Navigate(item.Href))">
                     <MudIcon Icon="@item.Icon" Size="Size.Medium" />
                     <div class="label">@item.Label</div>
                 </MudButton>

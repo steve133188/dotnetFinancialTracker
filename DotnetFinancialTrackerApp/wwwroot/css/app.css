@@ -300,7 +300,7 @@ html, body {
 
 /* Color System */
 .text-primary {
-    color: #01FFFF !important;
+    color: #000000 !important;
 }
 
 .text-success {
@@ -397,7 +397,7 @@ html, body {
 
 /* Focus Styles for Accessibility */
 .focus-banking:focus-visible {
-    outline: 2px solid #01FFFF;
+    outline: 2px solid #000000;
     outline-offset: 2px;
     border-radius: 4px;
 }

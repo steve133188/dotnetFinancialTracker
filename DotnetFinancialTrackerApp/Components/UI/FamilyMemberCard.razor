@@ -54,7 +54,7 @@
                 <div class="limit-progress-bar">
                     <div class="limit-progress-fill" style="width: @(Math.Min(100, (double)(SpentThisMonth / SpendingLimit) * 100))%"></div>
                 </div>
-                <div class="limit-percentage">@(Math.Min(100, (double)(SpentThisMonth / SpendingLimit) * 100)):0f)%</div>
+                <div class="limit-percentage">@(Math.Min(100, (double)(SpentThisMonth / SpendingLimit) * 100).ToString("F0"))%</div>
             </div>
         </div>
     }
@@ -77,16 +77,6 @@
         </div>
     }
 
-    @if (ShowVirtualCard)
-    {
-        <div class="virtual-card-preview" @onclick:stopPropagation="true" @onclick="OnShowCard">
-            <div class="virtual-card-mini">
-                <div class="card-chip"></div>
-                <div class="card-number">•••• •••• •••• @CardLastFour</div>
-                <div class="card-holder">@Name.ToUpper()</div>
-            </div>
-        </div>
-    }
 
     @ChildContent
 </div>
@@ -106,22 +96,19 @@
     [Parameter] public int TransactionsThisMonth { get; set; }
     [Parameter] public double SavingsGoalProgress { get; set; }
     [Parameter] public int AchievementPoints { get; set; }
-    [Parameter] public bool ShowVirtualCard { get; set; } = true;
-    [Parameter] public string CardLastFour { get; set; } = "1234";
     [Parameter] public string AdditionalClasses { get; set; } = "";
     [Parameter] public EventCallback OnClick { get; set; }
     [Parameter] public EventCallback OnViewTransactions { get; set; }
     [Parameter] public EventCallback OnSendMoney { get; set; }
-    [Parameter] public EventCallback OnShowCard { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private Color GetAvatarColor()
     {
         return Role.ToLower() switch
         {
-            "parent" => Color.Primary,
+            "parent" => Color.Default,
             "teen" => Color.Secondary,
-            "child" => Color.Info,
+            "child" => Color.Default,
             _ => Color.Default
         };
     }
@@ -351,59 +338,6 @@
     color: rgba(0, 0, 0, 0.6);
 }
 
-.virtual-card-preview {
-    margin-top: 16px;
-    cursor: pointer;
-}
-
-.virtual-card-mini {
-    aspect-ratio: 1.586 / 1;
-    background: linear-gradient(135deg, #01FFFF 0%, #00E5E5 100%);
-    border-radius: 12px;
-    padding: 16px;
-    color: #000000;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 4px 16px rgba(1, 255, 255, 0.3);
-    transition: transform 0.2s ease;
-}
-
-.virtual-card-mini:hover {
-    transform: scale(1.02);
-}
-
-.virtual-card-mini::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -50%;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
-    border-radius: 50%;
-}
-
-.card-chip {
-    width: 24px;
-    height: 18px;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.6) 100%);
-    border-radius: 4px;
-    margin-bottom: 12px;
-}
-
-.card-number {
-    font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-    font-size: 0.875rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    margin-bottom: 8px;
-}
-
-.card-holder {
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-}
 
 @@media (max-width: 767px) {
     .family-member-card {
@@ -426,12 +360,5 @@
         gap: 16px;
     }
 
-    .virtual-card-mini {
-        padding: 12px;
-    }
-
-    .card-number {
-        font-size: 0.75rem;
-    }
 }
 </style>

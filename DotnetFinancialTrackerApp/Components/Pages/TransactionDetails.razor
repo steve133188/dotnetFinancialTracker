@@ -1,0 +1,501 @@
+@page "/transactions/{TransactionId:int}"
+@using System.Globalization
+@using DotnetFinancialTrackerApp.Models
+@using MudBlazor
+@inject DotnetFinancialTrackerApp.Services.ITransactionsService TxSvc
+@inject IDialogService DialogService
+@inject NavigationManager Nav
+
+<PageTitle>Transaction Details - Family Tracker</PageTitle>
+
+<MudContainer Class="transaction-details-container" MaxWidth="MaxWidth.Medium">
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-3" ShowCloseIcon="true" CloseIconClicked="@(() => _error = string.Empty)">
+            @_error
+        </MudAlert>
+    }
+
+    @if (_isLoading)
+    {
+        <div class="loading-container">
+            <MudProgressCircular Indeterminate="true" />
+            <MudText Typo="Typo.body1" Class="mt-2">Loading transaction details...</MudText>
+        </div>
+    }
+    else if (_transaction == null)
+    {
+        <div class="not-found-container">
+            <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Size="Size.Large" Color="Color.Error" />
+            <MudText Typo="Typo.h6" Class="mt-2">Transaction not found</MudText>
+            <MudText Typo="Typo.body2" Class="mb-3">The transaction you're looking for doesn't exist or has been deleted.</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Default" Elevation="0" OnClick="@NavigateToFinance" Style="background-color: black; color: white;">
+                Back to Finance
+            </MudButton>
+        </div>
+    }
+    else
+    {
+        <!-- Header -->
+        <div class="transaction-header">
+            <div class="header-nav">
+                <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="@NavigateToFinance" />
+                <MudText Typo="Typo.h5" Class="header-title">Transaction Details</MudText>
+            </div>
+            <div class="header-actions">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Default" OnClick="@EditTransaction" Style="color: black;" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@DeleteTransaction" />
+            </div>
+        </div>
+
+        <!-- Transaction Overview Card -->
+        <MudCard Class="overview-card" Elevation="0">
+            <MudCardContent>
+                <div class="transaction-overview">
+                    <div class="amount-section">
+                        <MudIcon Icon="@(_transaction.IsIncome ? Icons.Material.Filled.TrendingUp : Icons.Material.Filled.TrendingDown)"
+                                Size="Size.Large"
+                                Color="@(_transaction.IsIncome ? Color.Success : Color.Error)" />
+                        <div class="amount-details">
+                            <MudText Typo="Typo.h4" Class="@(_transaction.IsIncome ? "income-amount" : "expense-amount")">
+                                @((_transaction.IsIncome ? "+" : "-") + _transaction.Amount.ToString("C", CultureInfo.CurrentCulture))
+                            </MudText>
+                            <MudText Typo="Typo.body1" Class="transaction-type">
+                                @(_transaction.IsIncome ? "Income" : "Expense")
+                            </MudText>
+                        </div>
+                    </div>
+                    <div class="transaction-status">
+                        <MudChip Color="@(_transaction.IsIncome ? Color.Success : Color.Error)"
+                                Variant="Variant.Filled"
+                                Size="Size.Medium">
+                            @(_transaction.IsIncome ? "Income" : "Expense")
+                        </MudChip>
+                    </div>
+                </div>
+            </MudCardContent>
+        </MudCard>
+
+        <!-- Transaction Details Cards -->
+        <MudGrid>
+            <!-- Basic Information -->
+            <MudItem xs="12" md="6">
+                <MudCard Class="details-card" Elevation="0">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudIcon Icon="@Icons.Material.Filled.Info" Class="mr-2" Color="Color.Default" Style="color: black;" />
+                            <MudText Typo="Typo.h6">Basic Information</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <div class="detail-item">
+                            <MudText Typo="Typo.caption">Description</MudText>
+                            <MudText Typo="Typo.body1">@(_transaction.Description ?? "No description")</MudText>
+                        </div>
+                        <div class="detail-item">
+                            <MudText Typo="Typo.caption">Category</MudText>
+                            <MudChip T="string" Text="@DisplayCategory(_transaction.Category)"
+                                    Color="Color.Default"
+                                    Variant="Variant.Outlined"
+                                    Size="Size.Small"
+                                    Style="border-color: black; color: black;" />
+                        </div>
+                        <div class="detail-item">
+                            <MudText Typo="Typo.caption">Date</MudText>
+                            <MudText Typo="Typo.body1">@_transaction.Date.ToString("MMMM dd, yyyy", CultureInfo.CurrentCulture)</MudText>
+                        </div>
+                        <div class="detail-item">
+                            <MudText Typo="Typo.caption">Time</MudText>
+                            <MudText Typo="Typo.body1">@_transaction.Date.ToString("HH:mm", CultureInfo.CurrentCulture)</MudText>
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Family Member & Metadata -->
+            <MudItem xs="12" md="6">
+                <MudCard Class="details-card" Elevation="0">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudIcon Icon="@Icons.Material.Filled.Person" Class="mr-2" Color="Color.Secondary" />
+                            <MudText Typo="Typo.h6">Member & Metadata</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <div class="detail-item">
+                            <MudText Typo="Typo.caption">Family Member</MudText>
+                            <div class="member-info">
+                                <MudAvatar Size="Size.Small" Color="Color.Default" Style="background-color: black; color: white;">@GetMemberInitial(_transaction.User)</MudAvatar>
+                                <MudText Typo="Typo.body1">@DisplayMember(_transaction.User)</MudText>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <MudText Typo="Typo.caption">Transaction ID</MudText>
+                            <MudText Typo="Typo.body1">#@_transaction.Id</MudText>
+                        </div>
+                        <div class="detail-item">
+                            <MudText Typo="Typo.caption">Created</MudText>
+                            <MudText Typo="Typo.body1">@_transaction.Date.ToString("MMM dd, yyyy 'at' HH:mm", CultureInfo.CurrentCulture)</MudText>
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+
+        <!-- Monthly Context Card -->
+        <MudCard Class="context-card" Elevation="0">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudIcon Icon="@Icons.Material.Filled.Timeline" Class="mr-2" Color="Color.Default" Style="color: black;" />
+                    <MudText Typo="Typo.h6">Monthly Context</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudGrid>
+                    <MudItem xs="12" sm="4">
+                        <div class="context-stat">
+                            <MudText Typo="Typo.caption">Month Total (@(_transaction.IsIncome ? "Income" : "Spending"))</MudText>
+                            <MudText Typo="Typo.h6" Class="@(_transaction.IsIncome ? "income-amount" : "expense-amount")">
+                                @_monthTotal.ToString("C", CultureInfo.CurrentCulture)
+                            </MudText>
+                        </div>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <div class="context-stat">
+                            <MudText Typo="Typo.caption">This Transaction</MudText>
+                            <MudText Typo="Typo.h6">@_transactionPercentage.ToString("P1")</MudText>
+                            <MudText Typo="Typo.caption">of monthly @(_transaction.IsIncome ? "income" : "spending")</MudText>
+                        </div>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <div class="context-stat">
+                            <MudText Typo="Typo.caption">Similar Transactions</MudText>
+                            <MudText Typo="Typo.h6">@_similarTransactionsCount</MudText>
+                            <MudText Typo="Typo.caption">in @DisplayCategory(_transaction.Category)</MudText>
+                        </div>
+                    </MudItem>
+                </MudGrid>
+            </MudCardContent>
+        </MudCard>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <MudButton Variant="Variant.Outlined"
+                      Color="Color.Default"
+                      Elevation="0"
+                      StartIcon="@Icons.Material.Filled.ContentCopy"
+                      OnClick="@DuplicateTransaction"
+                      Style="border-color: black; color: black;">
+                Duplicate Transaction
+            </MudButton>
+            <MudButton Variant="Variant.Filled"
+                      Color="Color.Default"
+                      Elevation="0"
+                      StartIcon="@Icons.Material.Filled.Edit"
+                      OnClick="@EditTransaction"
+                      Style="background-color: black; color: white;">
+                Edit Transaction
+            </MudButton>
+        </div>
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public int TransactionId { get; set; }
+
+    private Transaction? _transaction;
+    private string? _error;
+    private bool _isLoading = true;
+    private decimal _monthTotal;
+    private double _transactionPercentage;
+    private int _similarTransactionsCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTransactionAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadTransactionAsync();
+    }
+
+    private async Task LoadTransactionAsync()
+    {
+        try
+        {
+            _isLoading = true;
+            _error = null;
+
+            // Load the specific transaction
+            var allTransactions = await TxSvc.GetAsync();
+            _transaction = allTransactions.FirstOrDefault(t => t.Id == TransactionId);
+
+            if (_transaction != null)
+            {
+                // Calculate monthly context
+                var monthStart = new DateTime(_transaction.Date.Year, _transaction.Date.Month, 1);
+                var monthEnd = monthStart.AddMonths(1).AddTicks(-1);
+
+                var monthTransactions = allTransactions.Where(t =>
+                    t.Date >= monthStart &&
+                    t.Date <= monthEnd &&
+                    t.IsIncome == _transaction.IsIncome).ToList();
+
+                _monthTotal = monthTransactions.Sum(t => t.Amount);
+                _transactionPercentage = _monthTotal > 0 ? (double)(_transaction.Amount / _monthTotal) : 0;
+
+                // Count similar transactions (same category)
+                _similarTransactionsCount = allTransactions.Count(t =>
+                    string.Equals(t.Category, _transaction.Category, StringComparison.OrdinalIgnoreCase) &&
+                    t.IsIncome == _transaction.IsIncome);
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = $"Error loading transaction: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task EditTransaction()
+    {
+        if (_transaction == null) return;
+
+        var parameters = new DialogParameters
+        {
+            [nameof(DotnetFinancialTrackerApp.Components.Dialogs.EditTransactionDialog.Model)] = _transaction
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true, Position = DialogPosition.Center };
+        var dialog = DialogService.Show<DotnetFinancialTrackerApp.Components.Dialogs.EditTransactionDialog>("Edit Transaction", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is Transaction updatedTransaction)
+        {
+            await TxSvc.UpdateAsync(updatedTransaction);
+            await LoadTransactionAsync(); // Reload to get updated data
+        }
+    }
+
+    private async Task DeleteTransaction()
+    {
+        if (_transaction == null) return;
+
+        var result = await DialogService.ShowMessageBox(
+            "Delete Transaction",
+            "Are you sure you want to delete this transaction? This action cannot be undone.",
+            yesText: "Delete",
+            cancelText: "Cancel"
+        );
+
+        if (result == true)
+        {
+            try
+            {
+                await TxSvc.DeleteAsync(_transaction.Id);
+                Nav.NavigateTo("/finance");
+            }
+            catch (Exception ex)
+            {
+                _error = $"Error deleting transaction: {ex.Message}";
+            }
+        }
+    }
+
+    private async Task DuplicateTransaction()
+    {
+        if (_transaction == null) return;
+
+        var duplicateTransaction = new Transaction
+        {
+            Amount = _transaction.Amount,
+            Category = _transaction.Category,
+            Description = _transaction.Description + " (Copy)",
+            IsIncome = _transaction.IsIncome,
+            User = _transaction.User,
+            Date = DateTime.Now
+        };
+
+        var parameters = new DialogParameters
+        {
+            [nameof(DotnetFinancialTrackerApp.Components.Dialogs.EditTransactionDialog.Model)] = duplicateTransaction
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true, Position = DialogPosition.Center };
+        var dialog = DialogService.Show<DotnetFinancialTrackerApp.Components.Dialogs.EditTransactionDialog>("Duplicate Transaction", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is Transaction newTransaction)
+        {
+            await TxSvc.AddAsync(newTransaction);
+            Nav.NavigateTo("/finance");
+        }
+    }
+
+    private string DisplayCategory(string? category)
+        => string.IsNullOrWhiteSpace(category) ? "Uncategorized" : category.Trim();
+
+    private string DisplayMember(string? user)
+        => string.IsNullOrWhiteSpace(user) ? "Household" : user.Trim();
+
+    private string GetMemberInitial(string? user)
+    {
+        var member = DisplayMember(user);
+        return string.IsNullOrEmpty(member) ? "H" : member.Substring(0, 1).ToUpper();
+    }
+
+    private void NavigateToFinance() => Nav.NavigateTo("/finance");
+}
+
+<style>
+.transaction-details-container {
+    padding: 24px;
+    background: #FFFFFF;
+    min-height: 100vh;
+}
+
+.loading-container, .not-found-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 24px;
+    text-align: center;
+}
+
+.transaction-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+    padding: 24px 32px;
+    background: linear-gradient(135deg, rgba(1, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.95) 100%);
+    border: 1px solid rgba(1, 255, 255, 0.2);
+    border-radius: 24px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+.header-nav {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.header-title {
+    color: #000000;
+    font-weight: 700;
+    margin: 0;
+}
+
+.header-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.overview-card, .details-card, .context-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(1, 255, 255, 0.2);
+    border-radius: 20px;
+    margin-bottom: 24px;
+}
+
+.transaction-overview {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.amount-section {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.amount-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.income-amount {
+    color: #4CAF50;
+    font-weight: 700;
+}
+
+.expense-amount {
+    color: #F44336;
+    font-weight: 700;
+}
+
+.transaction-type {
+    color: rgba(0, 0, 0, 0.7);
+    margin-top: 4px;
+}
+
+.detail-item {
+    margin-bottom: 16px;
+}
+
+.detail-item:last-child {
+    margin-bottom: 0;
+}
+
+.member-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.context-stat {
+    text-align: center;
+    padding: 16px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-top: 32px;
+}
+
+@@media (max-width: 767px) {
+    .transaction-details-container {
+        padding: 16px;
+    }
+
+    .transaction-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 20px;
+    }
+
+    .header-actions {
+        align-self: flex-end;
+    }
+
+    .transaction-overview {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+    }
+
+    .amount-section {
+        flex-direction: column;
+        text-align: center;
+        gap: 12px;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .context-stat {
+        padding: 12px;
+    }
+}
+</style>

@@ -14,9 +14,9 @@
             <div class="topbar-brand">
                 @if (ShouldShowBackButton())
                 {
-                    <MudIconButton Icon="@Icons.Material.Outlined.ArrowBack" Color="Color.Inherit" OnClick="NavigateBack" Size="Size.Medium" Class="topbar-back" />
+                    <MudIconButton Icon="@Icons.Material.Outlined.ArrowBack" Color="Color.Inherit" OnClick="@NavigateBack" Size="Size.Medium" Class="topbar-back" />
                 }
-                <MudAvatar Size="Size.Medium" Color="Color.Primary" Class="topbar-avatar">@UserInitial</MudAvatar>
+                <MudAvatar Size="Size.Medium" Color="Color.Dark" Class="topbar-avatar">K</MudAvatar>
                 <div class="topbar-copy">
                     <MudText Typo="Typo.h6" Class="topbar-overline" >Kipi Family Bank</MudText>
                     <MudText Typo="Typo.subtitle1" Class="topbar-title">Keep it simple, together</MudText>
@@ -29,18 +29,18 @@
                     <MudMenu Icon="@Icons.Material.Outlined.AccountCircle" AnchorOrigin="Origin.TopRight" TransformOrigin="Origin.TopRight" Color="Color.Inherit">
                         <MudMenuItem Disabled="true">
                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                <MudAvatar Color="Color.Primary" Size="Size.Small">@UserInitial</MudAvatar>
+                                <MudAvatar Color="Color.Default" Size="Size.Small" Style="background-color: black; color: white;">@UserInitial</MudAvatar>
                                 <MudText>@UserDisplay</MudText>
                             </MudStack>
                         </MudMenuItem>
                         <MudDivider />
                         <MudMenuItem Href="/settings" Icon="@Icons.Material.Outlined.Settings">Settings</MudMenuItem>
-                        <MudMenuItem OnClick="SignOut" Icon="@Icons.Material.Outlined.Logout">Sign out</MudMenuItem>
+                        <MudMenuItem OnClick="@SignOut" Icon="@Icons.Material.Outlined.Logout">Sign out</MudMenuItem>
                     </MudMenu>
                 }
                 else
                 {
-                    <MudButton Href="/login" Variant="Variant.Outlined" Color="Color.Primary" Class="topbar-signin">Sign in</MudButton>
+                    <MudButton Href="/login" Variant="Variant.Outlined" Color="Color.Default" Elevation="0" Class="topbar-signin" Style="border-color: black; color: black;">Sign in</MudButton>
                 }
             </div>
         </header>
@@ -84,7 +84,6 @@
         if (!Auth.IsAuthenticated && !uri.EndsWith("/login", StringComparison.OrdinalIgnoreCase))
         {
             Nav.NavigateTo("/login");
-            return;
         }
     }
 
@@ -193,6 +192,7 @@
 
 .topbar-avatar {
     border-radius: 16px;
+    color: black;
 }
 
 .topbar-copy {

@@ -10,13 +10,13 @@
                     <MudText Typo="Typo.caption" Class="text-muted">Keep logging and stay on budget</MudText>
                 </div>
                 <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                    <MudChip Color="Color.Primary" Variant="Variant.Filled" Class="fw-600">@_summary.Points pts</MudChip>
+                    <MudChip Color="Color.Default" Variant="Variant.Filled" Class="fw-600" Style="background-color: black; color: white;">@_summary.Points pts</MudChip>
                     <MudChip Variant="Variant.Outlined">@_summary.Streak d streak</MudChip>
                 </MudStack>
             </MudStack>
 
             <MudStack Row="true" Spacing="4" Class="mt-4">
-                <MudProgressCircular Class="ma-2" Size="Size.Large" StrokeWidth="8" Value="@(_summary.UsagePercent ?? 0)" Color="Color.Primary" />
+                <MudProgressCircular Class="ma-2" Size="Size.Large" StrokeWidth="8" Value="@(_summary.UsagePercent ?? 0)" Color="Color.Default" Style="color: black;" />
                 <MudStack>
                     <MudText Typo="Typo.subtitle2">Month Spend</MudText>
                     <MudText Typo="Typo.h6">@_summary.SpentThisMonth.ToString("C")</MudText>
@@ -45,7 +45,7 @@
                             <MudListItem>
                                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width:100%">
                                     <div>
-                                        <div class="fw-600">@a.Title <MudChip Size="Size.Small" Color="Color.Primary" Class="ms-2">+@a.Points</MudChip></div>
+                                        <div class="fw-600">@a.Title <MudChip Size="Size.Small" Color="Color.Default" Class="ms-2" Style="background-color: black; color: white;">+@a.Points</MudChip></div>
                                         <div class="text-muted">@a.Description</div>
                                     </div>
                                     <small>@a.AchievedAt.ToLocalTime().ToString("g")</small>

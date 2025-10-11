@@ -18,17 +18,10 @@ namespace DotnetFinancialTrackerApp.Services
         Task<bool> RemoveFamilyMemberAsync(string memberId);
         Task<bool> TransferMoneyBetweenMembersAsync(string fromMemberId, string toMemberId, decimal amount, string? note = null);
 
-        // Virtual Card Management
-        Task<VirtualCard?> GetMemberCardAsync(string memberId);
-        Task<VirtualCard> CreateVirtualCardAsync(string memberId, decimal dailyLimit, string cardColor = "#01FFFF");
-        Task<bool> UpdateCardLimitsAsync(string cardId, decimal dailyLimit);
-        Task<bool> ToggleCardStatusAsync(string cardId, bool isActive);
-        Task<bool> RegenerateCardAsync(string cardId);
 
         // Balance and Transaction Management
         Task<decimal> GetRealTimeBalanceAsync(string memberId);
         Task<bool> UpdateMemberBalanceAsync(string memberId, decimal amount, bool isIncome, string? description = null);
-        Task<bool> RecordCardTransactionAsync(string cardId, decimal amount, string? merchantName = null, string? category = null);
 
         // Spending Limits
         Task<List<SpendingLimit>> GetMemberSpendingLimitsAsync(string memberId);

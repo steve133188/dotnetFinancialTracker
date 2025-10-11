@@ -5,107 +5,251 @@
 @inject DotnetFinancialTrackerApp.Services.IBudgetsService BudgetSvc
 @inject DotnetFinancialTrackerApp.Services.ITransactionsService TxSvc
 @inject IDialogService DialogService
+@inject NavigationManager Nav
 
-<MudContainer Class="finance-shell" MaxWidth="MaxWidth.False">
+<PageTitle>Finance - Family Tracker</PageTitle>
+
+<MudContainer Class="finance-container" MaxWidth="MaxWidth.False">
     @if (!string.IsNullOrEmpty(_error))
     {
-        <MudAlert Severity="Severity.Error" Elevation="0" Class="mb-3">@_error</MudAlert>
+        <MudAlert Severity="Severity.Error" Elevation="0" Class="mb-3" ShowCloseIcon="true" CloseIconClicked="@(() => _error = string.Empty)">
+            @_error
+        </MudAlert>
     }
 
-    <MudPaper Class="finance-card finance-card-static" Elevation="1">
-        <MudText Typo="Typo.caption" Class="finance-overline">This month</MudText>
-        <MudText Typo="Typo.h5" Class="mb-3">Budget & cashflow overview</MudText>
-        @if (_budgetCount == 0 || TotalBudgetLimit <= 0)
-        {
-            <MudText Typo="Typo.body2" Class="finance-card-text">Create a budget to start tracking allocations.</MudText>
-        }
-        else
-        {
-            <MudStack Row="true" Wrap="true" AlignItems="AlignItems.Center" Spacing="3">
-                <MudStack AlignItems="AlignItems.Center" Class="finance-donut-wrapper">
-                    <MudChart ChartType="ChartType.Donut" Data="_budgetDonutData" Labels="_budgetDonutLabels" Class="finance-donut" />
-                    <MudText Typo="Typo.subtitle1" Class="mt-2">@SpendPercentLabel of budget</MudText>
-                    <MudChip Color="SpendPercentColor" Variant="Variant.Outlined" Size="Size.Small">Spent @_monthExpense.ToString("C", CultureInfo.CurrentCulture)</MudChip>
-                </MudStack>
-                <MudStack Spacing="1" Class="finance-metric-stack">
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.body2">Total limit</MudText>
-                        <MudText Typo="Typo.subtitle2">@TotalBudgetLimit.ToString("C", CultureInfo.CurrentCulture)</MudText>
-                    </MudStack>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.body2">Remaining</MudText>
-                        <MudText Typo="Typo.subtitle2" Class="text-success">@_budgetRemaining.ToString("C", CultureInfo.CurrentCulture)</MudText>
-                    </MudStack>
-                    <MudDivider Class="my-1" />
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.body2">Income</MudText>
-                        <MudText Typo="Typo.subtitle2" Class="text-success">@_monthIncome.ToString("C", CultureInfo.CurrentCulture)</MudText>
-                    </MudStack>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.body2">Spending</MudText>
-                        <MudText Typo="Typo.subtitle2" Class="text-error">@_monthExpense.ToString("C", CultureInfo.CurrentCulture)</MudText>
-                    </MudStack>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.body2">Net balance</MudText>
-                        <MudChip Color="@(NetBalance >= 0 ? Color.Success : Color.Error)" Variant="Variant.Outlined" Size="Size.Small">
-                            @NetBalance.ToString("C", CultureInfo.CurrentCulture)
-                        </MudChip>
-                    </MudStack>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.body2">Transactions</MudText>
-                        <MudText Typo="Typo.subtitle2">@_monthTransactionCount</MudText>
-                    </MudStack>
-                </MudStack>
-            </MudStack>
-        }
-    </MudPaper>
+    <!-- Header Section -->
+    <div class="finance-header">
+        <div class="header-content">
+            <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Large" Class="header-icon" />
+            <div class="header-text">
+                <MudText Typo="Typo.h4" Class="header-title">Finance Overview</MudText>
+                <MudText Typo="Typo.body1" Class="header-subtitle">Manage your family's financial health</MudText>
+            </div>
+        </div>
+        <div class="header-actions">
+            <MudButton Variant="Variant.Filled" Color="Color.Default" Elevation="0" StartIcon="@Icons.Material.Filled.Add" OnClick="@OpenAddTransaction" Style="background-color: black; color: white;">
+                Add Transaction
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Default" Elevation="0" StartIcon="@Icons.Material.Filled.AccountBalance" OnClick="@OpenAddBudget" Style="border-color: black; color: black;">
+                Manage Budgets
+            </MudButton>
+        </div>
+    </div>
 
-    <MudPaper Class="finance-table-card" Elevation="1">
-        <MudStack Row="true" Wrap="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
-            <MudSelect T="FinancePeriod" Dense="true" Label="Period" Variant="Variant.Outlined" Class="filter-select" @bind-Value="TablePeriod">
-                @foreach (var option in Enum.GetValues<FinancePeriod>())
-                {
-                    <MudSelectItem Value="@option">@GetPeriodLabel(option)</MudSelectItem>
-                }
-            </MudSelect>
-            <MudSelect T="string" Dense="true" Label="Category" Variant="Variant.Outlined" Class="filter-select" @bind-Value="TableCategory">
-                @foreach (var category in _tableCategoryOptions)
-                {
-                    <MudSelectItem Value="@category">@category</MudSelectItem>
-                }
-            </MudSelect>
-            <MudSelect T="string" Dense="true" Label="Member" Variant="Variant.Outlined" Class="filter-select" @bind-Value="TableMember">
-                @foreach (var member in _tableMemberOptions)
-                {
-                    <MudSelectItem Value="@member">@member</MudSelectItem>
-                }
-            </MudSelect>
-            <MudTextField @bind-Value="TableSearch" Immediate="true" Placeholder="Search description" Variant="Variant.Outlined" Dense="true" Class="filter-text" />
-            <MudSpacer />
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenAddTransaction">Add transaction</MudButton>
-            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AccountBalance" OnClick="OpenAddBudget">Setup budget</MudButton>
-        </MudStack>
+    <!-- Financial Summary Cards -->
+    <MudGrid Class="summary-grid">
+        <MudItem xs="12" md="4">
+            <MudCard Class="summary-card income-card" Elevation="0">
+                <MudCardContent>
+                    <div class="card-header">
+                        <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Success" />
+                        <MudText Typo="Typo.subtitle1">Monthly Income</MudText>
+                    </div>
+                    <MudText Typo="Typo.h4" Class="card-amount income">@_monthIncome.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                    <MudText Typo="Typo.body2" Class="card-meta">@_incomeTransactionCount transactions</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
 
-        <MudTable Items="_tableTransactions" Hover="true" Dense="true">
-            <HeaderContent>
-                <MudTh>Date</MudTh>
-                <MudTh>Member</MudTh>
-                <MudTh>Category</MudTh>
-                <MudTh>Notes</MudTh>
-                <MudTh Class="text-end">Amount</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd>@context.Date.ToString("MMM d", CultureInfo.CurrentCulture)</MudTd>
-                <MudTd>@DisplayMember(context.User)</MudTd>
-                <MudTd>@DisplayCategory(context.Category)</MudTd>
-                <MudTd>@context.Description</MudTd>
-                <MudTd Class="text-end" Color="@(context.IsIncome ? Color.Success : Color.Error)">@((context.IsIncome ? "+" : "-") + context.Amount.ToString("C", CultureInfo.CurrentCulture))</MudTd>
-            </RowTemplate>
-            <PagerContent>
-                <MudTablePager PageSizeOptions="new int[]{10,20,50}" />
-            </PagerContent>
-        </MudTable>
-    </MudPaper>
+        <MudItem xs="12" md="4">
+            <MudCard Class="summary-card expense-card" Elevation="0">
+                <MudCardContent>
+                    <div class="card-header">
+                        <MudIcon Icon="@Icons.Material.Filled.TrendingDown" Color="Color.Error" />
+                        <MudText Typo="Typo.subtitle1">Monthly Spending</MudText>
+                    </div>
+                    <MudText Typo="Typo.h4" Class="card-amount expense">@_monthExpense.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                    <MudText Typo="Typo.body2" Class="card-meta">@_expenseTransactionCount transactions</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudCard Class="summary-card balance-card" Elevation="0">
+                <MudCardContent>
+                    <div class="card-header">
+                        <MudIcon Icon="@(NetBalance >= 0 ? Icons.Material.Filled.AccountBalanceWallet : Icons.Material.Filled.Warning)" Color="@(NetBalance >= 0 ? Color.Success : Color.Error)" />
+                        <MudText Typo="Typo.subtitle1">Net Balance</MudText>
+                    </div>
+                    <MudText Typo="Typo.h4" Class="@NetBalanceClass">@NetBalance.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                    <MudText Typo="Typo.body2" Class="card-meta">@DateTime.Now.ToString("MMMM yyyy", CultureInfo.CurrentCulture)</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Budget Progress Section -->
+    @if (_budgetCount > 0 && TotalBudgetLimit > 0)
+    {
+        <div class="budget-section">
+            <div class="section-header">
+                <MudText Typo="Typo.h6" Class="section-title">Budget Progress</MudText>
+                <MudText Typo="Typo.caption" Class="section-meta">@DateTime.Now.ToString("MMMM yyyy", CultureInfo.CurrentCulture)</MudText>
+            </div>
+
+            <MudCard Class="budget-card" Elevation="0">
+                <MudCardContent>
+                    <div class="budget-overview">
+                        <div class="budget-chart">
+                            <MudProgressCircular Value="@BudgetProgress" Size="Size.Large" Color="@BudgetProgressColor">
+                                <MudText Typo="Typo.body2">@SpendPercentLabel</MudText>
+                            </MudProgressCircular>
+                        </div>
+                        <div class="budget-details">
+                            <div class="budget-item">
+                                <MudText Typo="Typo.caption">Budget Limit</MudText>
+                                <MudText Typo="Typo.h6">@TotalBudgetLimit.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                            </div>
+                            <div class="budget-item">
+                                <MudText Typo="Typo.caption">Spent</MudText>
+                                <MudText Typo="Typo.h6" Class="expense">@_monthExpense.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                            </div>
+                            <div class="budget-item">
+                                <MudText Typo="Typo.caption">Remaining</MudText>
+                                <MudText Typo="Typo.h6" Class="income">@_budgetRemaining.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="budget-actions">
+                        <MudButton Variant="Variant.Text" Color="Color.Default" Elevation="0" OnClick="@OpenAddBudget" Style="color: black;">Adjust Budgets</MudButton>
+                        <MudButton Variant="Variant.Text" Color="Color.Default" Elevation="0" OnClick="@NavigateToReports" Style="color: black;">View Analytics</MudButton>
+                    </div>
+                </MudCardContent>
+            </MudCard>
+        </div>
+    }
+    else
+    {
+        <div class="budget-section">
+            <MudCard Class="empty-budget-card" Elevation="0">
+                <MudCardContent Class="text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Large" Color="Color.Default" Style="color: black;" />
+                    <MudText Typo="Typo.h6" Class="mt-2">No budgets set up</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-3">Create your first budget to start tracking your spending goals</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Default" Elevation="0" StartIcon="@Icons.Material.Filled.Add" OnClick="@OpenAddBudget" Style="background-color: black; color: white;">
+                        Create Budget
+                    </MudButton>
+                </MudCardContent>
+            </MudCard>
+        </div>
+    }
+
+    <!-- Transactions Section -->
+    <div class="transactions-section">
+        <div class="section-header">
+            <MudText Typo="Typo.h6" Class="section-title">Transactions</MudText>
+            <MudText Typo="Typo.caption" Class="section-meta">@_tableTransactions.Count of @_allTransactions.Count total</MudText>
+        </div>
+
+        <!-- Enhanced Filters -->
+        <MudCard Class="filters-card" Elevation="0">
+            <MudCardContent>
+                <MudGrid AlignItems="Center" Spacing="2">
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="FinancePeriod" Dense="true" Label="Period" Variant="Variant.Outlined" @bind-Value="TablePeriod">
+                            @foreach (var option in Enum.GetValues<FinancePeriod>())
+                            {
+                                <MudSelectItem Value="@option">@GetPeriodLabel(option)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="string" Dense="true" Label="Category" Variant="Variant.Outlined" @bind-Value="TableCategory">
+                            @foreach (var category in _tableCategoryOptions)
+                            {
+                                <MudSelectItem Value="@category">@category</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="string" Dense="true" Label="Family Member" Variant="Variant.Outlined" @bind-Value="TableMember">
+                            @foreach (var member in _tableMemberOptions)
+                            {
+                                <MudSelectItem Value="@member">@member</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudTextField @bind-Value="TableSearch" Immediate="true" Placeholder="Search transactions..." Variant="Variant.Outlined" Dense="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+                    </MudItem>
+                </MudGrid>
+
+                @if (HasActiveFilters)
+                {
+                    <div class="filter-chips">
+                        <MudChip T="string" Text="@GetActiveFiltersText()" Color="Color.Default" Variant="Variant.Outlined" CloseIcon="@Icons.Material.Filled.Clear" OnClose="ClearAllFilters" Style="border-color: black; color: black;" />
+                    </div>
+                }
+            </MudCardContent>
+        </MudCard>
+
+        <!-- Enhanced Transaction Table -->
+        <MudCard Class="transactions-card" Elevation="0">
+            <MudCardContent>
+                @if (_tableTransactions.Count == 0)
+                {
+                    <div class="empty-transactions">
+                        <MudIcon Icon="@Icons.Material.Filled.Receipt" Size="Size.Large" Color="Color.Secondary" />
+                        <MudText Typo="Typo.h6" Class="mt-2">No transactions found</MudText>
+                        <MudText Typo="Typo.body2" Class="mb-3">@(HasActiveFilters ? "Try adjusting your filters or add a new transaction" : "Get started by adding your first transaction")</MudText>
+                        <MudButton Variant="Variant.Filled" Color="Color.Default" Elevation="0" StartIcon="@Icons.Material.Filled.Add" OnClick="@OpenAddTransaction" Style="background-color: black; color: white;">
+                            Add Transaction
+                        </MudButton>
+                    </div>
+                }
+                else
+                {
+                    <MudTable Items="_tableTransactions" Hover="true" Dense="true" Striped="true" RowClassFunc="GetRowClass" OnRowClick="@(EventCallback.Factory.Create<TableRowClickEventArgs<Transaction>>(this, OnTransactionRowClick))">
+                        <HeaderContent>
+                            <MudTh>Date</MudTh>
+                            <MudTh>Description</MudTh>
+                            <MudTh>Category</MudTh>
+                            <MudTh>Member</MudTh>
+                            <MudTh Class="text-end">Amount</MudTh>
+                            <MudTh></MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>
+                                <div class="date-cell">
+                                    <MudText Typo="Typo.body2">@context.Date.ToString("MMM dd", CultureInfo.CurrentCulture)</MudText>
+                                    <MudText Typo="Typo.caption">@context.Date.ToString("yyyy", CultureInfo.CurrentCulture)</MudText>
+                                </div>
+                            </MudTd>
+                            <MudTd>
+                                <div class="description-cell">
+                                    <MudText Typo="Typo.subtitle2">@(context.Description ?? DisplayCategory(context.Category))</MudText>
+                                    @if (!string.IsNullOrEmpty(context.Description) && !string.Equals(context.Description, context.Category))
+                                    {
+                                        <MudText Typo="Typo.caption">@DisplayCategory(context.Category)</MudText>
+                                    }
+                                </div>
+                            </MudTd>
+                            <MudTd>
+                                <MudChip T="string" Text="@DisplayCategory(context.Category)" Size="Size.Small" Variant="Variant.Outlined" />
+                            </MudTd>
+                            <MudTd>
+                                <div class="member-cell">
+                                    <MudAvatar Size="Size.Small" Color="Color.Default" Style="background-color: black; color: white;">@GetMemberInitial(context.User)</MudAvatar>
+                                    <MudText Typo="Typo.body2">@DisplayMember(context.User)</MudText>
+                                </div>
+                            </MudTd>
+                            <MudTd Class="text-end">
+                                <MudText Typo="Typo.subtitle1" Class="@(context.IsIncome ? "income-amount" : "expense-amount")">
+                                    @((context.IsIncome ? "+" : "-") + context.Amount.ToString("C", CultureInfo.CurrentCulture))
+                                </MudText>
+                            </MudTd>
+                            <MudTd>
+                                <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" OnClick="@(() => OpenTransactionActions(context))" />
+                            </MudTd>
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager PageSizeOptions="new int[]{10,25,50,100}" HideRowsPerPage="false" />
+                        </PagerContent>
+                    </MudTable>
+                }
+            </MudCardContent>
+        </MudCard>
+    </div>
 </MudContainer>
 
 @code {
@@ -116,9 +260,13 @@
     private decimal _monthIncome;
     private decimal _monthExpense;
     private int _monthTransactionCount;
+    private int _incomeTransactionCount;
+    private int _expenseTransactionCount;
     private decimal TotalBudgetLimit { get; set; }
     private decimal _budgetRemaining;
     private int _budgetCount;
+    private string NetBalanceClass => NetBalance >= 0 ? "card-amount income" : "card-amount expense";
+    private void NavigateToReports() => Nav.NavigateTo("/reports");
 
     private readonly List<string> _tableCategoryOptions = new();
     private readonly List<string> _tableMemberOptions = new();
@@ -179,12 +327,17 @@
         }
     }
 
-    private double[] _budgetDonutData = Array.Empty<double>();
-    private string[] _budgetDonutLabels = Array.Empty<string>();
-
+    // Calculated properties
     private decimal NetBalance => _monthIncome - _monthExpense;
+    private double BudgetProgress => TotalBudgetLimit <= 0 ? 0 : Math.Min((double)(_monthExpense / TotalBudgetLimit) * 100, 100);
     private string SpendPercentLabel => TotalBudgetLimit <= 0 ? "0%" : string.Format(CultureInfo.CurrentCulture, "{0:P0}", Math.Max((double)(_monthExpense / TotalBudgetLimit), 0));
-    private Color SpendPercentColor => _monthExpense <= TotalBudgetLimit ? Color.Success : Color.Error;
+    private Color BudgetProgressColor => _monthExpense <= TotalBudgetLimit ? Color.Success : Color.Error;
+
+    // Filter helpers
+    private bool HasActiveFilters => _tablePeriod != FinancePeriod.ThisMonth ||
+                                   !string.Equals(_tableCategory, AllCategoriesOption, StringComparison.Ordinal) ||
+                                   !string.Equals(_tableMember, AllMembersOption, StringComparison.Ordinal) ||
+                                   !string.IsNullOrWhiteSpace(_tableSearch);
 
     protected override async Task OnInitializedAsync()
     {
@@ -216,46 +369,77 @@
         _monthTransactionCount = monthTransactions.Count;
         _monthIncome = monthTransactions.Where(t => t.IsIncome).Sum(t => t.Amount);
         _monthExpense = monthTransactions.Where(t => !t.IsIncome).Sum(t => t.Amount);
+        _incomeTransactionCount = monthTransactions.Count(t => t.IsIncome);
+        _expenseTransactionCount = monthTransactions.Count(t => !t.IsIncome);
 
         var budgets = await BudgetSvc.GetAsync(periodStart);
         _budgetCount = budgets.Count;
         TotalBudgetLimit = budgets.Sum(b => b.Limit);
         _budgetRemaining = Math.Max(TotalBudgetLimit - _monthExpense, 0m);
-        BuildBudgetDonut();
     }
 
-    private void BuildBudgetDonut()
+    // New helper methods for enhanced Finance page
+    private string GetActiveFiltersText()
     {
-        if (_budgetCount == 0 || TotalBudgetLimit <= 0)
-        {
-            _budgetDonutLabels = Array.Empty<string>();
-            _budgetDonutData = Array.Empty<double>();
-            return;
-        }
+        var filters = new List<string>();
 
-        var spent = Math.Max(Math.Min(_monthExpense, TotalBudgetLimit), 0m);
-        var remaining = Math.Max(TotalBudgetLimit - _monthExpense, 0m);
-        var over = Math.Max(_monthExpense - TotalBudgetLimit, 0m);
+        if (_tablePeriod != FinancePeriod.ThisMonth)
+            filters.Add(GetPeriodLabel(_tablePeriod));
 
-        if (over > 0)
+        if (!string.Equals(_tableCategory, AllCategoriesOption, StringComparison.Ordinal))
+            filters.Add(_tableCategory);
+
+        if (!string.Equals(_tableMember, AllMembersOption, StringComparison.Ordinal))
+            filters.Add(_tableMember);
+
+        if (!string.IsNullOrWhiteSpace(_tableSearch))
+            filters.Add($"'{_tableSearch}'");
+
+        return string.Join(", ", filters);
+    }
+
+    private void ClearAllFilters()
+    {
+        _tablePeriod = FinancePeriod.ThisMonth;
+        _tableCategory = AllCategoriesOption;
+        _tableMember = AllMembersOption;
+        _tableSearch = string.Empty;
+        ApplyTableFilters();
+    }
+
+    private string GetRowClass(Transaction transaction, int rowNumber)
+    {
+        return transaction.IsIncome ? "income-row" : "expense-row";
+    }
+
+    private Task OnTransactionRowClick(TableRowClickEventArgs<Transaction> args)
+    {
+        // Navigate to transaction details page (to be implemented)
+        Nav.NavigateTo($"/transactions/{args.Item.Id}");
+        return Task.CompletedTask;
+    }
+
+    private async Task OpenTransactionActions(Transaction transaction)
+    {
+        // For now, navigate to edit transaction
+        var parameters = new DialogParameters
         {
-            _budgetDonutLabels = new[] { "Spent", "Remaining", "Over" };
-            _budgetDonutData = new[]
-            {
-                Convert.ToDouble(spent),
-                0d,
-                Convert.ToDouble(over)
-            };
-        }
-        else
+            [nameof(DotnetFinancialTrackerApp.Components.Dialogs.EditTransactionDialog.Model)] = transaction
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true, Position = DialogPosition.Center };
+        var dialog = DialogService.Show<DotnetFinancialTrackerApp.Components.Dialogs.EditTransactionDialog>("Edit Transaction", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is Transaction tx)
         {
-            _budgetDonutLabels = new[] { "Spent", "Remaining" };
-            _budgetDonutData = new[]
-            {
-                Convert.ToDouble(spent),
-                Convert.ToDouble(remaining)
-            };
+            await TxSvc.UpdateAsync(tx);
+            await ReloadAsync();
         }
+    }
+
+    private string GetMemberInitial(string? user)
+    {
+        var member = DisplayMember(user);
+        return string.IsNullOrEmpty(member) ? "H" : member.Substring(0, 1).ToUpper();
     }
 
     private void BuildFilterOptions()
@@ -384,3 +568,242 @@
         AllTime
     }
 }
+
+<style>
+.finance-container {
+    padding: 24px;
+    background: #FFFFFF;
+    min-height: 100vh;
+}
+
+.finance-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+    padding: 24px 32px;
+    background: linear-gradient(135deg, rgba(1, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.95) 100%);
+    border: 1px solid rgba(1, 255, 255, 0.2);
+    border-radius: 24px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.header-icon {
+    color: #000000;
+}
+
+.header-title {
+    color: #000000;
+    font-weight: 700;
+    margin: 0;
+}
+
+.header-subtitle {
+    color: rgba(0, 0, 0, 0.7);
+    margin: 0;
+}
+
+.header-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.summary-grid {
+    margin-bottom: 32px;
+}
+
+.summary-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(1, 255, 255, 0.2);
+    border-radius: 20px;
+    transition: all 0.25s ease;
+}
+
+.summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.card-amount {
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.card-amount.income {
+    color: #4CAF50;
+}
+
+.card-amount.expense {
+    color: #F44336;
+}
+
+.card-meta {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.section-title {
+    color: #000000;
+    font-weight: 600;
+    margin: 0;
+}
+
+.section-meta {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.budget-section, .transactions-section {
+    margin-bottom: 32px;
+}
+
+.budget-card, .empty-budget-card, .filters-card, .transactions-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(1, 255, 255, 0.2);
+    border-radius: 20px;
+}
+
+.budget-overview {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 16px;
+}
+
+.budget-details {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    flex: 1;
+}
+
+.budget-item {
+    text-align: center;
+}
+
+.budget-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-top: 16px;
+}
+
+.income {
+    color: #4CAF50;
+}
+
+.expense {
+    color: #F44336;
+}
+
+.filters-card {
+    margin-bottom: 16px;
+}
+
+.filter-chips {
+    margin-top: 16px;
+    display: flex;
+    gap: 8px;
+}
+
+.empty-transactions {
+    text-align: center;
+    padding: 48px 24px;
+}
+
+.date-cell {
+    display: flex;
+    flex-direction: column;
+}
+
+.description-cell {
+    display: flex;
+    flex-direction: column;
+}
+
+.member-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.income-amount {
+    color: #4CAF50;
+    font-weight: 600;
+}
+
+.expense-amount {
+    color: #F44336;
+    font-weight: 600;
+}
+
+.income-row {
+    background-color: rgba(76, 175, 80, 0.02);
+}
+
+.expense-row {
+    background-color: rgba(244, 67, 54, 0.02);
+}
+
+@@media (max-width: 767px) {
+    .finance-container {
+        padding: 16px;
+    }
+
+    .finance-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 20px;
+    }
+
+    .header-actions {
+        align-self: stretch;
+        justify-content: space-between;
+    }
+
+    .budget-overview {
+        flex-direction: column;
+        text-align: center;
+        gap: 16px;
+    }
+
+    .budget-details {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .budget-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .member-cell {
+        flex-direction: column;
+        gap: 4px;
+        text-align: center;
+    }
+}
+</style>
