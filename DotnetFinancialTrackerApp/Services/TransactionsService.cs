@@ -17,7 +17,7 @@ public class TransactionsService : ITransactionsService
     {
         var q = _db.Transactions.AsQueryable();
         if (!string.IsNullOrWhiteSpace(user)) q = q.Where(t => t.User == user);
-        if (!string.IsNullOrWhiteSpace(category)) q = q.Where(t => t.Category == category);
+        if (!string.IsNullOrWhiteSpace(category)) q = q.Where(t => t.Category!.Name == category);
         if (from.HasValue) q = q.Where(t => t.Date >= from.Value);
         if (to.HasValue) q = q.Where(t => t.Date <= to.Value);
         return await q.OrderByDescending(t => t.Date).ThenByDescending(t => t.Id).ToListAsync();

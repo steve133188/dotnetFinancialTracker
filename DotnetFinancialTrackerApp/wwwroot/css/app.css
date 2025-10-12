@@ -1,5 +1,8 @@
+/* Import Inter font from Google Fonts - legal alternative to Airbnb Cereal */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 html, body {
-    font-family: 'Airbnb Cereal', 'Inter', 'Circular', 'SF Pro Text', 'Segoe UI', 'Roboto', system-ui, -apple-system, sans-serif;
+    font-family: 'Inter', 'SF Pro Text', 'Segoe UI', 'Roboto', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     background: linear-gradient(180deg, #FFFFFF 0%, #FAFBFC 100%);
@@ -10,7 +13,9 @@ html, body {
     letter-spacing: -0.01em;
 }
 
-/* Airbnb Cereal (self-host). Place your licensed font files under wwwroot/fonts */
+/* Note: Using Inter font from Google Fonts as a legal alternative to Airbnb Cereal
+   If you have a license for Airbnb Cereal, you can replace the import above with these @font-face declarations
+   and place the licensed font files under wwwroot/fonts/
 @font-face {
     font-family: 'Airbnb Cereal';
     src: local('Airbnb Cereal Book'), local('AirbnbCereal-Book'),
@@ -38,6 +43,7 @@ html, body {
     font-style: normal;
     font-display: swap;
 }
+*/
 
 /* Enhanced Glass Morphism System */
 .glass-card {
@@ -91,14 +97,126 @@ html, body {
 
 .btn-primary:hover {
     background: linear-gradient(135deg, #00E5E5 0%, #00CCCC 100%);
+
+/* Global MudBlazor Button Overrides */
+.mud-button-filled.mud-button-filled-primary {
+    background-color: #01FFFF !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+.mud-button-filled.mud-button-filled-primary:hover {
+    background-color: #00E5E5 !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+}
+
+.mud-button-filled.mud-button-filled-primary:focus {
+    background-color: #00E5E5 !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+}
+
+.mud-button-filled.mud-button-filled-primary:active {
+    background-color: #00CCCC !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+}
+
+/* Ensure all numbers use black text */
+.mud-typography,
+.mud-typography h1,
+.mud-typography h2,
+.mud-typography h3,
+.mud-typography h4,
+.mud-typography h5,
+.mud-typography h6,
+.amount-text,
+.number-display,
+.currency-amount,
+.percentage-display {
+    color: #000000 !important;
+}
+
+/* Universal Card Styling - Match Home Page */
+.mud-card,
+.summary-card,
+.transactions-card,
+.empty-card,
+.member-card,
+.goal-card,
+.motivation-card,
+.budget-setup-card,
+.budget-summary-card,
+.idea-card,
+.transaction-item,
+.category-item,
+.savings-transfer-card,
+.income-card,
+.expense-card,
+.balance-card,
+.budget-card,
+.empty-budget-card,
+.filters-card,
+.metric-card,
+.info-card,
+.enhanced-action-card,
+.insight-card,
+.glass-card,
+.household-card {
+    background: #FFFFFF !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
+    transition: all 0.25s ease !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+.mud-card:hover,
+.summary-card:hover,
+.transactions-card:hover,
+.member-card:hover,
+.goal-card:hover,
+.savings-transfer-card:hover,
+.income-card:hover,
+.expense-card:hover,
+.balance-card:hover,
+.budget-card:hover,
+.empty-budget-card:hover,
+.filters-card:hover,
+.metric-card:hover,
+.info-card:hover,
+.enhanced-action-card:hover,
+.insight-card:hover,
+.glass-card:hover,
+.household-card:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Universal section spacing */
+.mud-container {
+    padding: 24px !important;
+    background: #FFFFFF !important;
+}
+
+@media (max-width: 767px) {
+    .mud-container {
+        padding: 16px !important;
+    }
+}
+
+.btn-primary:hover {
     color: #000000;
     transform: translateY(-1px);
-    box-shadow: 0 8px 24px rgba(1, 255, 255, 0.4);
+    box-shadow: none;
 }
 
 .btn-primary:active {
     transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(1, 255, 255, 0.3);
+    box-shadow: none;
 }
 
 .btn-secondary {

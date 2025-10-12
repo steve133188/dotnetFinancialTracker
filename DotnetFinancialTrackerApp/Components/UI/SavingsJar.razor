@@ -1,0 +1,195 @@
+@using System.Globalization
+
+<div class="savings-jar-container">
+    <div class="jar-wrapper">
+        <svg class="savings-jar" viewBox="0 0 120 150" xmlns="http://www.w3.org/2000/svg">
+            <!-- Jar body -->
+            <defs>
+                <linearGradient id="jarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#F8F9FA;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#E9ECEF;stop-opacity:1" />
+                </linearGradient>
+                <linearGradient id="fillGradient" x1="0%" y1="100%" x2="0%" y2="0%">
+                    <stop offset="0%" style="stop-color:#01FFFF;stop-opacity:0.8" />
+                    <stop offset="100%" style="stop-color:#00E5E5;stop-opacity:0.6" />
+                </linearGradient>
+            </defs>
+
+            <!-- Jar outline -->
+            <path d="M25 40 L25 130 Q25 140 35 140 L85 140 Q95 140 95 130 L95 40 Z"
+                  fill="url(#jarGradient)"
+                  stroke="#000000"
+                  stroke-width="2"/>
+
+            <!-- Jar lid -->
+            <rect x="20" y="30" width="80" height="15" rx="7"
+                  fill="#FFFFFF"
+                  stroke="#000000"
+                  stroke-width="2"/>
+
+            <!-- Lid handle -->
+            <circle cx="60" cy="37.5" r="3"
+                    fill="#FFFFFF"
+                    stroke="#000000"
+                    stroke-width="1.5"/>
+
+            <!-- Savings fill based on percentage -->
+            <path d="M25 @GetFillTop() L25 130 Q25 140 35 140 L85 140 Q95 140 95 130 L95 @GetFillTop() Z"
+                  fill="url(#fillGradient)"
+                  opacity="@(ProgressPercentage > 0 ? "1" : "0")"/>
+
+            <!-- Coins floating in jar when there's money -->
+            @if (ProgressPercentage > 10)
+            {
+                <circle cx="50" cy="@(120 - (ProgressPercentage * 0.6))" r="4" fill="#FFD700" opacity="0.8"/>
+            }
+            @if (ProgressPercentage > 30)
+            {
+                <circle cx="70" cy="@(115 - (ProgressPercentage * 0.5))" r="3" fill="#FFD700" opacity="0.6"/>
+            }
+            @if (ProgressPercentage > 50)
+            {
+                <circle cx="40" cy="@(125 - (ProgressPercentage * 0.7))" r="3.5" fill="#FFD700" opacity="0.7"/>
+            }
+        </svg>
+
+        <!-- Progress percentage -->
+        <div class="jar-percentage">
+            <MudText Typo="Typo.h6" Class="percentage-text">@ProgressPercentage.ToString("F0")%</MudText>
+        </div>
+    </div>
+
+    <!-- Jar details -->
+    <div class="jar-details">
+        <MudText Typo="Typo.subtitle1" Class="jar-title">@Title</MudText>
+        <div class="jar-amounts">
+            <MudText Typo="Typo.h6" Class="current-amount">@CurrentAmount.ToString("C0", CultureInfo.CurrentCulture)</MudText>
+            <MudText Typo="Typo.caption" Class="target-amount">of @TargetAmount.ToString("C0", CultureInfo.CurrentCulture)</MudText>
+        </div>
+        @if (!string.IsNullOrEmpty(Subtitle))
+        {
+            <MudText Typo="Typo.caption" Class="jar-subtitle">@Subtitle</MudText>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Savings Goal";
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public decimal CurrentAmount { get; set; }
+    [Parameter] public decimal TargetAmount { get; set; }
+    [Parameter] public string Class { get; set; } = "";
+
+    private double ProgressPercentage => TargetAmount > 0 ? Math.Min((double)(CurrentAmount / TargetAmount) * 100, 100) : 0;
+
+    private double GetFillTop()
+    {
+        // Jar body goes from Y=40 to Y=130 (90px height)
+        // Fill from bottom up based on percentage
+        var fillHeight = (ProgressPercentage / 100.0) * 90;
+        return 130 - fillHeight;
+    }
+}
+
+<style>
+.savings-jar-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    transition: all 0.25s ease;
+    min-width: 180px;
+}
+
+.savings-jar-container:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.jar-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.savings-jar {
+    width: 120px;
+    height: 150px;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+.jar-percentage {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.percentage-text {
+    color: #000000;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.jar-details {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.jar-title {
+    color: #000000;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+}
+
+.jar-amounts {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.current-amount {
+    color: #000000;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+}
+
+.target-amount {
+    color: rgba(0, 0, 0, 0.6);
+    font-family: 'Inter', sans-serif;
+}
+
+.jar-subtitle {
+    color: rgba(0, 0, 0, 0.6);
+    font-family: 'Inter', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Responsive adjustments */
+@@media (max-width: 767px) {
+    .savings-jar-container {
+        min-width: 140px;
+        padding: 12px;
+    }
+
+    .savings-jar {
+        width: 100px;
+        height: 125px;
+    }
+
+    .percentage-text {
+        font-size: 1rem;
+    }
+}
+</style>

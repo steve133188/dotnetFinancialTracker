@@ -3,12 +3,12 @@
 @using DotnetFinancialTrackerApp.Models
 @using MudBlazor
 @inject DotnetFinancialTrackerApp.Services.ITransactionsService TxSvc
-@inject DotnetFinancialTrackerApp.Services.IBudgetsService BudgetSvc
+@inject DotnetFinancialTrackerApp.Services.IUserService UserSvc
 @inject NavigationManager Nav
 
 <PageTitle>Insights - Family Tracker</PageTitle>
 
-<MudContainer Class="insights-container" MaxWidth="MaxWidth.False">
+<MudContainer Class="home-container" MaxWidth="MaxWidth.False">
     @if (!string.IsNullOrEmpty(_error))
     {
         <MudAlert Severity="Severity.Warning" Class="mb-3" ShowCloseIcon="true" CloseIconClicked="@(() => _error = string.Empty)">
@@ -16,295 +16,353 @@
         </MudAlert>
     }
 
-    <!-- Header Section -->
-    <div class="insights-header">
-        <div class="header-content">
-            <MudIcon Icon="@Icons.Material.Filled.Analytics" Size="Size.Large" Class="header-icon" />
-            <div class="header-text">
-                <MudText Typo="Typo.h4" Class="header-title">Family Insights</MudText>
-                <MudText Typo="Typo.body1" Class="header-subtitle">Simple period data and spending patterns</MudText>
+    <!-- Header -->
+    <div class="section-header">
+        <MudText Typo="Typo.h4" Class="header-title">Insights & Analytics</MudText>
+    </div>
+
+    <!-- Filter Controls -->
+    <MudCard Class="summary-card filter-controls" Elevation="0">
+        <MudCardContent>
+            <!-- Time Range Filters -->
+            <div class="filter-section">
+                <MudText Typo="Typo.h6" Class="filter-label">Time Range</MudText>
+                <div class="time-filter-buttons">
+                    <MudButton Variant="@(_selectedPeriodType == PeriodType.Daily ? Variant.Filled : Variant.Outlined)"
+                             Color="Color.Default"
+                             OnClick="@(() => SetPeriodType(PeriodType.Daily))"
+                             Class="filter-button">
+                        Daily
+                    </MudButton>
+                    <MudButton Variant="@(_selectedPeriodType == PeriodType.Weekly ? Variant.Filled : Variant.Outlined)"
+                             Color="Color.Default"
+                             OnClick="@(() => SetPeriodType(PeriodType.Weekly))"
+                             Class="filter-button">
+                        Weekly
+                    </MudButton>
+                    <MudButton Variant="@(_selectedPeriodType == PeriodType.Monthly ? Variant.Filled : Variant.Outlined)"
+                             Color="Color.Default"
+                             OnClick="@(() => SetPeriodType(PeriodType.Monthly))"
+                             Class="filter-button">
+                        Monthly
+                    </MudButton>
+                    <MudButton Variant="@(_selectedPeriodType == PeriodType.Yearly ? Variant.Filled : Variant.Outlined)"
+                             Color="Color.Default"
+                             OnClick="@(() => SetPeriodType(PeriodType.Yearly))"
+                             Class="filter-button">
+                        Yearly
+                    </MudButton>
+                </div>
             </div>
-        </div>
-        <div class="header-actions">
-            <MudButton Variant="Variant.Outlined" Color="Color.Default" Elevation="0" StartIcon="@Icons.Material.Filled.FileDownload" OnClick="@ExportData" Style="border-color: black; color: black;">
-                Export Data
-            </MudButton>
-        </div>
-    </div>
 
-    <!-- Quick Period Selection -->
-    <div class="period-selector">
-        <MudButtonGroup Variant="Variant.Outlined" Color="Color.Default" Style="border-color: black; color: black;">
-            @foreach (var period in Enum.GetValues<InsightPeriod>())
-            {
-                <MudButton Variant="@(_selectedPeriod == period ? Variant.Filled : Variant.Outlined)"
-                          Elevation="0"
-                          OnClick="@(() => SelectPeriod(period))">
-                    @GetPeriodLabel(period)
-                </MudButton>
-            }
-        </MudButtonGroup>
-    </div>
+            <!-- Family Member Filter -->
+            <div class="filter-section">
+                <MudText Typo="Typo.h6" Class="filter-label">Family Member</MudText>
+                <MudSelect T="string" Value="@_selectedUserId" ValueChanged="@OnUserChanged" Variant="Variant.Outlined" Class="user-filter">
+                    <MudSelectItem Value="@string.Empty">All Members</MudSelectItem>
+                    @foreach (var user in _familyUsers)
+                    {
+                        <MudSelectItem Value="@user.Id.ToString()">@user.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
 
-    <!-- Period Summary Cards -->
-    <MudGrid Class="summary-grid">
+            <!-- Current Period Navigation -->
+            <div class="filter-section">
+                <MudText Typo="Typo.h6" Class="filter-label">Period</MudText>
+                <div class="period-navigation">
+                    <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft"
+                                 OnClick="@NavigatePrevious"
+                                 Color="Color.Default"
+                                 Size="Size.Medium"
+                                 Disabled="@(_selectedPeriodType == PeriodType.Yearly && _currentPeriodStart.Year <= 2020)" />
+                    <MudText Typo="Typo.subtitle1" Class="current-period">@GetCurrentPeriodDisplay()</MudText>
+                    <MudIconButton Icon="@Icons.Material.Filled.ChevronRight"
+                                 OnClick="@NavigateNext"
+                                 Color="Color.Default"
+                                 Size="Size.Medium"
+                                 Disabled="@IsNextPeriodInFuture()" />
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="filter-section">
+                <div class="quick-actions">
+                    <MudButton Variant="Variant.Outlined"
+                             StartIcon="@Icons.Material.Filled.Today"
+                             OnClick="@(() => SetToCurrentPeriod())"
+                             Size="Size.Small"
+                             Class="quick-action-button">
+                        Current Period
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined"
+                             StartIcon="@Icons.Material.Filled.Compare"
+                             OnClick="@(() => ShowComparison = !ShowComparison)"
+                             Size="Size.Small"
+                             Class="quick-action-button">
+                        @(ShowComparison ? "Hide" : "Show") Comparison
+                    </MudButton>
+                </div>
+            </div>
+        </MudCardContent>
+    </MudCard>
+
+    <!-- Key Metrics Summary -->
+    <MudGrid Class="metrics-section">
         <MudItem xs="12" md="3">
-            <MudCard Class="summary-card income-card" Elevation="0">
-                <MudCardContent>
-                    <div class="card-header">
-                        <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Success" />
-                        <MudText Typo="Typo.subtitle1">Income</MudText>
-                    </div>
-                    <MudText Typo="Typo.h4" Class="card-amount income">@_filteredIncome.ToString("C", CultureInfo.CurrentCulture)</MudText>
-                    <div class="card-comparison">
-                        <MudChip Color="@(DeltaColor(_filteredIncome, _previousIncome))"
-                                Variant="Variant.Outlined"
-                                Size="Size.Small">
-                            @FormatDelta(_filteredIncome, _previousIncome)
-                        </MudChip>
-                        <MudText Typo="Typo.caption">vs previous period</MudText>
+            <MudCard Class="summary-card metric-card" Elevation="0">
+                <MudCardContent Class="text-center">
+                    <MudText Typo="Typo.h4" Class="metric-amount expense">
+                        @_filteredExpense.ToString("C0", CultureInfo.CurrentCulture)
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="metric-label">Total Spent</MudText>
+                    <div class="metric-comparison">
+                        <MudText Typo="Typo.caption" Class="@GetTrendClass(_expenseTrend)">
+                            @GetTrendText(_expenseTrend)
+                        </MudText>
+                        @if (ShowComparison && _previousExpense > 0)
+                        {
+                            <MudText Typo="Typo.caption" Class="comparison-detail">
+                                vs @_previousExpense.ToString("C0") last period
+                            </MudText>
+                        }
                     </div>
                 </MudCardContent>
             </MudCard>
         </MudItem>
 
         <MudItem xs="12" md="3">
-            <MudCard Class="summary-card expense-card" Elevation="0">
-                <MudCardContent>
-                    <div class="card-header">
-                        <MudIcon Icon="@Icons.Material.Filled.TrendingDown" Color="Color.Error" />
-                        <MudText Typo="Typo.subtitle1">Spending</MudText>
-                    </div>
-                    <MudText Typo="Typo.h4" Class="card-amount expense">@_filteredExpense.ToString("C", CultureInfo.CurrentCulture)</MudText>
-                    <div class="card-comparison">
-                        <MudChip Color="@(DeltaColorReverse(_filteredExpense, _previousExpense))"
-                                Variant="Variant.Outlined"
-                                Size="Size.Small">
-                            @FormatDelta(_filteredExpense, _previousExpense)
-                        </MudChip>
-                        <MudText Typo="Typo.caption">vs previous period</MudText>
-                    </div>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" md="3">
-            <MudCard Class="summary-card balance-card" Elevation="0">
-                <MudCardContent>
-                    <div class="card-header">
-                        <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Color="@(NetBalance >= 0 ? Color.Success : Color.Error)" />
-                        <MudText Typo="Typo.subtitle1">Net Balance</MudText>
-                    </div>
-                    <MudText Typo="Typo.h4" Class="@NetBalanceClass">@NetBalance.ToString("C", CultureInfo.CurrentCulture)</MudText>
-                    <div class="card-comparison">
-                        <MudChip Color="@(DeltaColor(NetBalance, PreviousNetBalance))"
-                                Variant="Variant.Outlined"
-                                Size="Size.Small">
-                            @FormatDelta(NetBalance, PreviousNetBalance)
-                        </MudChip>
-                        <MudText Typo="Typo.caption">vs previous period</MudText>
+            <MudCard Class="summary-card metric-card" Elevation="0">
+                <MudCardContent Class="text-center">
+                    <MudText Typo="Typo.h4" Class="metric-amount income">
+                        @_filteredIncome.ToString("C0", CultureInfo.CurrentCulture)
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="metric-label">Total Income</MudText>
+                    <div class="metric-comparison">
+                        <MudText Typo="Typo.caption" Class="@GetTrendClass(_incomeTrend)">
+                            @GetIncomeTrendText(_incomeTrend)
+                        </MudText>
+                        @if (ShowComparison && _previousIncome > 0)
+                        {
+                            <MudText Typo="Typo.caption" Class="comparison-detail">
+                                vs @_previousIncome.ToString("C0") last period
+                            </MudText>
+                        }
                     </div>
                 </MudCardContent>
             </MudCard>
         </MudItem>
 
         <MudItem xs="12" md="3">
-            <MudCard Class="summary-card transactions-card" Elevation="0">
-                <MudCardContent>
-                    <div class="card-header">
-                        <MudIcon Icon="@Icons.Material.Filled.Receipt" Color="Color.Default" Style="color: black;" />
-                        <MudText Typo="Typo.subtitle1">Transactions</MudText>
-                    </div>
-                    <MudText Typo="Typo.h4" Class="card-amount">@_currentTransactionCount</MudText>
-                    <div class="card-comparison">
-                        <MudChip Color="@(DeltaColor(_currentTransactionCount, _previousTransactionCount))"
-                                Variant="Variant.Outlined"
-                                Size="Size.Small">
-                            @FormatDelta(_currentTransactionCount, _previousTransactionCount)
-                        </MudChip>
-                        <MudText Typo="Typo.caption">vs previous period</MudText>
-                    </div>
+            <MudCard Class="summary-card metric-card" Elevation="0">
+                <MudCardContent Class="text-center">
+                    <MudText Typo="Typo.h4" Class="@GetBalanceClass()">
+                        @NetBalance.ToString("C0", CultureInfo.CurrentCulture)
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="metric-label">Net Balance</MudText>
+                    <MudText Typo="Typo.caption">@GetBalanceStatus()</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" md="3">
+            <MudCard Class="summary-card metric-card" Elevation="0">
+                <MudCardContent Class="text-center">
+                    <MudText Typo="Typo.h4" Class="metric-amount">
+                        @_highlightTransactions.Count
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="metric-label">Transactions</MudText>
+                    <MudText Typo="Typo.caption" Class="text-muted">
+                        This period
+                    </MudText>
                 </MudCardContent>
             </MudCard>
         </MudItem>
     </MudGrid>
 
-    <!-- Simple Charts Section -->
-    <div class="charts-section">
-        <MudGrid>
-            <!-- Spending by Category -->
-            <MudItem xs="12" md="6">
-                <MudCard Class="chart-card" Elevation="0">
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudIcon Icon="@Icons.Material.Filled.PieChart" Class="mr-2" Color="Color.Default" Style="color: black;" />
-                            <MudText Typo="Typo.h6">Spending by Category</MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        @if (_donutSeries.Count == 0)
-                        {
-                            <div class="empty-chart">
-                                <MudIcon Icon="@Icons.Material.Filled.DonutLarge" Size="Size.Large" Color="Color.Secondary" />
-                                <MudText Typo="Typo.body2">No spending data for this period</MudText>
+    <!-- Charts Section -->
+    <MudGrid Class="charts-section">
+        <!-- Spending Trends Line Chart -->
+        <MudItem xs="12" md="8">
+            <MudCard Class="summary-card chart-card" Elevation="0">
+                <MudCardContent>
+                    <div class="chart-header">
+                        <MudText Typo="Typo.h6" Class="chart-title">Spending Trends Over Time</MudText>
+                        <MudText Typo="Typo.caption" Class="chart-subtitle">@GetChartPeriodDescription()</MudText>
+                    </div>
+
+                    @if (_chartData.Count == 0)
+                    {
+                        <div class="empty-chart">
+                            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Large" Color="Color.Secondary" />
+                            <MudText Typo="Typo.body2" Class="mt-2">No spending data for this period</MudText>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="enhanced-line-chart">
+                            <MudChart ChartType="ChartType.Line"
+                                    ChartSeries="@_lineChartSeries"
+                                    @bind-SelectedIndex="selectedIndex"
+                                    XAxisLabels="@_xAxisLabels.ToArray()"
+                                    Width="100%"
+                                    Height="300px"
+                                    ChartOptions="@_lineChartOptions">
+                            </MudChart>
+                        </div>
+                    }
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Category Breakdown Donut Chart -->
+        <MudItem xs="12" md="4">
+            <MudCard Class="summary-card chart-card" Elevation="0">
+                <MudCardContent>
+                    <div class="chart-header">
+                        <MudText Typo="Typo.h6" Class="chart-title">Spending by Category</MudText>
+                        <MudText Typo="Typo.caption" Class="chart-subtitle">Top categories</MudText>
+                    </div>
+
+                    @if (_topCategories.Count == 0)
+                    {
+                        <div class="empty-chart">
+                            <MudIcon Icon="@Icons.Material.Filled.PieChart" Size="Size.Large" Color="Color.Secondary" />
+                            <MudText Typo="Typo.body2" Class="mt-2">No categories to display</MudText>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="enhanced-donut-chart-container">
+                            <!-- MudBlazor Donut Chart -->
+                            <div class="donut-chart-section">
+                                <MudChart ChartType="ChartType.Donut"
+                                        InputData="@GetDonutData().ToArray()"
+                                        InputLabels="@GetDonutLabels().ToArray()"
+                                        Width="250px"
+                                        Height="250px"
+                                        ChartOptions="@_donutChartOptions">
+                                </MudChart>
                             </div>
-                        }
-                        else
-                        {
-                            <MudChart ChartType="ChartType.Donut"
-                                     Labels="@_donutLabels"
-                                     ChartSeries="@_donutSeries"
-                                     Class="period-chart" />
-                        }
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
 
-            <!-- Income vs Spending -->
-            <MudItem xs="12" md="6">
-                <MudCard Class="chart-card" Elevation="0">
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudIcon Icon="@Icons.Material.Filled.BarChart" Class="mr-2" Color="Color.Success" />
-                            <MudText Typo="Typo.h6">Income vs Spending</MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        <MudChart ChartType="ChartType.Bar"
-                                 Labels="@_stackLabels"
-                                 ChartSeries="@_stackSeries"
-                                 Class="period-chart" />
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-        </MudGrid>
-    </div>
+                            <!-- Enhanced Category Legend -->
+                            <div class="enhanced-category-legend">
+                                @foreach (var (category, index) in _topCategories.Take(5).Select((c, i) => (c, i)))
+                                {
+                                    <div class="enhanced-legend-item">
+                                        <div class="legend-color-indicator" style="background-color: @GetCategoryColorHex(index);"></div>
+                                        <div class="legend-content">
+                                            <div class="legend-main">
+                                                <MudText Typo="Typo.subtitle2" Class="legend-category-name">@category.Name</MudText>
+                                                <MudText Typo="Typo.body1" Class="legend-amount">@category.Amount.ToString("C0")</MudText>
+                                            </div>
+                                            <MudText Typo="Typo.caption" Class="legend-percentage">@category.Percentage.ToString("P1") of total</MudText>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
 
-    <!-- Top Categories -->
-    <div class="categories-section">
+    <!-- Recent Transactions -->
+    <div class="transactions-section">
         <div class="section-header">
-            <MudText Typo="Typo.h6" Class="section-title">Top Spending Categories</MudText>
-            <MudText Typo="Typo.caption" Class="section-meta">@GetPeriodLabel(_selectedPeriod)</MudText>
+            <MudText Typo="Typo.h6">Recent Transactions</MudText>
+            <MudButton Variant="Variant.Text" Color="Color.Default" Elevation="0" OnClick="@(() => Nav.NavigateTo("/transactions"))" Style="color: black;">
+                View All
+            </MudButton>
         </div>
 
-        @if (_topCategories.Count == 0)
+        @if (_highlightTransactions.Count == 0)
         {
-            <MudCard Class="empty-categories-card" Elevation="0">
+            <MudCard Class="empty-card" Elevation="0">
                 <MudCardContent Class="text-center">
-                    <MudIcon Icon="@Icons.Material.Filled.Category" Size="Size.Large" Color="Color.Secondary" />
-                    <MudText Typo="Typo.h6" Class="mt-2">No spending data</MudText>
-                    <MudText Typo="Typo.body2">There are no expenses in this period</MudText>
+                    <MudIcon Icon="@Icons.Material.Filled.Receipt" Size="Size.Large" Color="Color.Secondary" />
+                    <MudText Typo="Typo.h6" Class="mt-2">No transactions yet</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-3">No transactions found for this period</MudText>
                 </MudCardContent>
             </MudCard>
         }
         else
         {
-            <MudGrid>
-                @foreach (var category in _topCategories.Take(6))
-                {
-                    <MudItem xs="12" sm="6" md="4">
-                        <MudCard Class="category-card" Elevation="0">
-                            <MudCardContent>
-                                <div class="category-header">
-                                    <MudIcon Icon="@GetCategoryIcon(category.Name)" Color="Color.Default" Style="color: black;" />
-                                    <MudText Typo="Typo.subtitle1" Class="category-name">@category.Name</MudText>
-                                </div>
-                                <MudText Typo="Typo.h5" Class="category-amount">@category.Amount.ToString("C", CultureInfo.CurrentCulture)</MudText>
-                                <div class="category-details">
-                                    <MudText Typo="Typo.caption">@category.TransactionCount transactions</MudText>
-                                    <MudText Typo="Typo.caption">@category.Percentage.ToString("P1") of total</MudText>
-                                </div>
-                            </MudCardContent>
-                        </MudCard>
-                    </MudItem>
-                }
-            </MudGrid>
+            <MudCard Class="transactions-card" Elevation="0">
+                <MudCardContent>
+                    @foreach (var tx in _highlightTransactions.Take(8))
+                    {
+                        <div class="transaction-item" @onclick="@(() => NavigateToTransaction(tx.Id))">
+                            <div class="transaction-info">
+                                <MudText Typo="Typo.subtitle1">@(tx.Description ?? tx.Category?.Name)</MudText>
+                                <MudText Typo="Typo.caption" Class="transaction-meta">@(string.IsNullOrEmpty(tx.User) ? "Unknown" : tx.User) • @tx.Date.ToString("MMM dd")</MudText>
+                            </div>
+                            <MudText Typo="Typo.subtitle1" Class="transaction-amount">
+                                @((tx.IsIncome ? "+" : "-") + tx.Amount.ToString("C", CultureInfo.CurrentCulture))
+                            </MudText>
+                        </div>
+                        @if (tx != _highlightTransactions.Take(8).Last())
+                        {
+                            <MudDivider />
+                        }
+                    }
+                </MudCardContent>
+            </MudCard>
         }
-    </div>
-
-    <!-- Recent Activity Summary -->
-    <div class="activity-section">
-        <div class="section-header">
-            <MudText Typo="Typo.h6" Class="section-title">Recent Activity</MudText>
-            <MudButton Variant="Variant.Text" Color="Color.Default" Elevation="0" Size="Size.Small" OnClick="@NavigateToFinance" Style="color: black;">
-                View All
-            </MudButton>
-        </div>
-
-        <MudCard Class="activity-card" Elevation="0">
-            <MudCardContent>
-                @if (_highlightTransactions.Count == 0)
-                {
-                    <div class="empty-activity">
-                        <MudIcon Icon="@Icons.Material.Filled.Receipt" Size="Size.Large" Color="Color.Secondary" />
-                        <MudText Typo="Typo.body2">No transactions in this period</MudText>
-                    </div>
-                }
-                else
-                {
-                    <MudSimpleTable Striped="true" Hover="true">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Description</th>
-                                <th>Category</th>
-                                <th style="text-align: right;">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var tx in _highlightTransactions.Take(8))
-                            {
-                                <tr>
-                                    <td>@tx.Date.ToString("MMM dd", CultureInfo.CurrentCulture)</td>
-                                    <td>@(tx.Description ?? DisplayCategory(tx.Category))</td>
-                                    <td>
-                                        <MudChip T="string" Text="@DisplayCategory(tx.Category)" Size="Size.Small" Variant="Variant.Outlined" />
-                                    </td>
-                                    <td style="text-align: right;">
-                                        <MudText Typo="Typo.subtitle2" Class="@(tx.IsIncome ? "income-amount" : "expense-amount")">
-                                            @((tx.IsIncome ? "+" : "-") + tx.Amount.ToString("C", CultureInfo.CurrentCulture))
-                                        </MudText>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </MudSimpleTable>
-                }
-            </MudCardContent>
-        </MudCard>
     </div>
 </MudContainer>
 
 @code {
     private string? _error;
-    private InsightPeriod _selectedPeriod = InsightPeriod.ThisMonth;
+    private PeriodType _selectedPeriodType = PeriodType.Monthly;
+    private DateTime _currentPeriodStart = DateTime.Today.AddDays(1 - DateTime.Today.Day); // Start of current month
     private List<Transaction> _allTransactions = new();
     private List<Transaction> _highlightTransactions = new();
     private List<CategorySummary> _topCategories = new();
+    private List<UserProfile> _familyUsers = new();
+    private List<ChartDataPoint> _chartData = new();
+    private List<ChartSeries> _lineChartSeries = new();
+    private List<string> _xAxisLabels = new();
+    private int selectedIndex = -1;
+    private ChartOptions _lineChartOptions = new();
+    private ChartOptions _donutChartOptions = new();
+    private bool ShowComparison = false;
+
+    // Filter state
+    private string _selectedUserId = string.Empty;
 
     // Financial data
     private decimal _filteredIncome;
     private decimal _filteredExpense;
-    private decimal _previousIncome;
     private decimal _previousExpense;
-    private int _currentTransactionCount;
-    private int _previousTransactionCount;
-
-    // Chart data
-    private string[] _donutLabels = Array.Empty<string>();
-    private List<ChartSeries> _donutSeries = new();
-    private string[] _stackLabels = Array.Empty<string>();
-    private List<ChartSeries> _stackSeries = new();
+    private decimal _previousIncome;
+    private TrendDirection _expenseTrend = TrendDirection.Unchanged;
+    private TrendDirection _incomeTrend = TrendDirection.Unchanged;
 
     // Calculated properties
     private decimal NetBalance => _filteredIncome - _filteredExpense;
-    private decimal PreviousNetBalance => _previousIncome - _previousExpense;
-    private string NetBalanceClass => NetBalance >= 0 ? "card-amount income" : "card-amount expense";
-    private void NavigateToFinance() => Nav.NavigateTo("/finance");
 
     protected override async Task OnInitializedAsync()
     {
+        InitializeChartOptions();
         await LoadDataAsync();
+        await LoadFamilyUsersAsync();
+    }
+
+    private void InitializeChartOptions()
+    {
+        _lineChartOptions = new ChartOptions
+        {
+            InterpolationOption = InterpolationOption.NaturalSpline,
+            LineStrokeWidth = 3,
+            ChartPalette = new string[] { "#2196F3", "#4CAF50", "#FF9800", "#9C27B0", "#F44336" }
+        };
+
+        _donutChartOptions = new ChartOptions
+        {
+            ChartPalette = new string[] { "#2196F3", "#9C27B0", "#FF9800", "#00BCD4", "#4CAF50" }
+        };
     }
 
     private async Task LoadDataAsync()
@@ -320,27 +378,116 @@
         }
     }
 
-    private async Task SelectPeriod(InsightPeriod period)
+    private async Task LoadFamilyUsersAsync()
     {
-        _selectedPeriod = period;
+        try
+        {
+            _familyUsers = await UserSvc.GetUsersAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Error loading family members: {ex.Message}";
+        }
+    }
+
+    private async Task OnUserChanged(string userId)
+    {
+        _selectedUserId = userId;
         await RefreshInsightsAsync();
     }
 
+    private void NavigatePrevious()
+    {
+        _currentPeriodStart = _selectedPeriodType switch
+        {
+            PeriodType.Daily => _currentPeriodStart.AddDays(-1),
+            PeriodType.Weekly => _currentPeriodStart.AddDays(-7),
+            PeriodType.Monthly => _currentPeriodStart.AddMonths(-1),
+            PeriodType.Yearly => _currentPeriodStart.AddYears(-1),
+            _ => _currentPeriodStart.AddMonths(-1)
+        };
+        _ = RefreshInsightsAsync();
+    }
+
+    private void NavigateNext()
+    {
+        _currentPeriodStart = _selectedPeriodType switch
+        {
+            PeriodType.Daily => _currentPeriodStart.AddDays(1),
+            PeriodType.Weekly => _currentPeriodStart.AddDays(7),
+            PeriodType.Monthly => _currentPeriodStart.AddMonths(1),
+            PeriodType.Yearly => _currentPeriodStart.AddYears(1),
+            _ => _currentPeriodStart.AddMonths(1)
+        };
+        _ = RefreshInsightsAsync();
+    }
+
+    private void SetPeriodType(PeriodType periodType)
+    {
+        _selectedPeriodType = periodType;
+
+        // Reset to appropriate start date for the period type
+        var today = DateTime.Today;
+        _currentPeriodStart = periodType switch
+        {
+            PeriodType.Daily => today,
+            PeriodType.Weekly => today.AddDays(-(int)today.DayOfWeek),
+            PeriodType.Monthly => new DateTime(today.Year, today.Month, 1),
+            PeriodType.Yearly => new DateTime(today.Year, 1, 1),
+            _ => new DateTime(today.Year, today.Month, 1)
+        };
+
+        _ = RefreshInsightsAsync();
+    }
+
+    private string GetCurrentPeriodDisplay() => _selectedPeriodType switch
+    {
+        PeriodType.Daily => _currentPeriodStart.ToString("MMM dd, yyyy"),
+        PeriodType.Weekly => $"Week of {_currentPeriodStart.ToString("MMM dd")}",
+        PeriodType.Monthly => _currentPeriodStart.ToString("MMMM yyyy"),
+        PeriodType.Yearly => _currentPeriodStart.ToString("yyyy"),
+        _ => _currentPeriodStart.ToString("MMMM yyyy")
+    };
+
+    private string GetChartPeriodDescription() => _selectedPeriodType switch
+    {
+        PeriodType.Daily => "Hourly breakdown",
+        PeriodType.Weekly => "Daily breakdown",
+        PeriodType.Monthly => "Weekly breakdown",
+        PeriodType.Yearly => "Monthly breakdown",
+        _ => "Period breakdown"
+    };
+
     private async Task RefreshInsightsAsync()
     {
-        var (start, end) = GetPeriodRange(_selectedPeriod);
-        var previousRange = GetPreviousPeriodRange(start, end);
+        var (start, end) = GetCurrentPeriodRange();
+        var (prevStart, prevEnd) = GetPreviousPeriodRange();
 
         var currentTransactions = FilterTransactions(start, end);
-        var previousTransactions = FilterTransactions(previousRange.Start, previousRange.End);
+        var previousTransactions = FilterTransactions(prevStart, prevEnd);
+
+        // Apply user filter if selected
+        if (!string.IsNullOrEmpty(_selectedUserId))
+        {
+            var selectedUser = _familyUsers.FirstOrDefault(u => u.Id.ToString() == _selectedUserId);
+            if (selectedUser != null)
+            {
+                currentTransactions = currentTransactions.Where(t => t.User == selectedUser.Name).ToList();
+                previousTransactions = previousTransactions.Where(t => t.User == selectedUser.Name).ToList();
+            }
+        }
 
         // Calculate summaries
         _filteredIncome = currentTransactions.Where(t => t.IsIncome).Sum(t => t.Amount);
         _filteredExpense = currentTransactions.Where(t => !t.IsIncome).Sum(t => t.Amount);
-        _previousIncome = previousTransactions.Where(t => t.IsIncome).Sum(t => t.Amount);
         _previousExpense = previousTransactions.Where(t => !t.IsIncome).Sum(t => t.Amount);
-        _currentTransactionCount = currentTransactions.Count;
-        _previousTransactionCount = previousTransactions.Count;
+        _previousIncome = previousTransactions.Where(t => t.IsIncome).Sum(t => t.Amount);
+
+        // Calculate trends
+        _expenseTrend = _filteredExpense == _previousExpense ? TrendDirection.Unchanged :
+                       _filteredExpense > _previousExpense ? TrendDirection.Up : TrendDirection.Down;
+        _incomeTrend = _filteredIncome == _previousIncome ? TrendDirection.Unchanged :
+                      _filteredIncome > _previousIncome ? TrendDirection.Up : TrendDirection.Down;
 
         // Recent transactions
         _highlightTransactions = currentTransactions
@@ -348,11 +495,36 @@
             .ThenByDescending(t => t.Id)
             .ToList();
 
-        // Build charts and categories
+        // Build category and chart data
         BuildCategoryData(currentTransactions);
-        BuildChartData();
+        BuildChartData(currentTransactions, start, end);
+        BuildLineChartSeries(currentTransactions, start, end);
 
         await Task.CompletedTask;
+    }
+
+    private (DateTime Start, DateTime End) GetCurrentPeriodRange()
+    {
+        return _selectedPeriodType switch
+        {
+            PeriodType.Daily => (_currentPeriodStart, _currentPeriodStart.AddDays(1).AddTicks(-1)),
+            PeriodType.Weekly => (_currentPeriodStart, _currentPeriodStart.AddDays(7).AddTicks(-1)),
+            PeriodType.Monthly => (_currentPeriodStart, _currentPeriodStart.AddMonths(1).AddTicks(-1)),
+            PeriodType.Yearly => (_currentPeriodStart, _currentPeriodStart.AddYears(1).AddTicks(-1)),
+            _ => (_currentPeriodStart, _currentPeriodStart.AddMonths(1).AddTicks(-1))
+        };
+    }
+
+    private (DateTime Start, DateTime End) GetPreviousPeriodRange()
+    {
+        return _selectedPeriodType switch
+        {
+            PeriodType.Daily => (_currentPeriodStart.AddDays(-1), _currentPeriodStart.AddTicks(-1)),
+            PeriodType.Weekly => (_currentPeriodStart.AddDays(-7), _currentPeriodStart.AddTicks(-1)),
+            PeriodType.Monthly => (_currentPeriodStart.AddMonths(-1), _currentPeriodStart.AddTicks(-1)),
+            PeriodType.Yearly => (_currentPeriodStart.AddYears(-1), _currentPeriodStart.AddTicks(-1)),
+            _ => (_currentPeriodStart.AddMonths(-1), _currentPeriodStart.AddTicks(-1))
+        };
     }
 
     private List<Transaction> FilterTransactions(DateTime start, DateTime end)
@@ -367,7 +539,7 @@
         var totalExpenses = expenseTransactions.Sum(t => t.Amount);
 
         _topCategories = expenseTransactions
-            .GroupBy(t => NormalizeCategory(t.Category))
+            .GroupBy(t => NormalizeCategory(t.Category?.Name))
             .Select(g => new CategorySummary
             {
                 Name = g.Key,
@@ -377,131 +549,319 @@
             })
             .OrderByDescending(c => c.Amount)
             .ToList();
-
-        // Build donut chart data
-        if (_topCategories.Any())
-        {
-            _donutLabels = _topCategories.Take(6).Select(c => c.Name).ToArray();
-            _donutSeries = new()
-            {
-                new ChartSeries
-                {
-                    Name = "Spending",
-                    Data = _topCategories.Take(6).Select(c => (double)c.Amount).ToArray()
-                }
-            };
-        }
-        else
-        {
-            _donutLabels = Array.Empty<string>();
-            _donutSeries = new();
-        }
-    }
-
-    private void BuildChartData()
-    {
-        _stackLabels = new[] { "Current Period", "Previous Period" };
-        _stackSeries = new()
-        {
-            new ChartSeries
-            {
-                Name = "Income",
-                Data = new[] { (double)_filteredIncome, (double)_previousIncome }
-            },
-            new ChartSeries
-            {
-                Name = "Spending",
-                Data = new[] { (double)_filteredExpense, (double)_previousExpense }
-            }
-        };
-    }
-
-    private async Task ExportData()
-    {
-        // Implement data export functionality
-        await Task.CompletedTask;
     }
 
     private string GetCategoryIcon(string category) => category switch
     {
-        "Groceries" => Icons.Material.Filled.LocalGroceryStore,
-        "Transportation" => Icons.Material.Filled.DirectionsCar,
+        "Food" => Icons.Material.Filled.Restaurant,
+        "Transport" => Icons.Material.Filled.DirectionsCar,
         "Entertainment" => Icons.Material.Filled.Movie,
         "Utilities" => Icons.Material.Filled.Lightbulb,
         "Healthcare" => Icons.Material.Filled.LocalHospital,
         "Education" => Icons.Material.Filled.School,
+        "Rent" => Icons.Material.Filled.Home,
         _ => Icons.Material.Filled.Category
     };
 
-    private (DateTime Start, DateTime End) GetPeriodRange(InsightPeriod period)
-    {
-        var today = DateTime.Today;
-        return period switch
-        {
-            InsightPeriod.LastMonth =>
-                (new DateTime(today.Year, today.Month, 1).AddMonths(-1),
-                 new DateTime(today.Year, today.Month, 1).AddTicks(-1)),
-            InsightPeriod.Last90Days =>
-                (today.AddDays(-89), today),
-            InsightPeriod.YearToDate =>
-                (new DateTime(today.Year, 1, 1), today),
-            _ =>
-                (new DateTime(today.Year, today.Month, 1),
-                 new DateTime(today.Year, today.Month, 1).AddMonths(1).AddTicks(-1))
-        };
-    }
+    private string GetBalanceClass() => NetBalance >= 0 ? "metric-amount income" : "metric-amount expense";
 
-    private (DateTime Start, DateTime End) GetPreviousPeriodRange(DateTime currentStart, DateTime currentEnd)
+    private string GetBalanceStatus() => NetBalance >= 0 ? "Positive" : "Deficit";
+
+    private string GetTrendClass(TrendDirection trend) => trend switch
     {
-        var totalDays = (currentEnd.Date - currentStart.Date).TotalDays + 1;
-        var previousEnd = currentStart.AddDays(-1);
-        var previousStart = previousEnd.AddDays(-totalDays + 1);
-        return (previousStart, previousEnd);
-    }
+        TrendDirection.Up => "text-error",
+        TrendDirection.Down => "text-success",
+        _ => "text-muted"
+    };
+
+    private string GetTrendText(TrendDirection trend) => trend switch
+    {
+        TrendDirection.Up => "↑ Higher than last period",
+        TrendDirection.Down => "↓ Lower than last period",
+        _ => "→ Same as last period"
+    };
+
+    private string GetIncomeTrendText(TrendDirection trend) => trend switch
+    {
+        TrendDirection.Up => "↑ Higher than last period",
+        TrendDirection.Down => "↓ Lower than last period",
+        _ => "→ Same as last period"
+    };
+
+    private void NavigateToTransaction(int transactionId) => Nav.NavigateTo($"/transactions/{transactionId}");
 
     private static string NormalizeCategory(string? category)
         => string.IsNullOrWhiteSpace(category) ? "Uncategorized" : category.Trim();
 
-    private static string DisplayCategory(string category) => string.IsNullOrWhiteSpace(category) ? "Uncategorized" : category;
-
-    private static string GetPeriodLabel(InsightPeriod period) => period switch
+    // Chart helper methods
+    private void BuildChartData(List<Transaction> transactions, DateTime start, DateTime end)
     {
-        InsightPeriod.ThisMonth => "This month",
-        InsightPeriod.LastMonth => "Last month",
-        InsightPeriod.Last90Days => "Last 90 days",
-        InsightPeriod.YearToDate => "Year to date",
-        _ => "This month"
+        _chartData.Clear();
+        if (!transactions.Any()) return;
+
+        var expenseTransactions = transactions.Where(t => !t.IsIncome).ToList();
+        if (!expenseTransactions.Any()) return;
+
+        // Create data points based on period type
+        var points = _selectedPeriodType switch
+        {
+            PeriodType.Daily => BuildDailyChartPoints(expenseTransactions, start),
+            PeriodType.Weekly => BuildWeeklyChartPoints(expenseTransactions, start),
+            PeriodType.Monthly => BuildMonthlyChartPoints(expenseTransactions, start),
+            PeriodType.Yearly => BuildYearlyChartPoints(expenseTransactions, start),
+            _ => new List<ChartDataPoint>()
+        };
+
+        _chartData = points;
+    }
+
+    private List<ChartDataPoint> BuildDailyChartPoints(List<Transaction> transactions, DateTime start)
+    {
+        var points = new List<ChartDataPoint>();
+        for (int hour = 0; hour < 24; hour += 4)
+        {
+            var hourStart = start.AddHours(hour);
+            var hourEnd = hourStart.AddHours(4);
+            var amount = transactions.Where(t => t.Date >= hourStart && t.Date < hourEnd).Sum(t => t.Amount);
+
+            points.Add(new ChartDataPoint
+            {
+                Label = hourStart.ToString("HH:mm"),
+                Amount = amount,
+                XPosition = (hour / 24.0) * 100,
+                YPosition = 0 // Will be calculated after we know max
+            });
+        }
+        CalculateYPositions(points);
+        return points;
+    }
+
+    private List<ChartDataPoint> BuildWeeklyChartPoints(List<Transaction> transactions, DateTime start)
+    {
+        var points = new List<ChartDataPoint>();
+        for (int day = 0; day < 7; day++)
+        {
+            var dayStart = start.AddDays(day);
+            var dayEnd = dayStart.AddDays(1);
+            var amount = transactions.Where(t => t.Date.Date >= dayStart.Date && t.Date.Date < dayEnd.Date).Sum(t => t.Amount);
+
+            points.Add(new ChartDataPoint
+            {
+                Label = dayStart.ToString("ddd"),
+                Amount = amount,
+                XPosition = (day / 6.0) * 100,
+                YPosition = 0
+            });
+        }
+        CalculateYPositions(points);
+        return points;
+    }
+
+    private List<ChartDataPoint> BuildMonthlyChartPoints(List<Transaction> transactions, DateTime start)
+    {
+        var points = new List<ChartDataPoint>();
+        var weeksInMonth = 4;
+        for (int week = 0; week < weeksInMonth; week++)
+        {
+            var weekStart = start.AddDays(week * 7);
+            var weekEnd = weekStart.AddDays(7);
+            var amount = transactions.Where(t => t.Date >= weekStart && t.Date < weekEnd).Sum(t => t.Amount);
+
+            points.Add(new ChartDataPoint
+            {
+                Label = $"Week {week + 1}",
+                Amount = amount,
+                XPosition = (week / (weeksInMonth - 1.0)) * 100,
+                YPosition = 0
+            });
+        }
+        CalculateYPositions(points);
+        return points;
+    }
+
+    private List<ChartDataPoint> BuildYearlyChartPoints(List<Transaction> transactions, DateTime start)
+    {
+        var points = new List<ChartDataPoint>();
+        for (int month = 0; month < 12; month++)
+        {
+            var monthStart = start.AddMonths(month);
+            var monthEnd = monthStart.AddMonths(1);
+            var amount = transactions.Where(t => t.Date >= monthStart && t.Date < monthEnd).Sum(t => t.Amount);
+
+            points.Add(new ChartDataPoint
+            {
+                Label = monthStart.ToString("MMM"),
+                Amount = amount,
+                XPosition = (month / 11.0) * 100,
+                YPosition = 0
+            });
+        }
+        CalculateYPositions(points);
+        return points;
+    }
+
+    private void CalculateYPositions(List<ChartDataPoint> points)
+    {
+        if (!points.Any()) return;
+
+        var maxAmount = points.Max(p => p.Amount);
+        if (maxAmount == 0) return;
+
+        foreach (var point in points)
+        {
+            point.YPosition = (double)(point.Amount / maxAmount) * 80; // 80% max height
+        }
+    }
+
+    private double GetLineAngle(ChartDataPoint start, ChartDataPoint end)
+    {
+        var deltaX = end.XPosition - start.XPosition;
+        var deltaY = end.YPosition - start.YPosition;
+        return Math.Atan2(deltaY, deltaX) * (180 / Math.PI);
+    }
+
+    private Color GetCategoryColor(int index) => index switch
+    {
+        0 => Color.Primary,
+        1 => Color.Secondary,
+        2 => Color.Tertiary,
+        3 => Color.Info,
+        4 => Color.Success,
+        _ => Color.Default
     };
 
-    private static Color DeltaColor(decimal current, decimal previous)
+    private string GetCategoryColorHex(int index) => index switch
     {
-        if (current == previous) return Color.Default;
-        return current >= previous ? Color.Success : Color.Error;
+        0 => "#2196F3",
+        1 => "#9C27B0",
+        2 => "#FF9800",
+        3 => "#00BCD4",
+        4 => "#4CAF50",
+        _ => "#757575"
+    };
+
+    private string GetDonutPosition(int index)
+    {
+        var rotation = index * 72; // 360/5 for 5 categories
+        return $"transform: rotate({rotation}deg);";
     }
 
-    private static Color DeltaColor(int current, int previous)
-        => current == previous ? Color.Default : (current >= previous ? Color.Success : Color.Error);
-
-    private static Color DeltaColorReverse(decimal current, decimal previous)
+    // Enhanced chart data methods for MudBlazor charts
+    private void BuildLineChartSeries(List<Transaction> transactions, DateTime start, DateTime end)
     {
-        if (current == previous) return Color.Default;
-        return current <= previous ? Color.Success : Color.Error;
+        _lineChartSeries.Clear();
+        _xAxisLabels.Clear();
+
+        var expenseTransactions = transactions.Where(t => !t.IsIncome).ToList();
+        if (!expenseTransactions.Any()) return;
+
+        var chartPoints = _selectedPeriodType switch
+        {
+            PeriodType.Daily => BuildDailyLineChartPoints(expenseTransactions, start),
+            PeriodType.Weekly => BuildWeeklyLineChartPoints(expenseTransactions, start),
+            PeriodType.Monthly => BuildMonthlyLineChartPoints(expenseTransactions, start),
+            PeriodType.Yearly => BuildYearlyLineChartPoints(expenseTransactions, start),
+            _ => new List<(string Label, double Amount)>()
+        };
+
+        _xAxisLabels = chartPoints.Select(p => p.Label).ToList();
+        var spendingData = chartPoints.Select(p => p.Amount).ToArray();
+
+        _lineChartSeries.Add(new ChartSeries
+        {
+            Name = "Spending",
+            Data = spendingData
+        });
     }
 
-    private static string FormatDelta(decimal current, decimal previous)
+    private List<(string Label, double Amount)> BuildDailyLineChartPoints(List<Transaction> transactions, DateTime start)
     {
-        if (previous == 0 && current == 0) return "0";
-        if (previous == 0) return $"+{current.ToString("C0", CultureInfo.CurrentCulture)}";
-        var delta = current - previous;
-        return delta >= 0 ? $"+{delta.ToString("C0", CultureInfo.CurrentCulture)}" : delta.ToString("C0", CultureInfo.CurrentCulture);
+        var points = new List<(string Label, double Amount)>();
+        for (int hour = 0; hour < 24; hour += 4)
+        {
+            var hourStart = start.AddHours(hour);
+            var hourEnd = hourStart.AddHours(4);
+            var amount = transactions.Where(t => t.Date >= hourStart && t.Date < hourEnd).Sum(t => t.Amount);
+            points.Add((hourStart.ToString("HH:mm"), (double)amount));
+        }
+        return points;
     }
 
-    private static string FormatDelta(int current, int previous)
+    private List<(string Label, double Amount)> BuildWeeklyLineChartPoints(List<Transaction> transactions, DateTime start)
     {
-        if (previous == 0 && current == 0) return "0";
-        if (previous == 0) return $"+{current}";
-        var delta = current - previous;
-        return delta >= 0 ? $"+{delta}" : delta.ToString();
+        var points = new List<(string Label, double Amount)>();
+        for (int day = 0; day < 7; day++)
+        {
+            var dayStart = start.AddDays(day);
+            var dayEnd = dayStart.AddDays(1);
+            var amount = transactions.Where(t => t.Date.Date >= dayStart.Date && t.Date.Date < dayEnd.Date).Sum(t => t.Amount);
+            points.Add((dayStart.ToString("ddd"), (double)amount));
+        }
+        return points;
+    }
+
+    private List<(string Label, double Amount)> BuildMonthlyLineChartPoints(List<Transaction> transactions, DateTime start)
+    {
+        var points = new List<(string Label, double Amount)>();
+        var weeksInMonth = 4;
+        for (int week = 0; week < weeksInMonth; week++)
+        {
+            var weekStart = start.AddDays(week * 7);
+            var weekEnd = weekStart.AddDays(7);
+            var amount = transactions.Where(t => t.Date >= weekStart && t.Date < weekEnd).Sum(t => t.Amount);
+            points.Add(($"Week {week + 1}", (double)amount));
+        }
+        return points;
+    }
+
+    private List<(string Label, double Amount)> BuildYearlyLineChartPoints(List<Transaction> transactions, DateTime start)
+    {
+        var points = new List<(string Label, double Amount)>();
+        for (int month = 0; month < 12; month++)
+        {
+            var monthStart = start.AddMonths(month);
+            var monthEnd = monthStart.AddMonths(1);
+            var amount = transactions.Where(t => t.Date >= monthStart && t.Date < monthEnd).Sum(t => t.Amount);
+            points.Add((monthStart.ToString("MMM"), (double)amount));
+        }
+        return points;
+    }
+
+    private List<double> GetDonutData()
+    {
+        return _topCategories.Take(5).Select(c => (double)c.Amount).ToList();
+    }
+
+    private List<string> GetDonutLabels()
+    {
+        return _topCategories.Take(5).Select(c => c.Name).ToList();
+    }
+
+    private bool IsNextPeriodInFuture()
+    {
+        var nextPeriodStart = _selectedPeriodType switch
+        {
+            PeriodType.Daily => _currentPeriodStart.AddDays(1),
+            PeriodType.Weekly => _currentPeriodStart.AddDays(7),
+            PeriodType.Monthly => _currentPeriodStart.AddMonths(1),
+            PeriodType.Yearly => _currentPeriodStart.AddYears(1),
+            _ => _currentPeriodStart.AddMonths(1)
+        };
+        return nextPeriodStart > DateTime.Today;
+    }
+
+    private void SetToCurrentPeriod()
+    {
+        var today = DateTime.Today;
+        _currentPeriodStart = _selectedPeriodType switch
+        {
+            PeriodType.Daily => today,
+            PeriodType.Weekly => today.AddDays(-(int)today.DayOfWeek),
+            PeriodType.Monthly => new DateTime(today.Year, today.Month, 1),
+            PeriodType.Yearly => new DateTime(today.Year, 1, 1),
+            _ => new DateTime(today.Year, today.Month, 1)
+        };
+        _ = RefreshInsightsAsync();
     }
 
     // Data models
@@ -513,105 +873,54 @@
         public double Percentage { get; set; }
     }
 
-    private enum InsightPeriod
+    public enum PeriodType
     {
-        ThisMonth,
-        LastMonth,
-        Last90Days,
-        YearToDate
+        Daily,
+        Weekly,
+        Monthly,
+        Yearly
+    }
+
+    public enum TrendDirection
+    {
+        Up,
+        Down,
+        Unchanged
+    }
+
+    public class ChartDataPoint
+    {
+        public string Label { get; set; } = "";
+        public decimal Amount { get; set; }
+        public double XPosition { get; set; }
+        public double YPosition { get; set; }
     }
 }
 
 <style>
-.insights-container {
+/* Use Home Page Styling */
+.home-container {
     padding: 24px;
     background: #FFFFFF;
     min-height: 100vh;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
-.insights-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 32px;
-    padding: 24px 32px;
-    background: linear-gradient(135deg, rgba(33, 150, 243, 0.15) 0%, rgba(255, 255, 255, 0.95) 100%);
-    border: 1px solid rgba(33, 150, 243, 0.2);
-    border-radius: 24px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-}
-
-.header-content {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-
-.header-icon {
-    color: #2196F3;
-}
-
-.header-title {
-    color: #000000;
-    font-weight: 700;
-    margin: 0;
-}
-
-.header-subtitle {
-    color: rgba(0, 0, 0, 0.7);
-    margin: 0;
-}
-
-.period-selector {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 32px;
-}
-
-.summary-grid {
-    margin-bottom: 32px;
-}
-
-.summary-card, .chart-card, .category-card, .activity-card, .empty-categories-card {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(33, 150, 243, 0.2);
+/* Universal Card Classes from Home Page */
+.summary-card, .transactions-card, .empty-card, .chart-card {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
     transition: all 0.25s ease;
 }
 
-.summary-card:hover, .category-card:hover {
+.summary-card:hover, .chart-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
 }
 
-.card-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 16px;
-}
-
-.card-amount {
-    font-weight: 700;
-    margin-bottom: 8px;
-}
-
-.card-amount.income {
-    color: #4CAF50;
-}
-
-.card-amount.expense {
-    color: #F44336;
-}
-
-.card-comparison {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
+/* Section Headers */
 .section-header {
     display: flex;
     justify-content: space-between;
@@ -619,92 +928,427 @@
     margin-bottom: 16px;
 }
 
-.section-title {
+.section-header h4, .section-header h6 {
     color: #000000;
     font-weight: 600;
-    margin: 0;
+    font-family: 'Inter', sans-serif;
 }
 
-.section-meta {
-    color: rgba(0, 0, 0, 0.6);
-}
-
-.charts-section, .categories-section, .activity-section {
+.header-title {
+    color: #000000;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
     margin-bottom: 32px;
 }
 
-.empty-chart, .empty-activity {
+/* Filter Controls */
+.filter-controls {
+    margin-bottom: 32px;
+}
+
+.filter-section {
+    margin-bottom: 24px;
+}
+
+.filter-label {
+    color: #000000;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    margin-bottom: 12px;
+}
+
+.time-filter-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.filter-button {
+    border-radius: 12px;
+    font-weight: 500;
+    padding: 8px 16px;
+    color: #000000;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.filter-button:hover {
+    background-color: #F8F9FA;
+}
+
+.user-filter {
+    max-width: 300px;
+}
+
+.period-navigation {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.current-period {
+    min-width: 200px;
+    text-align: center;
+    color: #000000;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+}
+
+/* Metrics Section */
+.metrics-section {
+    margin-bottom: 32px;
+}
+
+.metric-card {
+    text-align: center;
+}
+
+.metric-amount {
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    font-size: 2rem;
+    margin-bottom: 8px;
+}
+
+.metric-amount.income {
+    color: #4CAF50;
+}
+
+.metric-amount.expense {
+    color: #F44336;
+}
+
+.metric-label {
+    color: rgba(0, 0, 0, 0.8);
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+/* Charts Section */
+.charts-section {
+    margin-bottom: 32px;
+}
+
+.chart-header {
+    margin-bottom: 24px;
+}
+
+.chart-title {
+    color: #000000;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    margin-bottom: 4px;
+}
+
+.chart-subtitle {
+    color: rgba(0, 0, 0, 0.6);
+    font-family: 'Inter', sans-serif;
+}
+
+/* Line Chart */
+.line-chart {
+    position: relative;
+    height: 200px;
+    background: #F8F9FA;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 12px;
+    margin: 16px 0;
+}
+
+.chart-point {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #2196F3;
+    border-radius: 50%;
+    cursor: pointer;
+    transform: translate(-50%, 50%);
+}
+
+.chart-point:hover .point-tooltip {
+    opacity: 1;
+    visibility: visible;
+}
+
+.point-tooltip {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+}
+
+.tooltip-content {
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.chart-line {
+    position: absolute;
+    height: 2px;
+    background: #2196F3;
+    transform-origin: left center;
+}
+
+.empty-chart {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 48px 24px;
+    height: 150px;
+    color: rgba(0, 0, 0, 0.6);
+}
+
+/* Donut Chart */
+.donut-chart-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+}
+
+.donut-chart-wrapper {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.category-donut {
+    position: absolute;
+    width: 140px !important;
+    height: 140px !important;
+}
+
+.donut-center {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     text-align: center;
 }
 
-.period-chart {
-    min-height: 300px;
+.donut-total {
+    color: #000000;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
 }
 
-.category-header {
+.category-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+.legend-item {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 16px;
+    padding: 8px;
+    background: #F8F9FA;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
 }
 
-.category-name {
-    color: #000000;
-    font-weight: 600;
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    flex-shrink: 0;
 }
 
-.category-amount {
-    color: #2196F3;
-    font-weight: 700;
-    margin-bottom: 12px;
+.legend-details {
+    flex: 1;
 }
 
-.category-details {
+/* Transactions Section */
+.transactions-section {
+    margin-bottom: 32px;
+}
+
+.transaction-item {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
 }
 
-.income-amount {
-    color: #4CAF50;
-    font-weight: 600;
+.transaction-item:hover {
+    background-color: #F8F9FA;
+    border-radius: 8px;
+    margin: 0 -16px;
+    padding: 16px;
 }
 
-.expense-amount {
-    color: #F44336;
-    font-weight: 600;
+.transaction-info {
+    flex: 1;
 }
 
+.transaction-meta {
+    color: rgba(0, 0, 0, 0.6);
+    font-family: 'Inter', sans-serif;
+}
+
+.transaction-amount {
+    color: #000000;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+}
+
+/* Utility Classes */
+.text-success {
+    color: #4CAF50 !important;
+}
+
+.text-error {
+    color: #F44336 !important;
+}
+
+.text-muted {
+    color: rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Enhanced Responsive Design */
 @@media (max-width: 767px) {
-    .insights-container {
+    .home-container {
         padding: 16px;
     }
 
-    .insights-header {
+    .time-filter-buttons {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: stretch;
+    }
+
+    .filter-button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .current-period {
+        min-width: 150px;
+        font-size: 0.875rem;
+    }
+
+    .metric-amount {
+        font-size: 1.5rem;
+    }
+
+    .charts-section .mud-item {
+        margin-bottom: 16px;
+    }
+
+    .enhanced-donut-chart-container {
         gap: 16px;
-        padding: 20px;
+        padding: 12px;
     }
 
-    .period-selector {
-        overflow-x: auto;
-        padding-bottom: 8px;
+    .enhanced-legend-item {
+        padding: 12px;
+        gap: 12px;
     }
 
-    .period-selector .mud-button-group {
-        min-width: max-content;
-    }
-
-    .card-comparison {
+    .legend-main {
         flex-direction: column;
-        gap: 4px;
         align-items: flex-start;
+        gap: 4px;
     }
+
+    .transaction-item {
+        padding: 12px 0;
+    }
+
+    .enhanced-line-chart {
+        min-height: 250px;
+        padding: 12px;
+    }
+}
+
+@@media (max-width: 480px) {
+    .period-navigation {
+        gap: 8px;
+    }
+
+    .current-period {
+        min-width: 120px;
+        font-size: 0.8rem;
+    }
+
+    .filter-section {
+        margin-bottom: 16px;
+    }
+
+    .enhanced-donut-chart-container {
+        padding: 8px;
+    }
+
+    .donut-chart-section {
+        margin-bottom: 12px;
+    }
+
+    .enhanced-legend-item {
+        padding: 10px;
+        gap: 10px;
+    }
+
+    .legend-color-indicator {
+        width: 16px;
+        height: 16px;
+    }
+
+    .enhanced-line-chart {
+        min-height: 200px;
+        padding: 8px;
+    }
+
+    .quick-actions {
+        flex-direction: column;
+    }
+
+    .quick-action-button {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Quick Actions */
+.quick-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.quick-action-button {
+    border-radius: 8px;
+    font-weight: 500;
+    color: #000000;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.quick-action-button:hover {
+    background-color: #F8F9FA;
+}
+
+/* Metric Comparisons */
+.metric-comparison {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.comparison-detail {
+    color: rgba(0, 0, 0, 0.5) !important;
+    font-size: 0.75rem;
 }
 </style>

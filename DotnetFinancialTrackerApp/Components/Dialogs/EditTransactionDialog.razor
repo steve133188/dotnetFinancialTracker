@@ -1,4 +1,7 @@
 @using DotnetFinancialTrackerApp.Models
+@using DotnetFinancialTrackerApp.Data
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext DbContext
 
 <MudDialog MaxWidth="MaxWidth.Small">
     <TitleContent>
@@ -16,13 +19,18 @@
                               @bind-Value="_model.User"
                               RequiredError="User is required" />
 
-                <MudTextField T="string"
-                              Label="Category"
-                              Variant="Variant.Outlined"
-                              Required="true"
-                              Immediate="true"
-                              @bind-Value="_model.Category"
-                              RequiredError="Category is required" />
+                <MudSelect T="TransactionCategory?"
+                           Label="Category"
+                           Variant="Variant.Outlined"
+                           @bind-Value="_model.Category"
+                           ToStringFunc="@(c => c?.Name ?? "None")"
+                           Required="true"
+                           RequiredError="Category is required">
+                    @foreach (var category in _categories)
+                    {
+                        <MudSelectItem Value="category">@category.Name</MudSelectItem>
+                    }
+                </MudSelect>
 
                 <MudNumericField T="decimal"
                                  Label="Amount"
@@ -42,12 +50,14 @@
                                RequiredError="Date is required"
                                AdornmentIcon="@Icons.Material.Outlined.Event" />
 
-                <MudSelect T="bool"
+                <MudSelect T="TransactionType"
                            Label="Type"
                            Variant="Variant.Outlined"
-                           @bind-Value="_model.IsIncome">
-                    <MudSelectItem Value="false">Expense</MudSelectItem>
-                    <MudSelectItem Value="true">Income</MudSelectItem>
+                           @bind-Value="_model.Type">
+                    <MudSelectItem Value="TransactionType.Expense">Expense</MudSelectItem>
+                    <MudSelectItem Value="TransactionType.Income">Income</MudSelectItem>
+                    <MudSelectItem Value="TransactionType.Transfer">Transfer</MudSelectItem>
+                    <MudSelectItem Value="TransactionType.Refund">Refund</MudSelectItem>
                 </MudSelect>
 
                 <MudTextField T="string"
@@ -75,20 +85,27 @@
     private MudForm? _form;
     private bool _isValid;
     private DateTime? _transactionDate;
+    private List<TransactionCategory> _categories = new();
 
     private string Title => _model.Id == 0 ? "Add Transaction" : "Edit Transaction";
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        _categories = await DbContext.TransactionCategories
+            .Where(c => c.IsActive)
+            .OrderBy(c => c.SortOrder)
+            .ToListAsync();
+
         if (Model is not null)
         {
             _model.Id = Model.Id;
             _model.User = Model.User;
             _model.Category = Model.Category;
+            _model.CategoryId = Model.CategoryId;
             _model.Amount = Model.Amount;
             _model.Date = Model.Date;
             _model.Description = Model.Description;
-            _model.IsIncome = Model.IsIncome;
+            _model.Type = Model.Type;
         }
 
         _transactionDate = _model.Date == default ? DateTime.Today : _model.Date;
@@ -115,12 +132,13 @@
 
         await _form.Validate();
 
-        if (!_isValid || _transactionDate is null)
+        if (!_isValid || _transactionDate is null || _model.Category is null)
         {
             return;
         }
 
         _model.Date = _transactionDate.Value;
+        _model.CategoryId = _model.Category.Id;
 
         MudDialog.Close(DialogResult.Ok(_model));
     }

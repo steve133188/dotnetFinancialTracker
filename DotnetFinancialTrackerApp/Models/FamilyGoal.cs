@@ -43,9 +43,7 @@ namespace DotnetFinancialTrackerApp.Models
         [ForeignKey(nameof(FamilyId))]
         public virtual FamilyAccount? Family { get; set; }
 
-        public virtual ICollection<FamilyMemberGoal> Participants { get; set; } = new List<FamilyMemberGoal>();
-
-        public virtual ICollection<GoalContribution> Contributions { get; set; } = new List<GoalContribution>();
+        // Removed: FamilyMemberGoal and GoalContribution - simplified for MVP
 
         // Calculated properties
         public decimal RemainingAmount => Math.Max(0, TargetAmount - CurrentAmount);
@@ -91,22 +89,13 @@ namespace DotnetFinancialTrackerApp.Models
             }
         }
 
-        public List<string> ParticipantIds => Participants?.Select(p => p.MemberId).ToList() ?? new List<string>();
+        public List<string> ParticipantIds => new List<string>();
 
         // Methods
         public void AddContribution(string memberId, decimal amount, string? note = null)
         {
             CurrentAmount += amount;
             UpdatedAt = DateTime.UtcNow;
-
-            Contributions.Add(new GoalContribution
-            {
-                GoalId = GoalId,
-                MemberId = memberId,
-                Amount = amount,
-                Note = note,
-                ContributedAt = DateTime.UtcNow
-            });
         }
 
         public void RemoveContribution(decimal amount)

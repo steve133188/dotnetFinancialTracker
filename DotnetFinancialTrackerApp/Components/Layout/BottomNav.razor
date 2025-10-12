@@ -94,11 +94,6 @@
 
     private async Task OpenQuickActions()
     {
-        var parameters = new DialogParameters
-        {
-            [nameof(QuickActionsDialog.Actions)] = _quickActions
-        };
-
         var options = new DialogOptions
         {
             MaxWidth = MaxWidth.Small,
@@ -107,7 +102,7 @@
             DisableBackdropClick = false
         };
 
-        var dialog = DialogService.Show<QuickActionsDialog>("Quick actions", parameters, options);
+        var dialog = DialogService.Show<QuickActionsDialog>("Quick actions", options);
         var result = await dialog.Result;
         if (!result.Canceled && result.Data is QuickActionOption action)
         {

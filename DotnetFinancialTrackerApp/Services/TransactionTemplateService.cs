@@ -80,7 +80,7 @@ public class TransactionTemplateService : ITransactionTemplateService
             .Select(g => new { Category = g.Key, Count = g.Count() })
             .OrderByDescending(x => x.Count)
             .Take(count)
-            .Select(x => x.Category)
+            .Select(x => x.Category!.Name)
             .ToListAsync();
 
         // Fill with default categories if needed

@@ -29,7 +29,7 @@ namespace DotnetFinancialTrackerApp.Models
 
         public virtual ICollection<FamilyGoal> Goals { get; set; } = new List<FamilyGoal>();
 
-        public virtual FamilyInsights? Insights { get; set; }
+        // Removed: FamilyInsights - not part of MVP
 
         // Calculated properties
         public decimal TotalMemberBalances => Members?.Sum(m => m.Balance) ?? 0m;

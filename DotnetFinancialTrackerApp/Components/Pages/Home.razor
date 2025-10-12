@@ -1,112 +1,586 @@
 @page "/"
+@using System.Globalization
+@using DotnetFinancialTrackerApp.Models
 @inject AuthState Auth
+@inject DotnetFinancialTrackerApp.Services.ITransactionsService TxSvc
+@inject DotnetFinancialTrackerApp.Services.IBudgetsService BudgetSvc
+@* Removed: IFamilyBankingService - not part of MVP *@
+@inject DotnetFinancialTrackerApp.Services.IUserService UserSvc
 @inject NavigationManager Nav
 
 <PageTitle>Family Dashboard</PageTitle>
 
-<div class="home-container">
-    <div class="welcome-section">
-        <div class="welcome-content">
-            <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Large" Class="welcome-icon" />
-            <div class="welcome-text">
-                <MudText Typo="Typo.h4" Class="welcome-title">Welcome Home</MudText>
-                <MudText Typo="Typo.body1" Class="welcome-subtitle">Family Financial Tracker</MudText>
-            </div>
-        </div>
+<MudContainer Class="home-container" MaxWidth="MaxWidth.False">
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-3" ShowCloseIcon="true" CloseIconClicked="@(() => _error = string.Empty)">
+            @_error
+        </MudAlert>
+    }
+
+    <!-- Spend & Budget Summary -->
+    <div class="summary-section">
+        <MudCard Class="summary-card" Elevation="0">
+            <MudCardContent>
+                <div class="summary-header">
+                    <MudText Typo="Typo.h5" Class="month-title">This Month</MudText>
+                    <MudText Typo="Typo.caption" Class="month-subtitle">@DateTime.Now.ToString("MMMM yyyy")</MudText>
+                </div>
+
+                <div class="budget-metrics">
+                    <!-- Primary Metric: Remaining Amount and Percentage -->
+                    <div class="primary-metric">
+                        <MudText Typo="Typo.h4" Class="remaining-amount">
+                            Remaining: @_budgetRemaining.ToString("C", CultureInfo.CurrentCulture)
+                            <span class="remaining-percentage">(@_remainingPercentage.ToString("F0")%)</span>
+                        </MudText>
+                    </div>
+
+                    <!-- Secondary Metric: Spent vs Budget -->
+                    <div class="secondary-metric">
+                        <MudText Typo="Typo.h6" Class="spent-budget-text">
+                            Spent @_monthSpent.ToString("C", CultureInfo.CurrentCulture) / @_totalBudget.ToString("C", CultureInfo.CurrentCulture) Budget
+                        </MudText>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="budget-progress">
+                        <MudProgressLinear Value="@BudgetUsedPercentage"
+                                         Color="@GetProgressColor()"
+                                         Size="Size.Large"
+                                         Class="budget-progress-bar" />
+                    </div>
+                </div>
+
+                <!-- Enhanced Savings Action -->
+                @if (_budgetRemaining > 0)
+                {
+                    <div class="savings-action-section">
+                        <div class="savings-transfer-card">
+                            <div class="transfer-info">
+                                <MudIcon Icon="@Icons.Material.Filled.Savings"  Size="Size.Medium" Class="transfer-icon" />
+                                <div class="transfer-details">
+                                    <MudText Typo="Typo.subtitle1" Class="transfer-title">Save This Month's Surplus</MudText>
+                                    <MudText Typo="Typo.body2" Class="transfer-amount">@_budgetRemaining.ToString("C", CultureInfo.CurrentCulture) available to save</MudText>
+                                </div>
+                            </div>
+                            <MudButton 
+                                    Variant="Variant.Filled"
+                                    Size="Size.Medium"
+                                    OnClick="@HandleTransferToSavings"
+                                    StartIcon="@Icons.Material.Filled.Add"
+                                    Elevation="0"
+                                    Style="background-color: black; color: white;"
+                                    >
+                                Save It
+                            </MudButton>
+                        </div>
+                    </div>
+                }
+            </MudCardContent>
+        </MudCard>
     </div>
 
-    <div class="quick-actions">
-        <MudGrid>
-            <MudItem xs="6">
-                <MudCard Class="action-card" Elevation="0" @onclick="NavigateToFinance">
-                    <MudCardContent Class="text-center">
-                        <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Large" Color="Color.Default" Style="color: black;" />
-                        <MudText Typo="Typo.subtitle2" Class="mt-2">Finance</MudText>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-            <MudItem xs="6">
-                <MudCard Class="action-card" Elevation="0" @onclick="NavigateToReports">
-                    <MudCardContent Class="text-center">
-                        <MudIcon Icon="@Icons.Material.Filled.Analytics" Size="Size.Large" Color="Color.Default" Style="color: black;" />
-                        <MudText Typo="Typo.subtitle2" Class="mt-2">Reports</MudText>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-        </MudGrid>
+    <!-- Recent Family Transactions -->
+    <div class="transactions-section">
+        <div class="section-header">
+            <MudText Typo="Typo.h6">Recent Transactions</MudText>
+            <MudButton Variant="Variant.Text" Color="Color.Default" Elevation="0" OnClick="@NavigateToFinance" Style="color: black;">
+                View All
+            </MudButton>
+        </div>
+
+        @if (_recentTransactions.Count == 0)
+        {
+            <MudCard Class="empty-card" Elevation="0">
+                <MudCardContent Class="text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Receipt" Size="Size.Large" Color="Color.Secondary" />
+                    <MudText Typo="Typo.h6" Class="mt-2">No transactions yet</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-3">Start tracking your family spending</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Default" Elevation="0" OnClick="@NavigateToFinance" Style="background-color: black; color: white;">
+                        Add Transaction
+                    </MudButton>
+                </MudCardContent>
+            </MudCard>
+        }
+        else
+        {
+            <MudCard Class="transactions-card" Elevation="0">
+                <MudCardContent>
+                    @foreach (var tx in _recentTransactions)
+                    {
+                        <div class="transaction-item" @onclick="@(() => NavigateToTransaction(tx.Id))">
+                            <div class="transaction-info">
+                                <MudText Typo="Typo.subtitle1">@(tx.Description ?? tx.Category?.Name)</MudText>
+                                <MudText Typo="Typo.caption" Class="transaction-meta">@tx.User • @tx.Date.ToString("MMM dd")</MudText>
+                            </div>
+                            <MudText Typo="Typo.subtitle1" Class="transaction-amount">
+                                @((tx.IsIncome ? "+" : "-") + tx.Amount.ToString("C", CultureInfo.CurrentCulture))
+                            </MudText>
+                        </div>
+                        @if (tx != _recentTransactions.Last())
+                        {
+                            <MudDivider />
+                        }
+                    }
+                </MudCardContent>
+            </MudCard>
+        }
     </div>
-</div>
+
+
+    <!-- Family Members Budget Status -->
+    <div class="family-section">
+        <div class="section-header">
+            <MudText Typo="Typo.h6">Family Budget Status</MudText>
+        </div>
+
+        @if (_familyMembers.Count == 0)
+        {
+            <MudCard Class="empty-card" Elevation="0">
+                <MudCardContent Class="text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Color="Color.Default" Style="color: black;" />
+                    <MudText Typo="Typo.h6" Class="mt-2">No family members</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-3">Add family members to track their spending</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Default" Elevation="0" OnClick="@NavigateToFinance" Style="background-color: black; color: white;">
+                        Get Started
+                    </MudButton>
+                </MudCardContent>
+            </MudCard>
+        }
+        else
+        {
+            <MudGrid>
+                @foreach (var member in _familyMembers)
+                {
+                    <MudItem xs="6" md="3">
+                        <MudCard Class="member-card" Elevation="0">
+                            <MudCardContent>
+                                <div class="member-header">
+                                    <MudAvatar Size="Size.Medium" Color="Color.Default" Style="background-color: black; color: white;">
+                                        @GetMemberInitial(member.Name)
+                                    </MudAvatar>
+                                    <MudText Typo="Typo.subtitle2" Class="member-name">@member.Name</MudText>
+                                </div>
+
+                                <div class="member-chart">
+                                    <MudProgressCircular Value="@GetMemberBudgetPercentage(member)"
+                                                       Size="Size.Small"
+                                                       Color="Color.Primary"
+                                                       StrokeWidth="4"
+                                                       Class="member-donut-large">
+                                        <div class="member-chart-center">
+                                            <MudText Typo="Typo.h6" Class="member-percentage-large">@GetMemberBudgetPercentage(member).ToString("F0")%</MudText>
+                                        </div>
+                                    </MudProgressCircular>
+                                </div>
+
+                                <div class="member-stats">
+                                    <div class="member-stat">
+                                        <MudText Typo="Typo.caption" Class="stat-label">Spent</MudText>
+                                        <MudText Typo="Typo.body1" Class="stat-amount">@member.SpentThisMonth.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                                    </div>
+                                    <div class="member-stat">
+                                        <MudText Typo="Typo.caption" Class="stat-label">Budget</MudText>
+                                        <MudText Typo="Typo.body1" Class="stat-amount">@member.SpendingLimit.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                                    </div>
+                                </div>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+    </div>
+</MudContainer>
 
 @code {
-    protected override void OnInitialized()
+    private decimal _monthSpent;
+    private decimal _totalBudget;
+    private decimal _budgetRemaining => _totalBudget - _monthSpent;
+    private double _remainingPercentage => _totalBudget > 0 ? (double)(_budgetRemaining / _totalBudget) * 100 : 0;
+    private double BudgetUsedPercentage => _totalBudget > 0 ? Math.Min((double)(_monthSpent / _totalBudget) * 100, 100) : 0;
+
+    private string? _error;
+    private List<Transaction> _recentTransactions = new();
+    private List<FamilyMember> _familyMembers = new();
+
+    protected override async Task OnInitializedAsync()
     {
         if (!Auth.IsAuthenticated)
         {
             Nav.NavigateTo("/login");
+            return;
+        }
+
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            var currentMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+            var nextMonth = currentMonth.AddMonths(1);
+
+            // Load month spending using real transaction data
+            var transactions = await TxSvc.GetAsync(from: currentMonth, to: nextMonth);
+            _monthSpent = transactions.Where(t => !t.IsIncome).Sum(t => t.Amount);
+
+            // Load budget using real budget data
+            var budgets = await BudgetSvc.GetAsync(currentMonth);
+            _totalBudget = budgets.Sum(b => b.Limit);
+
+            // Load recent transactions (last 5) using real data
+            var allTransactions = await TxSvc.GetAsync();
+            _recentTransactions = allTransactions
+                .OrderByDescending(t => t.Date)
+                .ThenByDescending(t => t.Id)
+                .Take(5)
+                .ToList();
+
+            // Load real family members data
+            await LoadFamilyMembersAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Error loading data: {ex.Message}";
         }
     }
 
+    private async Task LoadFamilyMembersAsync()
+    {
+        try
+        {
+            // Create family members based on transaction users from real data
+            var transactions = await TxSvc.GetAsync();
+            var users = transactions.Select(t => t.User).Where(u => !string.IsNullOrEmpty(u)).Distinct().ToList();
+
+            if (users.Any())
+            {
+                var currentMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+                var nextMonth = currentMonth.AddMonths(1);
+                var monthlyTransactions = await TxSvc.GetAsync(from: currentMonth, to: nextMonth);
+
+                _familyMembers = users.Select(user => new FamilyMember
+                {
+                    Name = user!,
+                    SpendingLimit = 1500m, // Default limit based on typical family budgets
+                    SpentThisMonth = monthlyTransactions.Where(t => !t.IsIncome && t.User == user).Sum(t => t.Amount)
+                }).ToList();
+            }
+            else
+            {
+                // No transaction data yet, create empty list
+                _familyMembers = new List<FamilyMember>();
+            }
+        }
+        catch
+        {
+            _familyMembers = new List<FamilyMember>();
+        }
+    }
+
+
+    private Color GetProgressColor()
+    {
+        return BudgetUsedPercentage switch
+        {
+            > 90 => Color.Error,
+            > 75 => Color.Warning,
+            _ => Color.Success
+        };
+    }
+
+    private async Task HandleTransferToSavings()
+    {
+        // TODO: Implement actual transfer logic when savings service is available
+        // For now, just show a success message
+        await Task.Delay(500); // Simulate API call
+
+        // In a real implementation:
+        // var success = await FamilyService.TransferToSavingsAsync(Auth.CurrentUserId, _budgetRemaining, "Monthly budget surplus");
+        // if (success) { await LoadDataAsync(); }
+    }
+
+
     private void NavigateToFinance() => Nav.NavigateTo("/finance");
-    private void NavigateToReports() => Nav.NavigateTo("/reports");
+    private void NavigateToTransaction(int transactionId) => Nav.NavigateTo($"/transactions/{transactionId}");
+    private void NavigateToWellbeing() => Nav.NavigateTo("/wellbeing");
+
+    private string GetMemberInitial(string name)
+    {
+        return string.IsNullOrEmpty(name) ? "?" : name.Substring(0, 1).ToUpper();
+    }
+
+    private double GetMemberBudgetPercentage(FamilyMember member)
+    {
+        return member.SpendingLimit > 0 ? Math.Min((double)(member.SpentThisMonth / member.SpendingLimit) * 100, 100) : 0;
+    }
+
+    // Removed GetMemberProgressColor - now using consistent Color.Primary for all donuts
 }
 
 <style>
+
 .home-container {
     padding: 24px;
     background: #FFFFFF;
     min-height: 100vh;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
-.welcome-section {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 32px;
-    padding: 24px 32px;
-    background: linear-gradient(135deg, rgba(1, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.95) 100%);
-    border: 1px solid rgba(1, 255, 255, 0.2);
-    border-radius: 24px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-}
-
-.welcome-content {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-
-.welcome-icon {
-    color: #01FFFF;
-}
-
-.welcome-title {
-    color: #000000;
-    font-weight: 700;
-    margin: 0;
-}
-
-.welcome-subtitle {
-    color: rgba(0, 0, 0, 0.7);
-    margin: 0;
-}
-
-.quick-actions {
+.summary-section, .transactions-section, .family-section {
     margin-bottom: 32px;
 }
 
-.action-card {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(1, 255, 255, 0.2);
-    border-radius: 16px;
-    cursor: pointer;
+.summary-card, .transactions-card, .empty-card, .member-card {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
     transition: all 0.25s ease;
 }
 
-.action-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-    border-color: rgba(1, 255, 255, 0.4);
+.summary-header {
+    text-align: left;
+    margin-bottom: 32px;
+}
+
+.month-title {
+    color: #000000;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+}
+
+.month-subtitle {
+    color: rgba(0, 0, 0, 0.6);
+    font-family: 'Inter', sans-serif;
+}
+
+.budget-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 32px;
+}
+
+.primary-metric {
+    width: 100%;
+}
+
+.remaining-amount {
+    color: #000000;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    font-size: 2rem;
+    line-height: 1.2;
+}
+
+.remaining-percentage {
+    color: rgba(0, 0, 0, 0.6);
+    font-size: 1.5rem;
+    font-weight: 400;
+    margin-left: 8px;
+}
+
+.secondary-metric {
+    width: 100%;
+}
+
+.spent-budget-text {
+    color: rgba(0, 0, 0, 0.8);
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+}
+
+.budget-progress {
+    width: 100%;
+    margin: 8px 0;
+}
+
+.budget-progress-bar {
+    height: 8px !important;
+    border-radius: 4px;
+}
+
+.savings-action-section {
+    margin-top: 24px;
+    width: 100%;
+}
+
+.savings-transfer-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: #F8F9FA;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 16px;
+    transition: all 0.25s ease;
+}
+
+.savings-transfer-card:hover {
+    background: #E9ECEF;
+    transform: translateY(-1px);
+}
+
+.transfer-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+}
+
+.transfer-icon {
+    color: #4CAF50;
+}
+
+.transfer-details {
+    flex: 1;
+}
+
+.transfer-title {
+    color: #000000;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    margin-bottom: 4px;
+}
+
+.transfer-amount {
+    color: rgba(0, 0, 0, 0.7);
+    font-family: 'Inter', sans-serif;
+}
+
+.transfer-button {
+    border-radius: 12px;
+    font-weight: 600;
+    padding: 8px 24px;
+    color: black!important;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.section-header h6 {
+    color: #000000;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+}
+
+.transaction-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.transaction-item:hover {
+    background-color: #F8F9FA;
+    border-radius: 8px;
+    margin: 0 -16px;
+    padding: 16px;
+}
+
+.transaction-meta {
+    color: rgba(0, 0, 0, 0.6);
+    font-family: 'Inter', sans-serif;
+}
+
+.transaction-amount {
+    color: #000000;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+}
+
+
+.member-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.member-name {
+    color: #000000;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+}
+
+.member-chart {
+    display: flex;
+    justify-content: center;
+    margin: 16px 0;
+}
+
+.member-donut-large {
+    width: 60px !important;
+    height: 60px !important;
+}
+
+.member-chart-center {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.member-percentage-large {
+    color: #000000;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    font-size: 1.2rem;
+}
+
+
+.member-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.member-stat {
+    text-align: center;
+    padding: 8px;
+    background: #F8F9FA;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+}
+
+@@media (max-width: 767px) {
+    .home-container {
+        padding: 16px;
+    }
+
+    .remaining-amount {
+        font-size: 1.5rem;
+    }
+
+    .remaining-percentage {
+        font-size: 1.2rem;
+    }
+
+    .savings-transfer-card {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+    }
+
+    .transfer-info {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+    }
+
+    .transfer-button {
+        width: 100%;
+    }
 }
 </style>

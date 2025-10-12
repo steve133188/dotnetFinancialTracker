@@ -1,10 +1,6 @@
 @using MudBlazor
-@using DotnetFinancialTrackerApp.Components.Layout
 @using DotnetFinancialTrackerApp.Models
-@inject DotnetFinancialTrackerApp.Services.ITransactionsService TxSvc
-@inject DotnetFinancialTrackerApp.Services.IBudgetsService BudgetSvc
-@inject DotnetFinancialTrackerApp.Services.IGamificationService GameSvc
-@inject AuthState Auth
+@inject NavigationManager Nav
 
 <MudDialog Class="quick-actions-dialog">
     <TitleContent>
@@ -14,155 +10,34 @@
         </div>
     </TitleContent>
     <DialogContent>
-        <!-- Quick Stats Section -->
-        <div class="quick-stats">
-            <div class="stat-item">
-                <MudIcon Icon="@Icons.Material.Filled.Receipt" Color="Color.Default" Style="color: black;" />
-                <div class="stat-content">
-                    <MudText Typo="Typo.caption">This Month</MudText>
-                    <MudText Typo="Typo.subtitle2">@_monthTransactionCount transactions</MudText>
-                </div>
-            </div>
-            <div class="stat-item">
-                <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="Color.Success" />
-                <div class="stat-content">
-                    <MudText Typo="Typo.caption">Balance</MudText>
-                    <MudText Typo="Typo.subtitle2">@(_monthIncome - _monthExpense).ToString("C")</MudText>
-                </div>
-            </div>
-            <div class="stat-item">
-                <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Color="Color.Warning" />
-                <div class="stat-content">
-                    <MudText Typo="Typo.caption">Points</MudText>
-                    <MudText Typo="Typo.subtitle2">@_gamificationPoints</MudText>
-                </div>
-            </div>
+        <div class="actions-grid">
+            <!-- Add Transaction -->
+            <MudCard Class="action-card" Clickable="true" @onclick="() => NavigateToAddTransaction()">
+                <MudCardContent>
+                    <MudIcon Icon="@Icons.Material.Filled.Add" Size="Size.Large" Class="action-icon" />
+                    <MudText Typo="Typo.subtitle1" Class="action-title">Add Transaction</MudText>
+                    <MudText Typo="Typo.body2" Class="action-description">Quick income or expense entry</MudText>
+                </MudCardContent>
+            </MudCard>
+
+            <!-- Save Money to Jar -->
+            <MudCard Class="action-card" Clickable="true" @onclick="() => NavigateToSavings()">
+                <MudCardContent>
+                    <MudIcon Icon="@Icons.Material.Filled.Savings" Size="Size.Large" Class="action-icon" />
+                    <MudText Typo="Typo.subtitle1" Class="action-title">Save Money to Jar</MudText>
+                    <MudText Typo="Typo.body2" Class="action-description">Put money aside for goals</MudText>
+                </MudCardContent>
+            </MudCard>
+
+            <!-- Modify Budget -->
+            <MudCard Class="action-card" Clickable="true" @onclick="() => NavigateToBudgets()">
+                <MudCardContent>
+                    <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Large" Class="action-icon" />
+                    <MudText Typo="Typo.subtitle1" Class="action-title">Modify Budget</MudText>
+                    <MudText Typo="Typo.body2" Class="action-description">Adjust spending limits</MudText>
+                </MudCardContent>
+            </MudCard>
         </div>
-
-        <!-- Enhanced Action Categories -->
-        <MudTabs Elevation="0" Rounded="true" Class="action-tabs">
-            <MudTabPanel Text="Financial" Icon="@Icons.Material.Filled.AttachMoney">
-                <div class="actions-grid">
-                    <MudCard Class="enhanced-action-card primary" Clickable="true" @onclick="() => SelectQuickAction(FinancialActions[0])">
-                        <MudCardContent>
-                            <MudIcon Icon="@Icons.Material.Filled.Add" Size="Size.Large" Class="action-icon" />
-                            <MudText Typo="Typo.subtitle1" Class="action-title">Add Transaction</MudText>
-                            <MudText Typo="Typo.body2" Class="action-description">Quick income or expense entry</MudText>
-                            <MudChip Class="action-chip" Size="Size.Small" Variant="Variant.Outlined">Most used</MudChip>
-                        </MudCardContent>
-                    </MudCard>
-
-                    <MudCard Class="enhanced-action-card" Clickable="true" @onclick="() => SelectQuickAction(FinancialActions[1])">
-                        <MudCardContent>
-                            <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Large" Class="action-icon" />
-                            <MudText Typo="Typo.subtitle1" Class="action-title">Manage Budgets</MudText>
-                            <MudText Typo="Typo.body2" Class="action-description">Set up spending limits</MudText>
-                            @if (_budgetCount == 0)
-                            {
-                                <MudChip Class="action-chip warning" Size="Size.Small" Variant="Variant.Filled">Setup needed</MudChip>
-                            }
-                        </MudCardContent>
-                    </MudCard>
-
-                    <MudCard Class="enhanced-action-card" Clickable="true" @onclick="() => SelectQuickAction(FinancialActions[2])">
-                        <MudCardContent>
-                            <MudIcon Icon="@Icons.Material.Filled.SwapHoriz" Size="Size.Large" Class="action-icon" />
-                            <MudText Typo="Typo.subtitle1" Class="action-title">Transfer Money</MudText>
-                            <MudText Typo="Typo.body2" Class="action-description">Move between accounts</MudText>
-                        </MudCardContent>
-                    </MudCard>
-
-                    <MudCard Class="enhanced-action-card" Clickable="true" @onclick="() => SelectQuickAction(FinancialActions[3])">
-                        <MudCardContent>
-                            <MudIcon Icon="@Icons.Material.Filled.Analytics" Size="Size.Large" Class="action-icon" />
-                            <MudText Typo="Typo.subtitle1" Class="action-title">View Reports</MudText>
-                            <MudText Typo="Typo.body2" Class="action-description">Spending insights</MudText>
-                        </MudCardContent>
-                    </MudCard>
-                </div>
-            </MudTabPanel>
-
-            <MudTabPanel Text="Savings" Icon="@Icons.Material.Filled.Savings">
-                <div class="actions-grid">
-                    <MudCard Class="enhanced-action-card" Clickable="true" @onclick="() => SelectQuickAction(SavingsActions[0])">
-                        <MudCardContent>
-                            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Large" Class="action-icon" />
-                            <MudText Typo="Typo.subtitle1" Class="action-title">Set Savings Goal</MudText>
-                            <MudText Typo="Typo.body2" Class="action-description">Plan for future expenses</MudText>
-                        </MudCardContent>
-                    </MudCard>
-
-                    <MudCard Class="enhanced-action-card" Clickable="true" @onclick="() => SelectQuickAction(SavingsActions[1])">
-                        <MudCardContent>
-                            <MudIcon Icon="@Icons.Material.Filled.AutoGraph" Size="Size.Large" Class="action-icon" />
-                            <MudText Typo="Typo.subtitle1" Class="action-title">Investment Tracker</MudText>
-                            <MudText Typo="Typo.body2" Class="action-description">Monitor investments</MudText>
-                        </MudCardContent>
-                    </MudCard>
-
-                    <MudCard Class="enhanced-action-card" Clickable="true" @onclick="() => SelectQuickAction(SavingsActions[2])">
-                        <MudCardContent>
-                            <MudIcon Icon="@Icons.Material.Filled.Calculate" Size="Size.Large" Class="action-icon" />
-                            <MudText Typo="Typo.subtitle1" Class="action-title">Savings Calculator</MudText>
-                            <MudText Typo="Typo.body2" Class="action-description">Plan your targets</MudText>
-                        </MudCardContent>
-                    </MudCard>
-                </div>
-            </MudTabPanel>
-
-            <MudTabPanel Text="Family" Icon="@Icons.Material.Filled.Group">
-                <div class="actions-grid">
-                    <MudCard Class="enhanced-action-card" Clickable="true" @onclick="() => SelectQuickAction(FamilyActions[0])">
-                        <MudCardContent>
-                            <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Size="Size.Large" Class="action-icon" />
-                            <MudText Typo="Typo.subtitle1" Class="action-title">Add Family Member</MudText>
-                            <MudText Typo="Typo.body2" Class="action-description">Invite to family budget</MudText>
-                        </MudCardContent>
-                    </MudCard>
-
-                    <MudCard Class="enhanced-action-card" Clickable="true" @onclick="() => SelectQuickAction(FamilyActions[1])">
-                        <MudCardContent>
-                            <MudIcon Icon="@Icons.Material.Filled.CreditCard" Size="Size.Large" Class="action-icon" />
-                            <MudText Typo="Typo.subtitle1" Class="action-title">Set Allowances</MudText>
-                            <MudText Typo="Typo.body2" Class="action-description">Manage family allowances</MudText>
-                        </MudCardContent>
-                    </MudCard>
-
-                    <MudCard Class="enhanced-action-card" Clickable="true" @onclick="() => SelectQuickAction(FamilyActions[2])">
-                        <MudCardContent>
-                            <MudIcon Icon="@Icons.Material.Filled.School" Size="Size.Large" Class="action-icon" />
-                            <MudText Typo="Typo.subtitle1" Class="action-title">Financial Education</MudText>
-                            <MudText Typo="Typo.body2" Class="action-description">Learn together</MudText>
-                        </MudCardContent>
-                    </MudCard>
-                </div>
-            </MudTabPanel>
-        </MudTabs>
-
-        <!-- Recent Activity Preview -->
-        @if (_recentTransactions.Any())
-        {
-            <div class="recent-activity">
-                <MudText Typo="Typo.subtitle2" Class="activity-title">Recent Activity</MudText>
-                <div class="activity-list">
-                    @foreach (var transaction in _recentTransactions.Take(3))
-                    {
-                        <div class="activity-item">
-                            <MudIcon Icon="@(transaction.IsIncome ? Icons.Material.Filled.TrendingUp : Icons.Material.Filled.TrendingDown)"
-                                    Color="@(transaction.IsIncome ? Color.Success : Color.Error)"
-                                    Size="Size.Small" />
-                            <div class="activity-content">
-                                <MudText Typo="Typo.body2">@(transaction.Description ?? transaction.Category)</MudText>
-                                <MudText Typo="Typo.caption">@transaction.Date.ToString("MMM dd")</MudText>
-                            </div>
-                            <MudText Typo="Typo.subtitle2" Class="@(transaction.IsIncome ? "income-amount" : "expense-amount")">
-                                @((transaction.IsIncome ? "+" : "-") + transaction.Amount.ToString("C0"))
-                            </MudText>
-                        </div>
-                    }
-                </div>
-            </div>
-        }
     </DialogContent>
     <DialogActions>
         <MudButton Variant="Variant.Text" Elevation="0" OnClick="@Close" StartIcon="@Icons.Material.Filled.Close">Close</MudButton>
@@ -172,95 +47,30 @@
 @code {
     [CascadingParameter] private MudDialogInstance Dialog { get; set; } = default!;
 
-    [Parameter] public IReadOnlyList<QuickActionOption> Actions { get; set; } = Array.Empty<QuickActionOption>();
-
-    private int _monthTransactionCount;
-    private decimal _monthIncome;
-    private decimal _monthExpense;
-    private int _budgetCount;
-    private int _gamificationPoints;
-    private List<Transaction> _recentTransactions = new();
-
-    // Enhanced action categories
-    private QuickActionOption[] FinancialActions => new[]
+    private void NavigateToAddTransaction()
     {
-        new QuickActionOption("Add Transaction", "Capture income or expense in seconds", Icons.Material.Filled.Add, "/quick-transaction"),
-        new QuickActionOption("Manage Budgets", "Set up and adjust spending limits", Icons.Material.Filled.AccountBalance, "/finance"),
-        new QuickActionOption("Transfer Money", "Move money between accounts", Icons.Material.Filled.SwapHoriz, "/transfers"),
-        new QuickActionOption("View Reports", "Analyze spending patterns", Icons.Material.Filled.Analytics, "/reports")
-    };
-
-    private QuickActionOption[] SavingsActions => new[]
-    {
-        new QuickActionOption("Set Savings Goal", "Plan for future expenses", Icons.Material.Filled.TrendingUp, "/wellbeing"),
-        new QuickActionOption("Investment Tracker", "Monitor your investments", Icons.Material.Filled.AutoGraph, "/investments"),
-        new QuickActionOption("Savings Calculator", "Calculate target amounts", Icons.Material.Filled.Calculate, "/calculator")
-    };
-
-    private QuickActionOption[] FamilyActions => new[]
-    {
-        new QuickActionOption("Add Family Member", "Invite to family budget", Icons.Material.Filled.PersonAdd, "/family/add"),
-        new QuickActionOption("Set Allowances", "Manage family allowances", Icons.Material.Filled.CreditCard, "/family/allowances"),
-        new QuickActionOption("Financial Education", "Learn together", Icons.Material.Filled.School, "/education")
-    };
-
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadQuickStatsAsync();
+        Nav.NavigateTo("/finance");
+        Dialog.Close();
     }
 
-    private async Task LoadQuickStatsAsync()
+    private void NavigateToSavings()
     {
-        try
-        {
-            // Load transaction data
-            var periodStart = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-            var periodEnd = periodStart.AddMonths(1).AddTicks(-1);
-
-            var allTransactions = await TxSvc.GetAsync();
-            var monthTransactions = allTransactions.Where(t => t.Date >= periodStart && t.Date <= periodEnd).ToList();
-
-            _monthTransactionCount = monthTransactions.Count;
-            _monthIncome = monthTransactions.Where(t => t.IsIncome).Sum(t => t.Amount);
-            _monthExpense = monthTransactions.Where(t => !t.IsIncome).Sum(t => t.Amount);
-
-            _recentTransactions = allTransactions
-                .OrderByDescending(t => t.Date)
-                .ThenByDescending(t => t.Id)
-                .Take(5)
-                .ToList();
-
-            // Load budget count
-            var budgets = await BudgetSvc.GetAsync(periodStart);
-            _budgetCount = budgets.Count;
-
-            // Load gamification points
-            try
-            {
-                var summary = await GameSvc.GetSummaryAsync();
-                _gamificationPoints = summary.Points;
-            }
-            catch
-            {
-                _gamificationPoints = 0;
-            }
-        }
-        catch
-        {
-            // Handle errors silently for quick actions dialog
-        }
+        Nav.NavigateTo("/wellbeing");
+        Dialog.Close();
     }
 
-    private void SelectQuickAction(QuickActionOption action) => Dialog.Close(DialogResult.Ok(action));
-
-    private void Select(QuickActionOption action) => Dialog.Close(DialogResult.Ok(action));
+    private void NavigateToBudgets()
+    {
+        Nav.NavigateTo("/finance");
+        Dialog.Close();
+    }
 
     private void Close() => Dialog.Cancel();
 }
 
 <style>
 .quick-actions-dialog {
-    max-width: 600px;
+    max-width: 500px;
 }
 
 .dialog-header {
@@ -269,150 +79,54 @@
     gap: 8px;
 }
 
-.quick-stats {
-    display: flex;
-    gap: 16px;
-    margin-bottom: 24px;
-    padding: 16px;
-    background: rgba(1, 255, 255, 0.05);
-    border-radius: 12px;
-    border: 1px solid rgba(1, 255, 255, 0.1);
-}
-
-.stat-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-}
-
-.stat-content {
-    display: flex;
-    flex-direction: column;
-}
-
-.action-tabs {
-    margin-bottom: 24px;
-}
-
 .actions-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: 1fr;
     gap: 16px;
+    padding: 8px 0;
 }
 
-.enhanced-action-card {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(1, 255, 255, 0.2);
-    border-radius: 16px;
+.action-card {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
     transition: all 0.25s ease;
     cursor: pointer;
-    position: relative;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
-.enhanced-action-card:hover {
+.action-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-    border-color: rgba(1, 255, 255, 0.4);
-}
-
-.enhanced-action-card.primary {
-    border-color: rgba(1, 255, 255, 0.4);
-    background: linear-gradient(135deg, rgba(1, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.95) 100%);
+    border-color: rgba(0, 0, 0, 0.15);
 }
 
 .action-icon {
     color: #000000;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
 }
 
 .action-title {
     color: #000000;
     font-weight: 600;
-    margin-bottom: 4px;
+    font-family: 'Inter', sans-serif;
+    margin-bottom: 8px;
 }
 
 .action-description {
     color: rgba(0, 0, 0, 0.7);
-    margin-bottom: 8px;
-}
-
-.action-chip {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-}
-
-.action-chip.warning {
-    background-color: #FF9800;
-    color: white;
-}
-
-.recent-activity {
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 12px;
-    padding: 16px;
-    border: 1px solid rgba(1, 255, 255, 0.2);
-}
-
-.activity-title {
-    color: #000000;
-    font-weight: 600;
-    margin-bottom: 12px;
-}
-
-.activity-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.activity-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 8px;
-    border-radius: 8px;
-    background: rgba(1, 255, 255, 0.02);
-}
-
-.activity-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-}
-
-.income-amount {
-    color: #4CAF50;
-    font-weight: 600;
-}
-
-.expense-amount {
-    color: #F44336;
-    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    line-height: 1.4;
 }
 
 @@media (max-width: 767px) {
-    .quick-stats {
-        flex-direction: column;
-        gap: 12px;
+    .quick-actions-dialog {
+        max-width: 90vw;
     }
 
     .actions-grid {
-        grid-template-columns: 1fr;
         gap: 12px;
-    }
-
-    .enhanced-action-card {
-        min-height: auto;
-    }
-
-    .action-chip {
-        position: static;
-        margin-top: 8px;
-        align-self: flex-start;
     }
 }
 </style>

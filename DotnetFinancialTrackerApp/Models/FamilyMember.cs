@@ -52,9 +52,7 @@ namespace DotnetFinancialTrackerApp.Models
         public virtual FamilyAccount? Family { get; set; }
 
 
-        public virtual ICollection<SpendingLimit> SpendingLimits { get; set; } = new List<SpendingLimit>();
-
-        public virtual ICollection<FamilyMemberGoal> Goals { get; set; } = new List<FamilyMemberGoal>();
+        // Removed: SpendingLimit and FamilyMemberGoal - not part of MVP
 
         // Calculated properties
         public decimal RemainingMonthlyLimit => SpendingLimit - SpentThisMonth;

@@ -18,7 +18,10 @@ public static class MauiProgram
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
-            .ConfigureFonts(fonts => { fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular"); });
+            .ConfigureFonts(fonts => {
+                fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+                // Inter font loaded via Google Fonts in CSS - no local registration needed
+            });
 
         builder.Services.AddMauiBlazorWebView();
         builder.Services.AddMudServices();
@@ -32,19 +35,10 @@ public static class MauiProgram
         builder.Services.AddScoped<ITransactionsService, TransactionsService>();
         builder.Services.AddScoped<ITransactionTemplateService, TransactionTemplateService>();
         builder.Services.AddScoped<IBudgetsService, BudgetsService>();
-        builder.Services.AddScoped<IGamificationService, GamificationService>();
-        builder.Services.AddScoped<IExportService, ExportService>();
+        builder.Services.AddScoped<ISavingsGoalService, SavingsGoalService>();
+        // Removed: IGamificationService - not part of MVP
         builder.Services.AddScoped<IUserService, UserService>();
-        builder.Services.AddScoped<IHydrationService, HydrationService>();
-        builder.Services.AddScoped<IMedicationService, MedicationService>();
-        builder.Services.AddScoped<IHouseholdTaskService, HouseholdTaskService>();
-        builder.Services.AddScoped<IWellbeingAnalyticsService, WellbeingAnalyticsService>();
-        builder.Services.AddScoped<IValidationService, ValidationService>();
-        builder.Services.AddScoped<INotificationService, NotificationService>();
-
-        // Family Banking Services
-        builder.Services.AddScoped<IFamilyBankingService, FamilyBankingService>();
-        builder.Services.AddScoped<IFamilyAIService, FamilyAIService>();
+        // Removed: Wellbeing and AI services - not part of MVP
 
         builder.Services.AddSingleton<AuthState>();
 
@@ -62,7 +56,7 @@ public static class MauiProgram
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 EnsureSchemaUpToDate(db);
-                Seed(db);
+                Seed(db).Wait();
 
                 // Seed transaction templates after main seeding
                 var templateService = scope.ServiceProvider.GetRequiredService<ITransactionTemplateService>();
@@ -79,7 +73,7 @@ public static class MauiProgram
         return app;
     }
 
-    private static void Seed(AppDbContext db)
+    private static async Task Seed(AppDbContext db)
     {
         if (!db.Users.Any())
         {
@@ -90,25 +84,66 @@ public static class MauiProgram
             db.Users.Add(new Models.UserProfile { Name = "You", Salt = salt, PinHash = hash });
         }
 
+        // Ensure family accounts and members exist first
+        await EnsureFamilyDataExists(db);
+
+        // Seed Budgets with proper relationships
         if (!db.Budgets.Any())
         {
             var month = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-            db.Budgets.AddRange(new[]
+            var defaultFamily = await db.FamilyAccounts.FirstOrDefaultAsync();
+            var defaultMember = await db.FamilyMembers.FirstOrDefaultAsync();
+
+            if (defaultFamily != null && defaultMember != null)
             {
-                new Models.Budget { Category = "Food", Limit = 600, Month = month },
-                new Models.Budget { Category = "Transport", Limit = 200, Month = month },
-                new Models.Budget { Category = "Rent", Limit = 1800, Month = month },
-            });
+                // Create overall family budget
+                var overallBudget = Models.Budget.CreateOverallFamilyBudget(
+                    defaultFamily.FamilyId,
+                    2600m,
+                    defaultMember.MemberId);
+                db.Budgets.Add(overallBudget);
+            }
         }
 
+        // Seed Transactions with proper relationships
         if (!db.Transactions.Any())
         {
-            db.Transactions.AddRange(new[]
+            var defaultMember = await db.FamilyMembers.FirstOrDefaultAsync();
+            var salaryCategory = await db.TransactionCategories.FirstOrDefaultAsync(c => c.Name == "Salary");
+            var housingCategory = await db.TransactionCategories.FirstOrDefaultAsync(c => c.Name == "Housing");
+            var groceriesCategory = await db.TransactionCategories.FirstOrDefaultAsync(c => c.Name == "Groceries");
+
+            if (defaultMember != null && salaryCategory != null && housingCategory != null && groceriesCategory != null)
             {
-                new Models.Transaction { User = "Parent", Category = "Salary", Amount = 5000, IsIncome = true, Date = DateTime.Today.AddDays(-10), Description = "Monthly" },
-                new Models.Transaction { User = "Parent", Category = "Rent", Amount = 1800, Date = DateTime.Today.AddDays(-9), Description = "Apartment" },
-                new Models.Transaction { User = "Child", Category = "Food", Amount = 45.50m, Date = DateTime.Today.AddDays(-2), Description = "Groceries" },
-            });
+                db.Transactions.AddRange(new[]
+                {
+                    new Models.Transaction
+                    {
+                        FamilyMemberId = defaultMember.MemberId,
+                        CategoryId = salaryCategory.Id,
+                        Amount = 5000,
+                        Type = Models.TransactionType.Income,
+                        Date = DateTime.Today.AddDays(-10),
+                        Description = "Monthly Salary"
+                    },
+                    new Models.Transaction
+                    {
+                        FamilyMemberId = defaultMember.MemberId,
+                        CategoryId = housingCategory.Id,
+                        Amount = 1800,
+                        Date = DateTime.Today.AddDays(-9),
+                        Description = "Monthly Rent"
+                    },
+                    new Models.Transaction
+                    {
+                        FamilyMemberId = defaultMember.MemberId,
+                        CategoryId = groceriesCategory.Id,
+                        Amount = 45.50m,
+                        Date = DateTime.Today.AddDays(-2),
+                        Description = "Weekly Groceries"
+                    },
+                });
+            }
         }
 
         // Seed Family Banking data
@@ -251,6 +286,39 @@ public static class MauiProgram
             // As a last resort try recreating the database
             db.Database.EnsureDeleted();
             db.Database.EnsureCreated();
+        }
+    }
+
+    private static async Task EnsureFamilyDataExists(AppDbContext db)
+    {
+        // This method ensures there's at least one family account and member for seeding
+        if (!await db.FamilyAccounts.AnyAsync())
+        {
+            var familyAccount = new Models.FamilyAccount
+            {
+                FamilyId = Guid.NewGuid().ToString(),
+                FamilyName = "Sample Family",
+                TotalBalance = 2500m
+            };
+            db.FamilyAccounts.Add(familyAccount);
+
+            var defaultMember = new Models.FamilyMember
+            {
+                FamilyId = familyAccount.FamilyId,
+                Name = "Parent",
+                Role = "Parent",
+                Balance = 2500m,
+                MonthlyAllowance = 0m,
+                IsOnline = true,
+                SpendingLimit = 1500m,
+                SpentThisMonth = 800m,
+                TransactionsThisMonth = 18,
+                SavingsGoalProgress = 0.60,
+                AchievementPoints = 120
+            };
+            db.FamilyMembers.Add(defaultMember);
+
+            await db.SaveChangesAsync();
         }
     }
 }
