@@ -102,8 +102,8 @@
                 </MudSelect>
                 <MudSelect T="string" Dense="true" Label="Status" Variant="Variant.Outlined" @bind-Value="_filterStatus" Style="min-width: 150px;">
                     <MudSelectItem Value="@string.Empty">All Status</MudSelectItem>
-                    <MudSelectItem Value="Active">Active</MudSelectItem>
-                    <MudSelectItem Value="Completed">Completed</MudSelectItem>
+                    @* <MudSelectItem Value="Active">Active</MudSelectItem> *@
+                    @* <MudSelectItem Value="Completed">Completed</MudSelectItem> *@
                 </MudSelect>
             </div>
         </div>
@@ -262,7 +262,7 @@
         var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true, Position = DialogPosition.Center };
         var dialog = DialogService.Show<DotnetFinancialTrackerApp.Components.Dialogs.CreateSavingsGoalDialog>("Create Savings Goal", parameters, options);
         var result = await dialog.Result;
-
+    
         if (!result.Canceled && result.Data is SavingsGoal goal)
         {
             try
@@ -280,7 +280,6 @@
 
     private async Task OpenGoalActions(MouseEventArgs e, SavingsGoal goal)
     {
-        e.StopPropagation();
 
         var parameters = new DialogParameters
         {
@@ -299,7 +298,6 @@
 
     private async Task OpenContributeDialog(MouseEventArgs e, SavingsGoal goal)
     {
-        e.StopPropagation();
 
         var parameters = new DialogParameters
         {

@@ -51,32 +51,6 @@
                                          Class="budget-progress-bar" />
                     </div>
                 </div>
-
-                <!-- Enhanced Savings Action -->
-                @if (_budgetRemaining > 0)
-                {
-                    <div class="savings-action-section">
-                        <div class="savings-transfer-card">
-                            <div class="transfer-info">
-                                <MudIcon Icon="@Icons.Material.Filled.Savings"  Size="Size.Medium" Class="transfer-icon" />
-                                <div class="transfer-details">
-                                    <MudText Typo="Typo.subtitle1" Class="transfer-title">Save This Month's Surplus</MudText>
-                                    <MudText Typo="Typo.body2" Class="transfer-amount">@_budgetRemaining.ToString("C", CultureInfo.CurrentCulture) available to save</MudText>
-                                </div>
-                            </div>
-                            <MudButton 
-                                    Variant="Variant.Filled"
-                                    Size="Size.Medium"
-                                    OnClick="@HandleTransferToSavings"
-                                    StartIcon="@Icons.Material.Filled.Add"
-                                    Elevation="0"
-                                    Style="background-color: black; color: white;"
-                                    >
-                                Save It
-                            </MudButton>
-                        </div>
-                    </div>
-                }
             </MudCardContent>
         </MudCard>
     </div>
@@ -129,69 +103,6 @@
     </div>
 
 
-    <!-- Family Members Budget Status -->
-    <div class="family-section">
-        <div class="section-header">
-            <MudText Typo="Typo.h6">Family Budget Status</MudText>
-        </div>
-
-        @if (_familyMembers.Count == 0)
-        {
-            <MudCard Class="empty-card" Elevation="0">
-                <MudCardContent Class="text-center">
-                    <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Color="Color.Default" Style="color: black;" />
-                    <MudText Typo="Typo.h6" Class="mt-2">No family members</MudText>
-                    <MudText Typo="Typo.body2" Class="mb-3">Add family members to track their spending</MudText>
-                    <MudButton Variant="Variant.Filled" Color="Color.Default" Elevation="0" OnClick="@NavigateToFinance" Style="background-color: black; color: white;">
-                        Get Started
-                    </MudButton>
-                </MudCardContent>
-            </MudCard>
-        }
-        else
-        {
-            <MudGrid>
-                @foreach (var member in _familyMembers)
-                {
-                    <MudItem xs="6" md="3">
-                        <MudCard Class="member-card" Elevation="0">
-                            <MudCardContent>
-                                <div class="member-header">
-                                    <MudAvatar Size="Size.Medium" Color="Color.Default" Style="background-color: black; color: white;">
-                                        @GetMemberInitial(member.Name)
-                                    </MudAvatar>
-                                    <MudText Typo="Typo.subtitle2" Class="member-name">@member.Name</MudText>
-                                </div>
-
-                                <div class="member-chart">
-                                    <MudProgressCircular Value="@GetMemberBudgetPercentage(member)"
-                                                       Size="Size.Small"
-                                                       Color="Color.Primary"
-                                                       StrokeWidth="4"
-                                                       Class="member-donut-large">
-                                        <div class="member-chart-center">
-                                            <MudText Typo="Typo.h6" Class="member-percentage-large">@GetMemberBudgetPercentage(member).ToString("F0")%</MudText>
-                                        </div>
-                                    </MudProgressCircular>
-                                </div>
-
-                                <div class="member-stats">
-                                    <div class="member-stat">
-                                        <MudText Typo="Typo.caption" Class="stat-label">Spent</MudText>
-                                        <MudText Typo="Typo.body1" Class="stat-amount">@member.SpentThisMonth.ToString("C", CultureInfo.CurrentCulture)</MudText>
-                                    </div>
-                                    <div class="member-stat">
-                                        <MudText Typo="Typo.caption" Class="stat-label">Budget</MudText>
-                                        <MudText Typo="Typo.body1" Class="stat-amount">@member.SpendingLimit.ToString("C", CultureInfo.CurrentCulture)</MudText>
-                                    </div>
-                                </div>
-                            </MudCardContent>
-                        </MudCard>
-                    </MudItem>
-                }
-            </MudGrid>
-        }
-    </div>
 </MudContainer>
 
 @code {
@@ -296,16 +207,7 @@
         return Color.Default; // Consistent black color for all budget states
     }
 
-    private async Task HandleTransferToSavings()
-    {
-        // TODO: Implement actual transfer logic when savings service is available
-        // For now, just show a success message
-        await Task.Delay(500); // Simulate API call
 
-        // In a real implementation:
-        // var success = await FamilyService.TransferToSavingsAsync(Auth.CurrentUserId, _budgetRemaining, "Monthly budget surplus");
-        // if (success) { await LoadDataAsync(); }
-    }
 
 
     private void NavigateToFinance() => Nav.NavigateTo("/finance");
