@@ -80,11 +80,7 @@ public class AppDbContext : DbContext
             .HasForeignKey(b => b.FamilyId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<Budget>()
-            .HasOne(b => b.Category)
-            .WithMany(c => c.Budgets)
-            .HasForeignKey(b => b.CategoryId)
-            .OnDelete(DeleteBehavior.SetNull);
+        // Budget no longer has category relationship
 
         modelBuilder.Entity<Budget>()
             .HasOne(b => b.CreatedBy)
@@ -128,8 +124,8 @@ public class AppDbContext : DbContext
             .HasDatabaseName("IX_Transaction_Category_Date");
 
         modelBuilder.Entity<Budget>()
-            .HasIndex(b => new { b.FamilyId, b.Month, b.IsOverallBudget })
-            .HasDatabaseName("IX_Budget_Family_Month_Overall");
+            .HasIndex(b => new { b.FamilyId, b.Month })
+            .HasDatabaseName("IX_Budget_Family_Month");
 
         modelBuilder.Entity<SavingsGoal>()
             .HasIndex(s => new { s.FamilyId, s.IsActive })

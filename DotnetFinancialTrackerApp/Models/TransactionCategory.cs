@@ -30,7 +30,6 @@ public class TransactionCategory
 
     // Navigation properties
     public virtual ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
-    public virtual ICollection<Budget> Budgets { get; set; } = new List<Budget>();
 
     // Methods
     public static List<TransactionCategory> GetDefaultCategories()

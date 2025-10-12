@@ -1,7 +1,4 @@
 @using DotnetFinancialTrackerApp.Models
-@using DotnetFinancialTrackerApp.Data
-@using Microsoft.EntityFrameworkCore
-@inject AppDbContext DbContext
 
 <MudDialog MaxWidth="MaxWidth.Small">
     <TitleContent>
@@ -11,17 +8,20 @@
     <DialogContent>
         <MudForm @ref="_form" @bind-IsValid="_isValid" ValidationDelay="0">
             <MudStack Spacing="3">
-                <MudSelect T="TransactionCategory?"
-                           Label="Category"
-                           Variant="Variant.Outlined"
-                           @bind-Value="_model.Category"
-                           ToStringFunc="@(c => c?.Name ?? "None")"
-                           Clearable="true">
-                    @foreach (var category in _categories)
-                    {
-                        <MudSelectItem Value="category">@category.Name</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAlert Severity="Severity.Info" Dense="true">
+                    This budget will apply to all family spending for the selected month.
+                </MudAlert>
+
+                <MudTextField Label="Budget Name"
+                              Variant="Variant.Outlined"
+                              @bind-Value="_model.Name"
+                              Placeholder="Family Budget" />
+
+                <MudTextField Label="Description"
+                              Variant="Variant.Outlined"
+                              @bind-Value="_model.Description"
+                              Lines="2"
+                              Placeholder="Monthly spending limit for the entire family" />
 
                 <MudNumericField T="decimal"
                                  Label="Budget Limit"
@@ -60,27 +60,31 @@
     private MudForm? _form;
     private bool _isValid;
     private DateTime? _budgetMonth;
-    private List<TransactionCategory> _categories = new();
 
-    private string Title => _model.Id == 0 ? "Add Budget" : "Edit Budget";
+    private string Title => _model.Id == 0 ? "Add Family Budget" : "Edit Family Budget";
 
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync()
     {
-        _categories = await DbContext.TransactionCategories
-            .Where(c => c.IsActive && !c.IsIncomeCategory)
-            .OrderBy(c => c.SortOrder)
-            .ToListAsync();
-
         if (Model is not null)
         {
             _model.Id = Model.Id;
-            _model.Category = Model.Category;
-            _model.CategoryId = Model.CategoryId;
+            _model.Name = Model.Name;
+            _model.Description = Model.Description;
             _model.Limit = Model.Limit;
             _model.Month = Model.Month;
+            _model.FamilyId = Model.FamilyId;
+            _model.CreatedByMemberId = Model.CreatedByMemberId;
+        }
+        else
+        {
+            // Set defaults for new budget
+            _model.Name = "Family Budget";
+            _model.Description = "Monthly spending limit for the entire family";
         }
 
         _budgetMonth = _model.Month == default ? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1) : _model.Month;
+
+        return Task.CompletedTask;
     }
 
     private string? ValidateLimit(decimal? value)
@@ -111,7 +115,12 @@
 
         var month = _budgetMonth.Value;
         _model.Month = new DateTime(month.Year, month.Month, 1);
-        _model.CategoryId = _model.Category?.Id;
+
+        // Ensure name is set
+        if (string.IsNullOrWhiteSpace(_model.Name))
+        {
+            _model.Name = "Family Budget";
+        }
 
         MudDialog.Close(DialogResult.Ok(_model));
     }

@@ -1,0 +1,364 @@
+@using DotnetFinancialTrackerApp.Models
+@using DotnetFinancialTrackerApp.Services
+@using System.ComponentModel.DataAnnotations
+@inject IUserService UserService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudStack Spacing="4">
+    <!-- Change PIN Section -->
+    <MudCard Elevation="0" Class="pa-6" Style="border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 12px;">
+        <MudCardContent>
+            <MudText Typo="Typo.h6" Class="mb-4" Style="font-weight: 600;">Change PIN</MudText>
+
+            <EditForm Model="@_pinModel" OnValidSubmit="@ChangePIN">
+                <DataAnnotationsValidator />
+                <MudStack Spacing="4">
+                    <MudTextField @bind-Value="_pinModel.CurrentPin"
+                                 Label="Current PIN"
+                                 Variant="Variant.Outlined"
+                                 InputType="@(_showCurrentPin ? InputType.Text : InputType.Password)"
+                                 Required="true"
+                                 For="@(() => _pinModel.CurrentPin)"
+                                 Adornment="Adornment.End"
+                                 AdornmentIcon="@(_showCurrentPin ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)"
+                                 OnAdornmentClick="@(() => _showCurrentPin = !_showCurrentPin)" />
+
+                    <MudTextField @bind-Value="_pinModel.NewPin"
+                                 Label="New PIN"
+                                 Variant="Variant.Outlined"
+                                 InputType="@(_showNewPin ? InputType.Text : InputType.Password)"
+                                 Required="true"
+                                 For="@(() => _pinModel.NewPin)"
+                                 Adornment="Adornment.End"
+                                 AdornmentIcon="@(_showNewPin ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)"
+                                 OnAdornmentClick="@(() => _showNewPin = !_showNewPin)" />
+
+                    <MudTextField @bind-Value="_pinModel.ConfirmPin"
+                                 Label="Confirm New PIN"
+                                 Variant="Variant.Outlined"
+                                 InputType="@(_showConfirmPin ? InputType.Text : InputType.Password)"
+                                 Required="true"
+                                 For="@(() => _pinModel.ConfirmPin)"
+                                 Adornment="Adornment.End"
+                                 AdornmentIcon="@(_showConfirmPin ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)"
+                                 OnAdornmentClick="@(() => _showConfirmPin = !_showConfirmPin)" />
+
+                    @if (!string.IsNullOrEmpty(_pinValidationMessage))
+                    {
+                        <MudAlert Severity="@_pinValidationSeverity" Class="mt-2">
+                            @_pinValidationMessage
+                        </MudAlert>
+                    }
+                </MudStack>
+
+                <ValidationSummary />
+
+                <MudCardActions Class="pa-0 mt-4">
+                    <MudButton ButtonType="ButtonType.Submit"
+                              Variant="Variant.Filled"
+                              Color="Color.Primary"
+                              Size="Size.Large"
+                              Disabled="@_isChangingPin"
+                              Style="background-color: #000; color: white;">
+                        @if (_isChangingPin)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                            <span>Updating...</span>
+                        }
+                        else
+                        {
+                            <span>Update PIN</span>
+                        }
+                    </MudButton>
+                </MudCardActions>
+            </EditForm>
+        </MudCardContent>
+    </MudCard>
+
+    <!-- Security Settings -->
+    <MudCard Elevation="0" Class="pa-6" Style="border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 12px;">
+        <MudCardContent>
+            <MudText Typo="Typo.h6" Class="mb-4" Style="font-weight: 600;">Security Settings</MudText>
+
+            <MudStack Spacing="3">
+                <div class="security-setting">
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Auto-lock Timer</MudText>
+                        <MudText Typo="Typo.body2" Style="color: #666;">Automatically lock the app after inactivity</MudText>
+                    </div>
+                    <MudSelect @bind-Value="_autoLockMinutes"
+                              Variant="Variant.Outlined"
+                              Style="min-width: 120px;">
+                        <MudSelectItem Value="1">1 minute</MudSelectItem>
+                        <MudSelectItem Value="5">5 minutes</MudSelectItem>
+                        <MudSelectItem Value="15">15 minutes</MudSelectItem>
+                        <MudSelectItem Value="30">30 minutes</MudSelectItem>
+                        <MudSelectItem Value="0">Never</MudSelectItem>
+                    </MudSelect>
+                </div>
+
+                <MudDivider />
+
+                <div class="security-setting">
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Biometric Authentication</MudText>
+                        <MudText Typo="Typo.body2" Style="color: #666;">Use fingerprint or face recognition</MudText>
+                    </div>
+                    <MudSwitch @bind-Value="_biometricEnabled"
+                              Color="Color.Primary" />
+                </div>
+
+                <MudDivider />
+
+                <div class="security-setting">
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Two-Factor Authentication</MudText>
+                        <MudText Typo="Typo.body2" Style="color: #666;">Add an extra layer of security</MudText>
+                    </div>
+                    <MudSwitch @bind-Value="_twoFactorEnabled"
+                              Color="Color.Primary" />
+                </div>
+
+                <MudDivider />
+
+                <div class="security-setting">
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Login Notifications</MudText>
+                        <MudText Typo="Typo.body2" Style="color: #666;">Get notified of new device logins</MudText>
+                    </div>
+                    <MudSwitch @bind-Value="_loginNotificationsEnabled"
+                              Color="Color.Primary" />
+                </div>
+            </MudStack>
+
+            <MudCardActions Class="pa-0 mt-4">
+                <MudButton Variant="Variant.Filled"
+                          Color="Color.Primary"
+                          Size="Size.Large"
+                          OnClick="@SaveSecuritySettings"
+                          Disabled="@_isSavingSettings"
+                          Style="background-color: #000; color: white;">
+                    @if (_isSavingSettings)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                        <span>Saving...</span>
+                    }
+                    else
+                    {
+                        <span>Save Security Settings</span>
+                    }
+                </MudButton>
+            </MudCardActions>
+        </MudCardContent>
+    </MudCard>
+
+    <!-- Account Actions -->
+    <MudCard Elevation="0" Class="pa-6" Style="border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 12px;">
+        <MudCardContent>
+            <MudText Typo="Typo.h6" Class="mb-4" Style="font-weight: 600;">Account Actions</MudText>
+
+            <MudStack Spacing="3">
+                <MudButton Variant="Variant.Outlined"
+                          Color="Color.Warning"
+                          StartIcon="@Icons.Material.Filled.Lock"
+                          OnClick="@LockAccount"
+                          FullWidth="true">
+                    Lock Account Temporarily
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined"
+                          Color="Color.Error"
+                          StartIcon="@Icons.Material.Filled.DeleteForever"
+                          OnClick="@DeleteAccount"
+                          FullWidth="true">
+                    Delete Account
+                </MudButton>
+            </MudStack>
+        </MudCardContent>
+    </MudCard>
+</MudStack>
+
+@code {
+    [Parameter] public UserProfile? CurrentUser { get; set; }
+    [Parameter] public EventCallback OnPinUpdated { get; set; }
+
+    private PinChangeModel _pinModel = new();
+    private bool _isChangingPin = false;
+    private bool _isSavingSettings = false;
+    private bool _showCurrentPin = false;
+    private bool _showNewPin = false;
+    private bool _showConfirmPin = false;
+    private string _pinValidationMessage = string.Empty;
+    private Severity _pinValidationSeverity = Severity.Info;
+
+    // Security settings
+    private int _autoLockMinutes = 5;
+    private bool _biometricEnabled = false;
+    private bool _twoFactorEnabled = false;
+    private bool _loginNotificationsEnabled = true;
+
+    protected override void OnParametersSet()
+    {
+        _pinModel = new PinChangeModel();
+        ValidatePin();
+    }
+
+    private void ValidatePin()
+    {
+        if (string.IsNullOrEmpty(_pinModel.NewPin))
+        {
+            _pinValidationMessage = string.Empty;
+            return;
+        }
+
+        if (_pinModel.NewPin.Length < 4 || _pinModel.NewPin.Length > 6)
+        {
+            _pinValidationMessage = "PIN must be 4-6 digits long";
+            _pinValidationSeverity = Severity.Error;
+        }
+        else if (!_pinModel.NewPin.All(char.IsDigit))
+        {
+            _pinValidationMessage = "PIN must contain only numbers";
+            _pinValidationSeverity = Severity.Error;
+        }
+        else if (_pinModel.NewPin != _pinModel.ConfirmPin && !string.IsNullOrEmpty(_pinModel.ConfirmPin))
+        {
+            _pinValidationMessage = "PINs do not match";
+            _pinValidationSeverity = Severity.Error;
+        }
+        else
+        {
+            _pinValidationMessage = "PIN strength: Good";
+            _pinValidationSeverity = Severity.Success;
+        }
+    }
+
+    private async Task ChangePIN()
+    {
+        if (CurrentUser == null) return;
+
+        try
+        {
+            _isChangingPin = true;
+
+            // Validate PIN format
+            if (_pinModel.NewPin.Length < 4 || _pinModel.NewPin.Length > 6 || !_pinModel.NewPin.All(char.IsDigit))
+            {
+                Snackbar.Add("PIN must be 4-6 digits long", Severity.Error);
+                return;
+            }
+
+            if (_pinModel.NewPin != _pinModel.ConfirmPin)
+            {
+                Snackbar.Add("New PIN and confirmation do not match", Severity.Error);
+                return;
+            }
+
+            var success = await UserService.UpdatePinAsync(CurrentUser.Id, _pinModel.CurrentPin, _pinModel.NewPin);
+
+            if (success)
+            {
+                _pinModel = new PinChangeModel();
+                await OnPinUpdated.InvokeAsync();
+                Snackbar.Add("PIN updated successfully", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Failed to update PIN. Please check your current PIN.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error updating PIN: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isChangingPin = false;
+        }
+    }
+
+    private async Task SaveSecuritySettings()
+    {
+        try
+        {
+            _isSavingSettings = true;
+
+            // TODO: Implement saving security settings to user preferences
+            await Task.Delay(1000); // Simulate API call
+
+            Snackbar.Add("Security settings saved successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving security settings: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSavingSettings = false;
+        }
+    }
+
+    private async Task LockAccount()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+        var result = await DialogService.ShowMessageBox(
+            "Lock Account",
+            "Are you sure you want to temporarily lock your account? You will need to contact support to unlock it.",
+            yesText: "Lock Account",
+            cancelText: "Cancel",
+            options: options);
+
+        if (result == true)
+        {
+            Snackbar.Add("Account lock feature coming soon", Severity.Info);
+        }
+    }
+
+    private async Task DeleteAccount()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+        var result = await DialogService.ShowMessageBox(
+            "Delete Account",
+            "Are you sure you want to permanently delete your account? This action cannot be undone and all your data will be lost.",
+            yesText: "Delete Account",
+            cancelText: "Cancel",
+            options: options);
+
+        if (result == true)
+        {
+            Snackbar.Add("Account deletion feature coming soon", Severity.Warning);
+        }
+    }
+
+    public class PinChangeModel
+    {
+        [Required(ErrorMessage = "Current PIN is required")]
+        [StringLength(6, MinimumLength = 4, ErrorMessage = "PIN must be 4-6 digits")]
+        [RegularExpression(@"^\d+$", ErrorMessage = "PIN must contain only numbers")]
+        public string CurrentPin { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "New PIN is required")]
+        [StringLength(6, MinimumLength = 4, ErrorMessage = "PIN must be 4-6 digits")]
+        [RegularExpression(@"^\d+$", ErrorMessage = "PIN must contain only numbers")]
+        public string NewPin { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "PIN confirmation is required")]
+        [Compare(nameof(NewPin), ErrorMessage = "PINs do not match")]
+        public string ConfirmPin { get; set; } = string.Empty;
+    }
+}
+
+<style>
+.security-setting {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+}
+
+.security-setting > div:first-child {
+    flex: 1;
+    margin-right: 16px;
+}
+</style>

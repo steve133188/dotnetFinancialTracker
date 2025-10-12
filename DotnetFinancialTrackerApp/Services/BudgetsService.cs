@@ -21,7 +21,7 @@ public class BudgetsService : IBudgetsService
             var first = new DateTime(month.Value.Year, month.Value.Month, 1);
             q = q.Where(b => b.Month.Year == first.Year && b.Month.Month == first.Month);
         }
-        return await q.OrderBy(b => b.Category).ToListAsync();
+        return await q.OrderBy(b => b.Month).ToListAsync();
     }
 
     public async Task<Budget?> GetByIdAsync(int id) => await _db.Budgets.FindAsync(id);

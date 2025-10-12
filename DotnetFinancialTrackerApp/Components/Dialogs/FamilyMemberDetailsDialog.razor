@@ -1,0 +1,229 @@
+@using DotnetFinancialTrackerApp.Models
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6" Class="mb-4">@Member.Name - Details</MudText>
+
+        <MudStack Spacing="4">
+            <!-- Profile Section -->
+            <MudCard Elevation="0" Class="pa-4" Style="border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 8px;">
+                <div class="d-flex align-center gap-4">
+                    <MudAvatar Size="Size.Large" Class="member-details-avatar">
+                        @if (!string.IsNullOrEmpty(Member.ProfileImageUrl))
+                        {
+                            <MudImage Src="@Member.ProfileImageUrl" Alt="@Member.Name" />
+                        }
+                        else
+                        {
+                            @Member.Name.FirstOrDefault()
+                        }
+                    </MudAvatar>
+                    <div>
+                        <MudText Typo="Typo.h6" Style="font-weight: 600;">@Member.Name</MudText>
+                        <div class="d-flex align-center gap-2 mb-2">
+                            <MudChip Label="true" Size="Size.Small" Color="@GetRoleColor(Member.Role)">
+                                @Member.Role
+                            </MudChip>
+                            <MudChip Label="true" Size="Size.Small" Color="@(Member.IsActive ? Color.Success : Color.Default)">
+                                @(Member.IsActive ? "Active" : "Inactive")
+                            </MudChip>
+                        </div>
+                        <MudText Typo="Typo.body2" Style="color: #666;">
+                            @Member.StatusDescription
+                        </MudText>
+                    </div>
+                </div>
+            </MudCard>
+
+            <!-- Financial Overview -->
+            <MudCard Elevation="0" Class="pa-4" Style="border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 8px;">
+                <MudText Typo="Typo.subtitle1" Class="mb-3" Style="font-weight: 600;">Financial Overview</MudText>
+
+                <MudGrid>
+                    <MudItem xs="6" md="3">
+                        <div class="detail-stat">
+                            <MudText Typo="Typo.caption" Style="color: #666;">Current Balance</MudText>
+                            <MudText Typo="Typo.h6" Style="@($"font-weight: 600; color: {(Member.Balance >= 0 ? "green" : "red")};")">
+                                @Member.Balance.ToString("C2")
+                            </MudText>
+                        </div>
+                    </MudItem>
+
+                    <MudItem xs="6" md="3">
+                        <div class="detail-stat">
+                            <MudText Typo="Typo.caption" Style="color: #666;">Monthly Allowance</MudText>
+                            <MudText Typo="Typo.h6" Style="font-weight: 600;">
+                                @Member.MonthlyAllowance.ToString("C2")
+                            </MudText>
+                        </div>
+                    </MudItem>
+
+                    <MudItem xs="6" md="3">
+                        <div class="detail-stat">
+                            <MudText Typo="Typo.caption" Style="color: #666;">Spending Limit</MudText>
+                            <MudText Typo="Typo.h6" Style="font-weight: 600;">
+                                @Member.SpendingLimit.ToString("C2")
+                            </MudText>
+                        </div>
+                    </MudItem>
+
+                    <MudItem xs="6" md="3">
+                        <div class="detail-stat">
+                            <MudText Typo="Typo.caption" Style="color: #666;">Spent This Month</MudText>
+                            <MudText Typo="Typo.h6" Style="@($"font-weight: 600; color: {(Member.IsOverBudget ? "red" : "inherit")};")">
+                                @Member.SpentThisMonth.ToString("C2")
+                            </MudText>
+                        </div>
+                    </MudItem>
+                </MudGrid>
+
+                @if (Member.Role == "Child" || Member.Role == "Teen")
+                {
+                    <div class="mt-4">
+                        <div class="d-flex justify-space-between mb-2">
+                            <MudText Typo="Typo.body2">Monthly Spending Progress</MudText>
+                            <MudText Typo="Typo.body2">
+                                @((Member.SpentThisMonth / Math.Max(Member.SpendingLimit, 1) * 100).ToString("F1"))%
+                            </MudText>
+                        </div>
+                        <MudProgressLinear Value="@((double)(Member.SpentThisMonth / Math.Max(Member.SpendingLimit, 1)) * 100)"
+                                          Color="@(Member.IsOverBudget ? Color.Error : Color.Primary)"
+                                          Size="Size.Medium" />
+                        @if (Member.IsOverBudget)
+                        {
+                            <MudText Typo="Typo.caption" Style="color: red;" Class="mt-1">
+                                Over budget by @((Member.SpentThisMonth - Member.SpendingLimit).ToString("C2"))
+                            </MudText>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.caption" Style="color: green;" Class="mt-1">
+                                @Member.RemainingMonthlyLimit.ToString("C2") remaining this month
+                            </MudText>
+                        }
+                    </div>
+                }
+            </MudCard>
+
+            <!-- Activity & Stats -->
+            <MudCard Elevation="0" Class="pa-4" Style="border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 8px;">
+                <MudText Typo="Typo.subtitle1" Class="mb-3" Style="font-weight: 600;">Activity & Statistics</MudText>
+
+                <MudGrid>
+                    <MudItem xs="6">
+                        <div class="detail-stat">
+                            <MudText Typo="Typo.caption" Style="color: #666;">Transactions This Month</MudText>
+                            <MudText Typo="Typo.h6" Style="font-weight: 600;">
+                                @Member.TransactionsThisMonth
+                            </MudText>
+                        </div>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <div class="detail-stat">
+                            <MudText Typo="Typo.caption" Style="color: #666;">Daily Average Spending</MudText>
+                            <MudText Typo="Typo.h6" Style="font-weight: 600;">
+                                @Member.DailyAverageSpending.ToString("C2")
+                            </MudText>
+                        </div>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <div class="detail-stat">
+                            <MudText Typo="Typo.caption" Style="color: #666;">Achievement Points</MudText>
+                            <MudText Typo="Typo.h6" Style="font-weight: 600; color: orange;">
+                                @Member.AchievementPoints
+                            </MudText>
+                        </div>
+                    </MudItem>
+
+                    <MudItem xs="6">
+                        <div class="detail-stat">
+                            <MudText Typo="Typo.caption" Style="color: #666;">Savings Goal Progress</MudText>
+                            <MudText Typo="Typo.h6" Style="font-weight: 600;">
+                                @Member.SavingsGoalProgress.ToString("P1")
+                            </MudText>
+                        </div>
+                    </MudItem>
+                </MudGrid>
+            </MudCard>
+
+            <!-- Account Information -->
+            <MudCard Elevation="0" Class="pa-4" Style="border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 8px;">
+                <MudText Typo="Typo.subtitle1" Class="mb-3" Style="font-weight: 600;">Account Information</MudText>
+
+                <MudStack Spacing="2">
+                    <div class="d-flex justify-space-between">
+                        <MudText Typo="Typo.body2" Style="color: #666;">Member ID</MudText>
+                        <MudText Typo="Typo.body2" Style="font-family: monospace;">@Member.MemberId[..8]...</MudText>
+                    </div>
+
+                    <div class="d-flex justify-space-between">
+                        <MudText Typo="Typo.body2" Style="color: #666;">Family ID</MudText>
+                        <MudText Typo="Typo.body2" Style="font-family: monospace;">@Member.FamilyId[..8]...</MudText>
+                    </div>
+
+                    <div class="d-flex justify-space-between">
+                        <MudText Typo="Typo.body2" Style="color: #666;">Created</MudText>
+                        <MudText Typo="Typo.body2">@Member.CreatedAt.ToString("MMM dd, yyyy")</MudText>
+                    </div>
+
+                    <div class="d-flex justify-space-between">
+                        <MudText Typo="Typo.body2" Style="color: #666;">Last Updated</MudText>
+                        <MudText Typo="Typo.body2">@Member.UpdatedAt.ToString("MMM dd, yyyy")</MudText>
+                    </div>
+
+                    @if (Member.LastActivity.HasValue)
+                    {
+                        <div class="d-flex justify-space-between">
+                            <MudText Typo="Typo.body2" Style="color: #666;">Last Activity</MudText>
+                            <MudText Typo="Typo.body2">@Member.LastActivity.Value.ToString("MMM dd, yyyy HH:mm")</MudText>
+                        </div>
+                    }
+                </MudStack>
+            </MudCard>
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="@Close" Variant="Variant.Filled" Color="Color.Primary" Style="background-color: #000; color: white;">
+            Close
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public FamilyMember Member { get; set; } = null!;
+
+    private void Close()
+    {
+        MudDialog.Close();
+    }
+
+    private Color GetRoleColor(string role) => role.ToLower() switch
+    {
+        "parent" => Color.Primary,
+        "teen" => Color.Secondary,
+        "child" => Color.Success,
+        _ => Color.Default
+    };
+}
+
+<style>
+.member-details-avatar {
+    background: linear-gradient(135deg, rgba(1, 255, 255, 0.2), rgba(1, 255, 255, 0.1));
+    color: #000;
+    font-weight: 600;
+    font-size: 1.5rem;
+}
+
+.detail-stat {
+    text-align: center;
+    padding: 8px;
+}
+
+.detail-stat .mud-typography-h6 {
+    margin-top: 4px;
+}
+</style>

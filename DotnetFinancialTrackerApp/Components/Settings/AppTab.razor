@@ -1,0 +1,440 @@
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudStack Spacing="4">
+    <!-- App Preferences -->
+    <MudCard Elevation="0" Class="pa-6" Style="border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 12px;">
+        <MudCardContent>
+            <MudText Typo="Typo.h6" Class="mb-4" Style="font-weight: 600;">App Preferences</MudText>
+
+            <MudStack Spacing="3">
+                <div class="app-setting">
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Theme</MudText>
+                        <MudText Typo="Typo.body2" Style="color: #666;">Choose your preferred theme</MudText>
+                    </div>
+                    <MudSelect @bind-Value="_selectedTheme"
+                              Variant="Variant.Outlined"
+                              Style="min-width: 140px;">
+                        <MudSelectItem Value="@("Light")">Light</MudSelectItem>
+                        <MudSelectItem Value="@("Dark")">Dark</MudSelectItem>
+                        <MudSelectItem Value="@("Auto")">Auto (System)</MudSelectItem>
+                    </MudSelect>
+                </div>
+
+                <MudDivider />
+
+                <div class="app-setting">
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Default Dashboard View</MudText>
+                        <MudText Typo="Typo.body2" Style="color: #666;">What to show when you open the app</MudText>
+                    </div>
+                    <MudSelect @bind-Value="_defaultView"
+                              Variant="Variant.Outlined"
+                              Style="min-width: 160px;">
+                        <MudSelectItem Value="@("Overview")">Overview</MudSelectItem>
+                        <MudSelectItem Value="@("Transactions")">Recent Transactions</MudSelectItem>
+                        <MudSelectItem Value="@("Budgets")">Budget Summary</MudSelectItem>
+                        <MudSelectItem Value="@("Wellbeing")">Wellbeing</MudSelectItem>
+                    </MudSelect>
+                </div>
+
+                <MudDivider />
+
+                <div class="app-setting">
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Sound Effects</MudText>
+                        <MudText Typo="Typo.body2" Style="color: #666;">Play sounds for app interactions</MudText>
+                    </div>
+                    <MudSwitch @bind-Value="_soundEffectsEnabled"
+                              Color="Color.Primary" />
+                </div>
+
+                <MudDivider />
+
+                <div class="app-setting">
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Haptic Feedback</MudText>
+                        <MudText Typo="Typo.body2" Style="color: #666;">Vibrate on button presses</MudText>
+                    </div>
+                    <MudSwitch @bind-Value="_hapticFeedbackEnabled"
+                              Color="Color.Primary" />
+                </div>
+
+                <MudDivider />
+
+                <div class="app-setting">
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Analytics</MudText>
+                        <MudText Typo="Typo.body2" Style="color: #666;">Help improve the app with usage data</MudText>
+                    </div>
+                    <MudSwitch @bind-Value="_analyticsEnabled"
+                              Color="Color.Primary" />
+                </div>
+            </MudStack>
+
+            <MudCardActions Class="pa-0 mt-4">
+                <MudButton Variant="Variant.Filled"
+                          Color="Color.Primary"
+                          Size="Size.Large"
+                          OnClick="@SaveAppSettings"
+                          Disabled="@_isSavingSettings"
+                          Style="background-color: #000; color: white;">
+                    @if (_isSavingSettings)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                        <span>Saving...</span>
+                    }
+                    else
+                    {
+                        <span>Save Preferences</span>
+                    }
+                </MudButton>
+            </MudCardActions>
+        </MudCardContent>
+    </MudCard>
+
+    <!-- Data Management -->
+    <MudCard Elevation="0" Class="pa-6" Style="border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 12px;">
+        <MudCardContent>
+            <MudText Typo="Typo.h6" Class="mb-4" Style="font-weight: 600;">Data Management</MudText>
+
+            <MudStack Spacing="3">
+                <div class="data-action">
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Export Data</MudText>
+                        <MudText Typo="Typo.body2" Style="color: #666;">Download your financial data</MudText>
+                    </div>
+                    <MudButton Variant="Variant.Outlined"
+                              Color="Color.Primary"
+                              StartIcon="@Icons.Material.Filled.Download"
+                              OnClick="@ExportData">
+                        Export
+                    </MudButton>
+                </div>
+
+                <MudDivider />
+
+                <div class="data-action">
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Import Data</MudText>
+                        <MudText Typo="Typo.body2" Style="color: #666;">Import transactions from other apps</MudText>
+                    </div>
+                    <MudButton Variant="Variant.Outlined"
+                              Color="Color.Primary"
+                              StartIcon="@Icons.Material.Filled.Upload"
+                              OnClick="@ImportData">
+                        Import
+                    </MudButton>
+                </div>
+
+                <MudDivider />
+
+                <div class="data-action">
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Backup to Cloud</MudText>
+                        <MudText Typo="Typo.body2" Style="color: #666;">Sync your data across devices</MudText>
+                    </div>
+                    <MudButton Variant="Variant.Outlined"
+                              Color="Color.Success"
+                              StartIcon="@Icons.Material.Filled.CloudUpload"
+                              OnClick="@BackupToCloud">
+                        Backup
+                    </MudButton>
+                </div>
+
+                <MudDivider />
+
+                <div class="data-action">
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Clear Cache</MudText>
+                        <MudText Typo="Typo.body2" Style="color: #666;">Free up storage space</MudText>
+                    </div>
+                    <MudButton Variant="Variant.Outlined"
+                              Color="Color.Warning"
+                              StartIcon="@Icons.Material.Filled.CleaningServices"
+                              OnClick="@ClearCache">
+                        Clear
+                    </MudButton>
+                </div>
+            </MudStack>
+        </MudCardContent>
+    </MudCard>
+
+    <!-- App Information -->
+    <MudCard Elevation="0" Class="pa-6" Style="border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 12px;">
+        <MudCardContent>
+            <MudText Typo="Typo.h6" Class="mb-4" Style="font-weight: 600;">App Information</MudText>
+
+            <MudStack Spacing="3">
+                <div class="info-item">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Version</MudText>
+                    <MudText Typo="Typo.body2">1.0.0 (Build 1)</MudText>
+                </div>
+
+                <MudDivider />
+
+                <div class="info-item">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Last Updated</MudText>
+                    <MudText Typo="Typo.body2">@DateTime.Now.ToString("MMM dd, yyyy")</MudText>
+                </div>
+
+                <MudDivider />
+
+                <div class="info-item">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Platform</MudText>
+                    <MudText Typo="Typo.body2">.NET MAUI Blazor</MudText>
+                </div>
+
+                <MudDivider />
+
+                <div class="info-item">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Developer</MudText>
+                    <MudText Typo="Typo.body2">Family Finance Team</MudText>
+                </div>
+            </MudStack>
+
+            <MudStack Spacing="2" Class="mt-4">
+                <MudButton Variant="Variant.Text"
+                          Color="Color.Primary"
+                          StartIcon="@Icons.Material.Filled.HelpOutline"
+                          OnClick="@ShowHelp"
+                          FullWidth="true">
+                    Help & Support
+                </MudButton>
+
+                <MudButton Variant="Variant.Text"
+                          Color="Color.Primary"
+                          StartIcon="@Icons.Material.Filled.Description"
+                          OnClick="@ShowPrivacyPolicy"
+                          FullWidth="true">
+                    Privacy Policy
+                </MudButton>
+
+                <MudButton Variant="Variant.Text"
+                          Color="Color.Primary"
+                          StartIcon="@Icons.Material.Filled.Article"
+                          OnClick="@ShowTermsOfService"
+                          FullWidth="true">
+                    Terms of Service
+                </MudButton>
+
+                <MudButton Variant="Variant.Text"
+                          Color="Color.Primary"
+                          StartIcon="@Icons.Material.Filled.BugReport"
+                          OnClick="@ReportBug"
+                          FullWidth="true">
+                    Report a Bug
+                </MudButton>
+            </MudStack>
+        </MudCardContent>
+    </MudCard>
+
+    <!-- Danger Zone -->
+    <MudCard Elevation="0" Class="pa-6" Style="border: 1px solid #f44336; border-radius: 12px; background: rgba(244, 67, 54, 0.02);">
+        <MudCardContent>
+            <MudText Typo="Typo.h6" Class="mb-4" Style="font-weight: 600; color: #f44336;">Danger Zone</MudText>
+
+            <MudStack Spacing="3">
+                <MudButton Variant="Variant.Outlined"
+                          Color="Color.Warning"
+                          StartIcon="@Icons.Material.Filled.RestartAlt"
+                          OnClick="@ResetAppData"
+                          FullWidth="true">
+                    Reset All Data
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined"
+                          Color="Color.Error"
+                          StartIcon="@Icons.Material.Filled.DeleteForever"
+                          OnClick="@UninstallApp"
+                          FullWidth="true">
+                    Uninstall App
+                </MudButton>
+            </MudStack>
+        </MudCardContent>
+    </MudCard>
+</MudStack>
+
+@code {
+    private bool _isSavingSettings = false;
+
+    // App preferences
+    private string _selectedTheme = "Light";
+    private string _defaultView = "Overview";
+    private bool _soundEffectsEnabled = true;
+    private bool _hapticFeedbackEnabled = true;
+    private bool _analyticsEnabled = true;
+
+    private async Task SaveAppSettings()
+    {
+        try
+        {
+            _isSavingSettings = true;
+
+            // TODO: Implement saving app preferences to local storage or user preferences
+            await Task.Delay(1000); // Simulate API call
+
+            Snackbar.Add("App preferences saved successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving app preferences: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSavingSettings = false;
+        }
+    }
+
+    private async Task ExportData()
+    {
+        try
+        {
+            // TODO: Implement data export functionality
+            await Task.Delay(1000); // Simulate export process
+            Snackbar.Add("Data export functionality coming soon", Severity.Info);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error exporting data: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task ImportData()
+    {
+        try
+        {
+            // TODO: Implement data import functionality
+            await Task.Delay(500);
+            Snackbar.Add("Data import functionality coming soon", Severity.Info);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error importing data: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task BackupToCloud()
+    {
+        try
+        {
+            // TODO: Implement cloud backup functionality
+            await Task.Delay(1500); // Simulate backup process
+            Snackbar.Add("Cloud backup functionality coming soon", Severity.Info);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error backing up to cloud: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task ClearCache()
+    {
+        var result = await DialogService.ShowMessageBox(
+            "Clear Cache",
+            "Are you sure you want to clear the app cache? This will remove temporary files and may improve performance.",
+            yesText: "Clear Cache",
+            cancelText: "Cancel");
+
+        if (result == true)
+        {
+            try
+            {
+                // TODO: Implement cache clearing
+                await Task.Delay(500);
+                Snackbar.Add("Cache cleared successfully", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error clearing cache: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task ShowHelp()
+    {
+        // TODO: Navigate to help page or show help dialog
+        Snackbar.Add("Help page coming soon", Severity.Info);
+    }
+
+    private async Task ShowPrivacyPolicy()
+    {
+        // TODO: Navigate to privacy policy page or show dialog
+        Snackbar.Add("Privacy policy page coming soon", Severity.Info);
+    }
+
+    private async Task ShowTermsOfService()
+    {
+        // TODO: Navigate to terms page or show dialog
+        Snackbar.Add("Terms of service page coming soon", Severity.Info);
+    }
+
+    private async Task ReportBug()
+    {
+        // TODO: Open bug report form or email client
+        Snackbar.Add("Bug report functionality coming soon", Severity.Info);
+    }
+
+    private async Task ResetAppData()
+    {
+        var result = await DialogService.ShowMessageBox(
+            "Reset All Data",
+            "Are you sure you want to reset all app data? This will permanently delete all transactions, budgets, and family members. This action cannot be undone.",
+            yesText: "Reset Data",
+            cancelText: "Cancel");
+
+        if (result == true)
+        {
+            // TODO: Implement data reset functionality
+            Snackbar.Add("Data reset functionality coming soon", Severity.Warning);
+        }
+    }
+
+    private async Task UninstallApp()
+    {
+        var result = await DialogService.ShowMessageBox(
+            "Uninstall App",
+            "To uninstall the app, please use your device's app management settings. Would you like guidance on how to do this?",
+            yesText: "Show Instructions",
+            cancelText: "Cancel");
+
+        if (result == true)
+        {
+            Snackbar.Add("Uninstall instructions coming soon", Severity.Info);
+        }
+    }
+}
+
+<style>
+.app-setting {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+}
+
+.app-setting > div:first-child {
+    flex: 1;
+    margin-right: 16px;
+}
+
+.data-action {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+}
+
+.data-action > div:first-child {
+    flex: 1;
+    margin-right: 16px;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+}
+</style>

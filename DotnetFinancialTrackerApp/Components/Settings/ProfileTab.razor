@@ -1,0 +1,231 @@
+@using DotnetFinancialTrackerApp.Models
+@using DotnetFinancialTrackerApp.Services
+@using System.ComponentModel.DataAnnotations
+@inject IUserService UserService
+@inject ISnackbar Snackbar
+
+<MudCard Elevation="0" Class="pa-6" Style="border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 12px;">
+    <MudCardContent>
+        <MudText Typo="Typo.h6" Class="mb-4" Style="font-weight: 600;">Profile Information</MudText>
+
+        @if (_isLoading)
+        {
+            <MudProgressCircular Indeterminate="true" Size="Size.Medium" Class="ma-4" />
+        }
+        else if (CurrentUser != null)
+        {
+            <EditForm Model="@_profileModel" OnValidSubmit="@SaveProfile">
+                <DataAnnotationsValidator />
+                <MudGrid>
+                    <MudItem xs="12" md="4" Class="d-flex justify-center">
+                        <div class="profile-image-container">
+                            <MudAvatar Size="Size.Large" Class="profile-avatar">
+                                @if (!string.IsNullOrEmpty(_profileModel.ProfileImageUrl))
+                                {
+                                    <MudImage Src="@_profileModel.ProfileImageUrl" Alt="Profile" />
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Large" />
+                                }
+                            </MudAvatar>
+                            <MudButton Variant="Variant.Outlined"
+                                      Size="Size.Small"
+                                      Class="mt-2 change-photo-btn"
+                                      OnClick="@ChangeProfileImage">
+                                Change Photo
+                            </MudButton>
+                        </div>
+                    </MudItem>
+
+                    <MudItem xs="12" md="8">
+                        <MudStack Spacing="4">
+                            <MudTextField @bind-Value="_profileModel.Name"
+                                         Label="Full Name"
+                                         Variant="Variant.Outlined"
+                                         Required="true"
+                                         For="@(() => _profileModel.Name)" />
+
+                            <MudTextField @bind-Value="_profileModel.Email"
+                                         Label="Email Address"
+                                         Variant="Variant.Outlined"
+                                         InputType="InputType.Email"
+                                         For="@(() => _profileModel.Email)" />
+
+                            <MudTextField @bind-Value="_profileModel.Phone"
+                                         Label="Phone Number"
+                                         Variant="Variant.Outlined"
+                                         InputType="InputType.Telephone"
+                                         For="@(() => _profileModel.Phone)" />
+
+                            <MudSelect @bind-Value="_profileModel.Language"
+                                      Label="Language"
+                                      Variant="Variant.Outlined"
+                                      For="@(() => _profileModel.Language)">
+                                <MudSelectItem Value="@("English")">English</MudSelectItem>
+                                <MudSelectItem Value="@("Spanish")">Spanish</MudSelectItem>
+                                <MudSelectItem Value="@("French")">French</MudSelectItem>
+                                <MudSelectItem Value="@("German")">German</MudSelectItem>
+                                <MudSelectItem Value="@("Chinese")">Chinese</MudSelectItem>
+                            </MudSelect>
+
+                            <MudSelect @bind-Value="_profileModel.Currency"
+                                      Label="Default Currency"
+                                      Variant="Variant.Outlined"
+                                      For="@(() => _profileModel.Currency)">
+                                <MudSelectItem Value="@("USD")">USD ($)</MudSelectItem>
+                                <MudSelectItem Value="@("EUR")">EUR (€)</MudSelectItem>
+                                <MudSelectItem Value="@("GBP")">GBP (£)</MudSelectItem>
+                                <MudSelectItem Value="@("CAD")">CAD ($)</MudSelectItem>
+                                <MudSelectItem Value="@("AUD")">AUD ($)</MudSelectItem>
+                            </MudSelect>
+
+                            <MudSwitch @bind-Value="_profileModel.NotificationsEnabled"
+                                      Label="Enable Notifications"
+                                      Color="Color.Primary" />
+
+                            <MudSwitch @bind-Value="_profileModel.PrivacyMode"
+                                      Label="Privacy Mode"
+                                      Color="Color.Primary" />
+                        </MudStack>
+                    </MudItem>
+                </MudGrid>
+
+                <ValidationSummary />
+
+                <MudCardActions Class="pa-0 mt-4">
+                    <MudButton ButtonType="ButtonType.Submit"
+                              Variant="Variant.Filled"
+                              Color="Color.Primary"
+                              Size="Size.Large"
+                              Disabled="@_isSaving"
+                              Style="background-color: #000; color: white;">
+                        @if (_isSaving)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                            <span>Saving...</span>
+                        }
+                        else
+                        {
+                            <span>Save Changes</span>
+                        }
+                    </MudButton>
+                </MudCardActions>
+            </EditForm>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Warning">
+                Unable to load user profile. Please try refreshing the page.
+            </MudAlert>
+        }
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public UserProfile? CurrentUser { get; set; }
+    [Parameter] public EventCallback OnUserUpdated { get; set; }
+
+    private ProfileModel _profileModel = new();
+    private bool _isLoading = false;
+    private bool _isSaving = false;
+
+    protected override void OnParametersSet()
+    {
+        if (CurrentUser != null)
+        {
+            _profileModel = new ProfileModel
+            {
+                Name = CurrentUser.Name,
+                Email = string.Empty, // UserProfile doesn't have email, using default
+                Phone = string.Empty, // UserProfile doesn't have phone, using default
+                Language = "English",
+                Currency = "USD",
+                NotificationsEnabled = true,
+                PrivacyMode = false,
+                ProfileImageUrl = string.Empty
+            };
+        }
+    }
+
+    private async Task SaveProfile()
+    {
+        if (CurrentUser == null) return;
+
+        try
+        {
+            _isSaving = true;
+
+            // Update the user name through the service
+            var updatedUser = await UserService.UpdateNameAsync(CurrentUser.Id, _profileModel.Name);
+
+            if (updatedUser != null)
+            {
+                await OnUserUpdated.InvokeAsync();
+                Snackbar.Add("Profile updated successfully", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Failed to update profile", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error updating profile: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task ChangeProfileImage()
+    {
+        // TODO: Implement image picker/upload functionality
+        Snackbar.Add("Image upload functionality coming soon", Severity.Info);
+    }
+
+    public class ProfileModel
+    {
+        [Required(ErrorMessage = "Name is required")]
+        [StringLength(100, ErrorMessage = "Name must be less than 100 characters")]
+        public string Name { get; set; } = string.Empty;
+
+        [EmailAddress(ErrorMessage = "Please enter a valid email address")]
+        public string Email { get; set; } = string.Empty;
+
+        [Phone(ErrorMessage = "Please enter a valid phone number")]
+        public string Phone { get; set; } = string.Empty;
+
+        public string Language { get; set; } = "English";
+        public string Currency { get; set; } = "USD";
+        public bool NotificationsEnabled { get; set; } = true;
+        public bool PrivacyMode { get; set; } = false;
+        public string ProfileImageUrl { get; set; } = string.Empty;
+    }
+}
+
+<style>
+.profile-image-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.profile-avatar {
+    width: 120px;
+    height: 120px;
+    border: 3px solid rgba(1, 255, 255, 0.2);
+}
+
+.change-photo-btn {
+    border-color: #000;
+    color: #000;
+    font-weight: 600;
+}
+
+.change-photo-btn:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+</style>

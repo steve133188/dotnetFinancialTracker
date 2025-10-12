@@ -63,7 +63,7 @@ public class SavingsGoalService : ISavingsGoalService
     public async Task<IEnumerable<SavingsGoal>> GetActiveGoalsAsync(string familyId)
     {
         return await _context.SavingsGoals
-            .Where(g => g.FamilyId == familyId && g.IsActive && !g.IsCompleted)
+            .Where(g => g.FamilyId == familyId && g.IsActive && g.CurrentAmount < g.TargetAmount)
             .Include(g => g.Contributions)
             .OrderBy(g => g.TargetDate ?? DateTime.MaxValue)
             .ToListAsync();
@@ -72,7 +72,7 @@ public class SavingsGoalService : ISavingsGoalService
     public async Task<IEnumerable<SavingsGoal>> GetCompletedGoalsAsync(string familyId)
     {
         return await _context.SavingsGoals
-            .Where(g => g.FamilyId == familyId && g.IsCompleted)
+            .Where(g => g.FamilyId == familyId && g.CurrentAmount >= g.TargetAmount)
             .Include(g => g.Contributions)
             .OrderByDescending(g => g.CreatedDate)
             .ToListAsync();

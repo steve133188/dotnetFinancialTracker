@@ -4,7 +4,7 @@
 @inject AuthState Auth
 @inject DotnetFinancialTrackerApp.Services.ITransactionsService TxSvc
 @inject DotnetFinancialTrackerApp.Services.IBudgetsService BudgetSvc
-@* Removed: IFamilyBankingService - not part of MVP *@
+@inject DotnetFinancialTrackerApp.Services.IFamilyMemberService FamilyMemberSvc
 @inject DotnetFinancialTrackerApp.Services.IUserService UserSvc
 @inject NavigationManager Nav
 
@@ -252,31 +252,40 @@
     {
         try
         {
-            // Create family members based on transaction users from real data
-            var transactions = await TxSvc.GetAsync();
-            var users = transactions.Select(t => t.User).Where(u => !string.IsNullOrEmpty(u)).Distinct().ToList();
+            // Get the default family ID from seeded data
+            var defaultFamilyId = await FamilyMemberSvc.GetDefaultFamilyIdAsync();
 
-            if (users.Any())
+            if (string.IsNullOrEmpty(defaultFamilyId))
             {
-                var currentMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-                var nextMonth = currentMonth.AddMonths(1);
-                var monthlyTransactions = await TxSvc.GetAsync(from: currentMonth, to: nextMonth);
-
-                _familyMembers = users.Select(user => new FamilyMember
-                {
-                    Name = user!,
-                    SpendingLimit = 1500m, // Default limit based on typical family budgets
-                    SpentThisMonth = monthlyTransactions.Where(t => !t.IsIncome && t.User == user).Sum(t => t.Amount)
-                }).ToList();
-            }
-            else
-            {
-                // No transaction data yet, create empty list
                 _familyMembers = new List<FamilyMember>();
+                return;
+            }
+
+            // Load family members with calculated spending from the service
+            _familyMembers = await FamilyMemberSvc.GetFamilyMembersWithSpendingAsync(defaultFamilyId);
+
+            // If no family members exist yet, try to create them from transaction users
+            if (!_familyMembers.Any())
+            {
+                var transactions = await TxSvc.GetAsync();
+                var users = transactions.Select(t => t.User).Where(u => !string.IsNullOrEmpty(u)).Distinct().ToList();
+
+                foreach (var user in users)
+                {
+                    if (!string.IsNullOrEmpty(user))
+                    {
+                        // Create family member for each unique transaction user
+                        await FamilyMemberSvc.GetOrCreateMemberAsync(user, defaultFamilyId, "Parent");
+                    }
+                }
+
+                // Reload family members after creation
+                _familyMembers = await FamilyMemberSvc.GetFamilyMembersWithSpendingAsync(defaultFamilyId);
             }
         }
-        catch
+        catch (Exception ex)
         {
+            _error = $"Error loading family members: {ex.Message}";
             _familyMembers = new List<FamilyMember>();
         }
     }
@@ -284,12 +293,7 @@
 
     private Color GetProgressColor()
     {
-        return BudgetUsedPercentage switch
-        {
-            > 90 => Color.Error,
-            > 75 => Color.Warning,
-            _ => Color.Success
-        };
+        return Color.Default; // Consistent black color for all budget states
     }
 
     private async Task HandleTransferToSavings()

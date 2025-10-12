@@ -268,45 +268,71 @@
         </MudItem>
     </MudGrid>
 
-    <!-- Recent Transactions -->
-    <div class="transactions-section">
+    <!-- Family Member Contributions -->
+    <div class="member-contributions-section">
         <div class="section-header">
-            <MudText Typo="Typo.h6">Recent Transactions</MudText>
-            <MudButton Variant="Variant.Text" Color="Color.Default" Elevation="0" OnClick="@(() => Nav.NavigateTo("/transactions"))" Style="color: black;">
-                View All
-            </MudButton>
+            <MudText Typo="Typo.h6" Class="section-title">Family Member Spending</MudText>
         </div>
 
-        @if (_highlightTransactions.Count == 0)
+        @if (_memberSummaries.Count == 0)
         {
             <MudCard Class="empty-card" Elevation="0">
                 <MudCardContent Class="text-center">
-                    <MudIcon Icon="@Icons.Material.Filled.Receipt" Size="Size.Large" Color="Color.Secondary" />
-                    <MudText Typo="Typo.h6" Class="mt-2">No transactions yet</MudText>
-                    <MudText Typo="Typo.body2" Class="mb-3">No transactions found for this period</MudText>
+                    <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Color="Color.Secondary" />
+                    <MudText Typo="Typo.h6" Class="mt-2">No member data</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-3">No family member spending data for this period</MudText>
                 </MudCardContent>
             </MudCard>
         }
         else
         {
-            <MudCard Class="transactions-card" Elevation="0">
+            <MudCard Class="member-contributions-card" Elevation="0">
                 <MudCardContent>
-                    @foreach (var tx in _highlightTransactions.Take(8))
-                    {
-                        <div class="transaction-item" @onclick="@(() => NavigateToTransaction(tx.Id))">
-                            <div class="transaction-info">
-                                <MudText Typo="Typo.subtitle1">@(tx.Description ?? tx.Category?.Name)</MudText>
-                                <MudText Typo="Typo.caption" Class="transaction-meta">@(string.IsNullOrEmpty(tx.User) ? "Unknown" : tx.User) • @tx.Date.ToString("MMM dd")</MudText>
-                            </div>
-                            <MudText Typo="Typo.subtitle1" Class="transaction-amount">
-                                @((tx.IsIncome ? "+" : "-") + tx.Amount.ToString("C", CultureInfo.CurrentCulture))
-                            </MudText>
-                        </div>
-                        @if (tx != _highlightTransactions.Take(8).Last())
+                    <div class="member-contributions-grid">
+                        @foreach (var (member, index) in _memberSummaries.Select((m, i) => (m, i)))
                         {
-                            <MudDivider />
+                            <div class="member-contribution-item">
+                                <div class="member-header">
+                                    <div class="member-avatar" style="background-color: @GetMemberColorHex(index);">
+                                        <MudIcon Icon="@Icons.Material.Filled.Person" Color="Color.Surface" />
+                                    </div>
+                                    <div class="member-info">
+                                        <MudText Typo="Typo.subtitle1" Class="member-name">@member.Name</MudText>
+                                        <MudText Typo="Typo.caption" Class="member-transactions">@member.TransactionCount transactions</MudText>
+                                    </div>
+                                    <div class="member-amount">
+                                        <MudText Typo="Typo.h6" Class="amount-text">@member.TotalAmount.ToString("C0")</MudText>
+                                        <MudText Typo="Typo.caption" Class="percentage-text">@member.Percentage.ToString("P1")</MudText>
+                                    </div>
+                                </div>
+
+                                <div class="member-progress">
+                                    <MudProgressLinear Value="@member.Percentage"
+                                                     Size="Size.Medium"
+                                                     Color="Color.Default"
+                                                     Style="@($"--mud-palette-default: {GetMemberColorHex(index)};")" />
+                                </div>
+
+                                @if (member.TopCategories.Any())
+                                {
+                                    <div class="member-top-categories">
+                                        <MudText Typo="Typo.caption" Class="categories-label">Top spending:</MudText>
+                                        <div class="categories-list">
+                                            @foreach (var category in member.TopCategories.Take(3))
+                                            {
+                                                <MudChip Size="Size.Small"
+                                                       Color="Color.Default"
+                                                       Variant="Variant.Text"
+                                                       Class="category-chip">
+                                                    @category.CategoryName (@category.Amount.ToString("C0"))
+                                                </MudChip>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
                         }
-                    }
+                    </div>
                 </MudCardContent>
             </MudCard>
         }
@@ -321,6 +347,7 @@
     private List<Transaction> _highlightTransactions = new();
     private List<CategorySummary> _topCategories = new();
     private List<UserProfile> _familyUsers = new();
+    private List<MemberSummary> _memberSummaries = new();
     private List<ChartDataPoint> _chartData = new();
     private List<ChartSeries> _lineChartSeries = new();
     private List<string> _xAxisLabels = new();
@@ -497,6 +524,7 @@
 
         // Build category and chart data
         BuildCategoryData(currentTransactions);
+        BuildMemberSummaryData(currentTransactions);
         BuildChartData(currentTransactions, start, end);
         BuildLineChartSeries(currentTransactions, start, end);
 
@@ -567,12 +595,7 @@
 
     private string GetBalanceStatus() => NetBalance >= 0 ? "Positive" : "Deficit";
 
-    private string GetTrendClass(TrendDirection trend) => trend switch
-    {
-        TrendDirection.Up => "text-error",
-        TrendDirection.Down => "text-success",
-        _ => "text-muted"
-    };
+    private string GetTrendClass(TrendDirection trend) => "text-muted"; // Consistent neutral color for all trends
 
     private string GetTrendText(TrendDirection trend) => trend switch
     {
@@ -592,6 +615,74 @@
 
     private static string NormalizeCategory(string? category)
         => string.IsNullOrWhiteSpace(category) ? "Uncategorized" : category.Trim();
+
+    private void BuildMemberSummaryData(List<Transaction> transactions)
+    {
+        _memberSummaries.Clear();
+
+        if (!transactions.Any())
+        {
+            return;
+        }
+
+        var expenseTransactions = transactions.Where(t => !t.IsIncome && !string.IsNullOrEmpty(t.User)).ToList();
+        var totalExpenses = expenseTransactions.Sum(t => t.Amount);
+
+        if (totalExpenses == 0)
+        {
+            return;
+        }
+
+        var memberGroups = expenseTransactions.GroupBy(t => t.User).ToList();
+
+        foreach (var group in memberGroups)
+        {
+            var memberTransactions = group.ToList();
+            var memberTotal = memberTransactions.Sum(t => t.Amount);
+            var percentage = (double)(memberTotal / totalExpenses);
+
+            // Get top categories for this member
+            var topCategories = memberTransactions
+                .Where(t => t.Category != null)
+                .GroupBy(t => t.Category!.Name)
+                .Select(g => new MemberCategorySummary
+                {
+                    CategoryName = g.Key,
+                    Amount = g.Sum(t => t.Amount),
+                    TransactionCount = g.Count()
+                })
+                .OrderByDescending(c => c.Amount)
+                .Take(3)
+                .ToList();
+
+            _memberSummaries.Add(new MemberSummary
+            {
+                Name = group.Key ?? "Unknown",
+                TotalAmount = memberTotal,
+                TransactionCount = memberTransactions.Count,
+                Percentage = percentage,
+                TopCategories = topCategories
+            });
+        }
+
+        _memberSummaries = _memberSummaries.OrderByDescending(m => m.TotalAmount).ToList();
+    }
+
+    private string GetMemberColorHex(int index)
+    {
+        var colors = new[]
+        {
+            "#4CAF50", // Green
+            "#2196F3", // Blue
+            "#FF9800", // Orange
+            "#9C27B0", // Purple
+            "#F44336", // Red
+            "#00BCD4", // Cyan
+            "#8BC34A", // Light Green
+            "#3F51B5"  // Indigo
+        };
+        return colors[index % colors.Length];
+    }
 
     // Chart helper methods
     private void BuildChartData(List<Transaction> transactions, DateTime start, DateTime end)
@@ -726,7 +817,7 @@
         1 => Color.Secondary,
         2 => Color.Tertiary,
         3 => Color.Info,
-        4 => Color.Success,
+        4 => Color.Default,
         _ => Color.Default
     };
 
@@ -895,6 +986,22 @@
         public double XPosition { get; set; }
         public double YPosition { get; set; }
     }
+
+    public class MemberSummary
+    {
+        public string Name { get; set; } = "";
+        public decimal TotalAmount { get; set; }
+        public int TransactionCount { get; set; }
+        public double Percentage { get; set; }
+        public List<MemberCategorySummary> TopCategories { get; set; } = new();
+    }
+
+    public class MemberCategorySummary
+    {
+        public string CategoryName { get; set; } = "";
+        public decimal Amount { get; set; }
+        public int TransactionCount { get; set; }
+    }
 }
 
 <style>
@@ -1010,11 +1117,11 @@
 }
 
 .metric-amount.income {
-    color: #4CAF50;
+    color: #000000;
 }
 
 .metric-amount.expense {
-    color: #F44336;
+    color: #000000;
 }
 
 .metric-label {
@@ -1209,11 +1316,11 @@
 
 /* Utility Classes */
 .text-success {
-    color: #4CAF50 !important;
+    color: #000000 !important;
 }
 
 .text-error {
-    color: #F44336 !important;
+    color: #000000 !important;
 }
 
 .text-muted {
@@ -1350,5 +1457,132 @@
 .comparison-detail {
     color: rgba(0, 0, 0, 0.5) !important;
     font-size: 0.75rem;
+}
+
+/* Member Contributions Section */
+.member-contributions-section {
+    margin-bottom: 32px;
+}
+
+.member-contributions-card {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.member-contributions-grid {
+    display: grid;
+    gap: 24px;
+}
+
+.member-contribution-item {
+    padding: 20px;
+    background: #FAFAFA;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 16px;
+    transition: all 0.2s ease;
+}
+
+.member-contribution-item:hover {
+    background: #F5F5F5;
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+.member-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.member-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+}
+
+.member-info {
+    flex: 1;
+}
+
+.member-name {
+    color: #000000;
+    font-weight: 600;
+    margin: 0 !important;
+}
+
+.member-transactions {
+    color: rgba(0, 0, 0, 0.6);
+    margin: 4px 0 0 0 !important;
+}
+
+.member-amount {
+    text-align: right;
+}
+
+.amount-text {
+    color: #000000;
+    font-weight: 700;
+    margin: 0 !important;
+}
+
+.percentage-text {
+    color: rgba(0, 0, 0, 0.6);
+    margin: 4px 0 0 0 !important;
+}
+
+.member-progress {
+    margin-bottom: 16px;
+}
+
+.member-top-categories {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.categories-label {
+    color: rgba(0, 0, 0, 0.7);
+    font-weight: 600;
+    margin: 0 !important;
+}
+
+.categories-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.category-chip {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+    color: rgba(0, 0, 0, 0.8) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    font-size: 0.75rem !important;
+}
+
+@@media (max-width: 767px) {
+    .member-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 12px;
+    }
+
+    .member-info, .member-amount {
+        text-align: center;
+    }
+
+    .member-contributions-grid {
+        gap: 16px;
+    }
+
+    .member-contribution-item {
+        padding: 16px;
+    }
 }
 </style>

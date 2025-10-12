@@ -1,180 +1,193 @@
 @page "/wellbeing"
 @using DotnetFinancialTrackerApp.Models
 @using System.Globalization
-@inject DotnetFinancialTrackerApp.Services.IBudgetsService BudgetSvc
-@inject DotnetFinancialTrackerApp.Services.ITransactionsService TxSvc
+@inject DotnetFinancialTrackerApp.Services.ISavingsGoalService SavingsGoalSvc
+@inject DotnetFinancialTrackerApp.Services.IFamilyMemberService FamilyMemberSvc
 @inject AuthState Auth
 @inject IDialogService DialogService
 @inject NavigationManager Nav
+@inject ISnackbar Snackbar
 
-<PageTitle>Budget & Savings</PageTitle>
+<PageTitle>Savings Goals - Family Tracker</PageTitle>
 
-<MudContainer Class="wellbeing-container" MaxWidth="MaxWidth.False">
+<MudContainer Class="savings-container" MaxWidth="MaxWidth.False">
     @if (!string.IsNullOrEmpty(_error))
     {
-        <MudAlert Severity="Severity.Warning" Class="mb-3" ShowCloseIcon="true" CloseIconClicked="@(() => _error = string.Empty)">
+        <MudAlert Severity="Severity.Error" Class="mb-3" ShowCloseIcon="true" CloseIconClicked="@(() => _error = string.Empty)">
             @_error
         </MudAlert>
     }
 
     <!-- Header Section -->
-    <div class="wellbeing-header">
+    <div class="savings-header">
         <div class="header-content">
-            <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Large" Class="header-icon" />
+            <MudIcon Icon="@Icons.Material.Filled.Savings" Size="Size.Large" Class="header-icon" />
             <div class="header-text">
-                <MudText Typo="Typo.h4" Class="header-title">Budget & Savings</MudText>
-                <MudText Typo="Typo.body1" Class="header-subtitle">Manage your family budget and savings goals</MudText>
+                <MudText Typo="Typo.h4" Class="header-title">Savings Goals</MudText>
+                <MudText Typo="Typo.body1" Class="header-subtitle">Track and achieve your family's financial dreams</MudText>
             </div>
         </div>
         <div class="header-actions">
-            <MudButton Variant="Variant.Filled" Color="Color.Default" Elevation="0" StartIcon="@Icons.Material.Filled.AccountBalance" OnClick="@SetupBudget" Style="background-color: black; color: white;">
-                Setup Budget
+            <MudButton Variant="Variant.Filled" Color="Color.Default" Elevation="0" StartIcon="@Icons.Material.Filled.Add" OnClick="@OpenCreateGoalDialog" Style="background-color: black; color: white;">
+                Create Goal
             </MudButton>
         </div>
     </div>
 
-    <!-- Budget Setup Section -->
-    <div class="budget-setup-section">
+    <!-- Summary Cards -->
+    <div class="summary-section">
+        <MudGrid>
+            <MudItem xs="12" md="3">
+                <MudCard Class="summary-card" Elevation="0">
+                    <MudCardContent>
+                        <div class="card-header">
+                            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" />
+                            <MudText Typo="Typo.subtitle1">Total Goals</MudText>
+                        </div>
+                        <MudText Typo="Typo.h4" Class="card-amount">@_allGoals.Count</MudText>
+                        <MudText Typo="Typo.body2" Class="card-meta">@_activeGoals.Count active</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudCard Class="summary-card" Elevation="0">
+                    <MudCardContent>
+                        <div class="card-header">
+                            <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" />
+                            <MudText Typo="Typo.subtitle1">Total Saved</MudText>
+                        </div>
+                        <MudText Typo="Typo.h4" Class="card-amount">@_totalSaved.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                        <MudText Typo="Typo.body2" Class="card-meta">across all goals</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudCard Class="summary-card" Elevation="0">
+                    <MudCardContent>
+                        <div class="card-header">
+                            <MudIcon Icon="@Icons.Material.Filled.Flag" />
+                            <MudText Typo="Typo.subtitle1">Target Amount</MudText>
+                        </div>
+                        <MudText Typo="Typo.h4" Class="card-amount">@_totalTarget.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                        <MudText Typo="Typo.body2" Class="card-meta">remaining: @(_totalTarget - _totalSaved).ToString("C", CultureInfo.CurrentCulture)</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudCard Class="summary-card" Elevation="0">
+                    <MudCardContent>
+                        <div class="card-header">
+                            <MudIcon Icon="@Icons.Material.Filled.Timeline" />
+                            <MudText Typo="Typo.subtitle1">Progress</MudText>
+                        </div>
+                        <MudText Typo="Typo.h4" Class="card-amount">@_overallProgress.ToString("F1")%</MudText>
+                        <MudText Typo="Typo.body2" Class="card-meta">overall completion</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    </div>
+
+    <!-- Goals Section -->
+    <div class="goals-section">
         <div class="section-header">
-            <MudText Typo="Typo.h6" Class="section-title">Overall Family Budget</MudText>
+            <MudText Typo="Typo.h6" Class="section-title">Your Savings Goals</MudText>
+            <div class="header-filters">
+                <MudSelect T="string" Dense="true" Label="Filter" Variant="Variant.Outlined" @bind-Value="_filterCategory" Style="min-width: 150px;">
+                    <MudSelectItem Value="@string.Empty">All Categories</MudSelectItem>
+                    @foreach (var category in _categories)
+                    {
+                        <MudSelectItem Value="@category">@category</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="string" Dense="true" Label="Status" Variant="Variant.Outlined" @bind-Value="_filterStatus" Style="min-width: 150px;">
+                    <MudSelectItem Value="@string.Empty">All Status</MudSelectItem>
+                    <MudSelectItem Value="Active">Active</MudSelectItem>
+                    <MudSelectItem Value="Completed">Completed</MudSelectItem>
+                </MudSelect>
+            </div>
         </div>
 
-        @if (_budgetCount == 0)
+        @if (!_filteredGoals.Any())
         {
-            <MudCard Class="budget-setup-card" Elevation="0">
-                <MudCardContent>
-                    <div class="setup-content">
-                        <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="Color.Default" Size="Size.Large" Style="color: black;" />
-                        <div class="setup-text">
-                            <MudText Typo="Typo.h6">Create Your Overall Family Budget</MudText>
-                            <MudText Typo="Typo.body1" Class="setup-description">
-                                Set up your family's total monthly budget to track overall spending and identify how much you can save toward your goals.
-                            </MudText>
-                            <div class="budget-benefits">
-                                <MudText Typo="Typo.caption" Class="benefit-label">Your overall budget helps:</MudText>
-                                <MudText Typo="Typo.caption" Class="benefit-text">• Track total family spending</MudText>
-                                <MudText Typo="Typo.caption" Class="benefit-text">• Calculate available savings</MudText>
-                                <MudText Typo="Typo.caption" Class="benefit-text">• Plan for savings goals</MudText>
-                                <MudText Typo="Typo.caption" Class="benefit-text">• Monitor monthly progress</MudText>
-                            </div>
-                            <MudButton Variant="Variant.Filled" Color="Color.Default" Elevation="0" OnClick="@SetupBudget" Style="background-color: black; color: white;" Class="mt-3">
-                                Create Family Budget
-                            </MudButton>
-                        </div>
-                    </div>
+            <MudCard Class="empty-state-card" Elevation="0">
+                <MudCardContent Class="text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Savings" Size="Size.Large" Color="Color.Secondary" />
+                    <MudText Typo="Typo.h6" Class="mt-2">@(_allGoals.Any() ? "No goals match your filters" : "No savings goals yet")</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-3">@(_allGoals.Any() ? "Try adjusting your filters or create a new goal" : "Create your first savings goal to start building your future")</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Default" Elevation="0" StartIcon="@Icons.Material.Filled.Add" OnClick="@OpenCreateGoalDialog" Style="background-color: black; color: white;">
+                        Create Savings Goal
+                    </MudButton>
                 </MudCardContent>
             </MudCard>
         }
         else
         {
-            <MudCard Class="budget-summary-card" Elevation="0">
-                <MudCardContent>
-                    <div class="budget-status">
-                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" />
-                        <div class="status-text">
-                            <MudText Typo="Typo.h6">Family Budget Active</MudText>
-                            <MudText Typo="Typo.body2">Your overall family budget is tracking total spending.</MudText>
-                        </div>
-                    </div>
-                    <MudGrid AlignItems="Center" Class="mt-3">
-                        <MudItem xs="12" md="4">
-                            <div class="budget-stat">
-                                <MudText Typo="Typo.caption">Total Monthly Budget</MudText>
-                                <MudText Typo="Typo.h6">@_totalBudgetLimit.ToString("C", CultureInfo.CurrentCulture)</MudText>
+            <div class="goals-grid">
+                @foreach (var goal in _filteredGoals)
+                {
+                    <MudCard Class="goal-card @(goal.IsCompleted ? "completed" : "")" Elevation="0" Style="cursor: pointer;" @onclick="@(() => ViewGoalDetails(goal))">
+                        <MudCardContent>
+                            <div class="goal-header">
+                                <div class="goal-title-section">
+                                    <MudText Typo="Typo.h6" Class="goal-title">@goal.Title</MudText>
+                                    <MudChip T="string" Text="@goal.Category" Size="Size.Small" Variant="Variant.Outlined" Class="goal-category" />
+                                </div>
+                                <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" OnClick="@(async (e) => await OpenGoalActions(e, goal))" />
                             </div>
-                        </MudItem>
-                        <MudItem xs="12" md="4">
-                            <div class="budget-stat">
-                                <MudText Typo="Typo.caption">Spent This Month</MudText>
-                                <MudText Typo="Typo.h6" Class="expense">@_monthExpense.ToString("C", CultureInfo.CurrentCulture)</MudText>
+
+                            @if (!string.IsNullOrEmpty(goal.Subtitle))
+                            {
+                                <MudText Typo="Typo.body2" Class="goal-subtitle">@goal.Subtitle</MudText>
+                            }
+
+                            <div class="goal-progress">
+                                <div class="progress-amounts">
+                                    <MudText Typo="Typo.body2" Class="current-amount">@goal.CurrentAmount.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                                    <MudText Typo="Typo.body2" Class="target-amount">@goal.TargetAmount.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                                </div>
+                                <MudProgressLinear Value="@goal.ProgressPercentage" Size="Size.Medium" Color="Color.Default" Class="goal-progress-bar" />
+                                <div class="progress-info">
+                                    <MudText Typo="Typo.caption" Class="progress-text">@goal.ProgressPercentage.ToString("F1")% complete</MudText>
+                                    @if (goal.TargetDate.HasValue)
+                                    {
+                                        <MudText Typo="Typo.caption" Class="target-date">Target: @goal.TargetDate.Value.ToString("MMM dd, yyyy")</MudText>
+                                    }
+                                </div>
                             </div>
-                        </MudItem>
-                        <MudItem xs="12" md="4">
-                            <div class="budget-stat">
-                                <MudText Typo="Typo.caption">Available for Savings</MudText>
-                                <MudText Typo="Typo.h6" Class="savings">@((_totalBudgetLimit - _monthExpense).ToString("C", CultureInfo.CurrentCulture))</MudText>
+
+                            <div class="goal-actions">
+                                <MudButton Variant="Variant.Text" Color="Color.Default" Size="Size.Small" StartIcon="@Icons.Material.Filled.Add" OnClick="@(async (e) => await OpenContributeDialog(e, goal))" Style="color: black;">
+                                    Contribute
+                                </MudButton>
+                                @if (goal.IsCompleted)
+                                {
+                                    <MudChip T="string" Text="Completed" Color="Color.Success" Size="Size.Small" Icon="@Icons.Material.Filled.CheckCircle" />
+                                }
+                                else
+                                {
+                                    <MudText Typo="Typo.caption" Class="remaining-amount">@goal.RemainingAmount.ToString("C", CultureInfo.CurrentCulture) to go</MudText>
+                                }
                             </div>
-                        </MudItem>
-                    </MudGrid>
-                    <div class="budget-actions">
-                        <MudButton Variant="Variant.Text" Color="Color.Default" Elevation="0" OnClick="@SetupBudget" Style="color: black;">
-                            Edit Budget
-                        </MudButton>
-                        <MudButton Variant="Variant.Text" Color="Color.Default" Elevation="0" OnClick="@NavigateToFinance" Style="color: black;">
-                            View Details
-                        </MudButton>
-                    </div>
-                </MudCardContent>
-            </MudCard>
-        }
-    </div>
-
-    <!-- Savings Jars Section -->
-    <div class="savings-section">
-        <div class="section-header">
-            <MudText Typo="Typo.h6" Class="section-title">Savings Goals</MudText>
-            <MudButton Variant="Variant.Text" Color="Color.Default" Elevation="0" Style="color: black;">
-                Manage Goals
-            </MudButton>
-        </div>
-
-        <div class="savings-grid">
-            <DotnetFinancialTrackerApp.Components.UI.SavingsJar
-                Title="Emergency Fund"
-                Subtitle="6 months expenses"
-                CurrentAmount="2800"
-                TargetAmount="15000" />
-
-            <DotnetFinancialTrackerApp.Components.UI.SavingsJar
-                Title="Vacation Fund"
-                Subtitle="Family trip 2025"
-                CurrentAmount="750"
-                TargetAmount="3000" />
-
-            <DotnetFinancialTrackerApp.Components.UI.SavingsJar
-                Title="Home Improvement"
-                Subtitle="Kitchen renovation"
-                CurrentAmount="1200"
-                TargetAmount="8000" />
-
-            <DotnetFinancialTrackerApp.Components.UI.SavingsJar
-                Title="Kids Education"
-                Subtitle="College fund"
-                CurrentAmount="5400"
-                TargetAmount="20000" />
-        </div>
-
-        @if (_budgetCount > 0 && (_totalBudgetLimit - _monthExpense) > 0)
-        {
-            <MudCard Class="savings-transfer-card" Elevation="0">
-                <MudCardContent>
-                    <div class="transfer-section">
-                        <div class="transfer-info">
-                            <MudIcon Icon="@Icons.Material.Filled.Savings" Color="Color.Success" Size="Size.Medium" Class="transfer-icon" />
-                            <div class="transfer-details">
-                                <MudText Typo="Typo.subtitle1" Class="transfer-title">Save This Month's Surplus</MudText>
-                                <MudText Typo="Typo.body2" Class="transfer-amount">@(_totalBudgetLimit - _monthExpense).ToString("C", CultureInfo.CurrentCulture) available to allocate</MudText>
-                            </div>
-                        </div>
-                        <MudButton Variant="Variant.Filled"
-                                 Color="Color.Success"
-                                 Size="Size.Medium"
-                                 StartIcon="@Icons.Material.Filled.Add"
-                                 Class="transfer-button">
-                            Allocate to Goals
-                        </MudButton>
-                    </div>
-                </MudCardContent>
-            </MudCard>
+                        </MudCardContent>
+                    </MudCard>
+                }
+            </div>
         }
     </div>
 </MudContainer>
 
 @code {
     private string? _error;
-    private decimal _totalBudgetLimit;
-    private decimal _monthExpense;
-    private int _budgetCount;
+    private List<SavingsGoal> _allGoals = new();
+    private List<SavingsGoal> _activeGoals = new();
+    private List<SavingsGoal> _filteredGoals = new();
+    private List<string> _categories = new();
+    private decimal _totalSaved;
+    private decimal _totalTarget;
+    private double _overallProgress;
+    private string _filterCategory = string.Empty;
+    private string _filterStatus = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -191,45 +204,153 @@
     {
         try
         {
-            var periodStart = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-            var periodEnd = periodStart.AddMonths(1).AddTicks(-1);
+            var familyId = await FamilyMemberSvc.GetDefaultFamilyIdAsync();
+            if (string.IsNullOrEmpty(familyId))
+            {
+                _error = "No family account found. Please set up your family account first.";
+                return;
+            }
 
-            var transactions = await TxSvc.GetAsync(from: periodStart, to: periodEnd);
-            _monthExpense = transactions.Where(t => !t.IsIncome).Sum(t => t.Amount);
+            // Load all goals
+            var allGoals = await SavingsGoalSvc.GetAllAsync(familyId);
+            _allGoals = allGoals.ToList();
+            _activeGoals = _allGoals.Where(g => g.IsActive && !g.IsCompleted).ToList();
 
-            var budgets = await BudgetSvc.GetAsync(periodStart);
-            _budgetCount = budgets.Count;
-            _totalBudgetLimit = budgets.Sum(b => b.Limit);
+            // Calculate summary data
+            _totalSaved = _allGoals.Sum(g => g.CurrentAmount);
+            _totalTarget = _activeGoals.Sum(g => g.TargetAmount);
+            _overallProgress = _totalTarget > 0 ? (double)(_totalSaved / _totalTarget) * 100 : 0;
+
+            // Extract categories
+            _categories = _allGoals.Select(g => g.Category).Distinct().OrderBy(c => c).ToList();
+
+            // Apply filters
+            ApplyFilters();
         }
         catch (Exception ex)
         {
-            _error = $"Error loading budget data: {ex.Message}";
+            _error = $"Error loading savings goals: {ex.Message}";
         }
     }
 
-    private async Task SetupBudget()
+    private void ApplyFilters()
     {
-        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true, Position = DialogPosition.Center };
-        var dialog = DialogService.Show<DotnetFinancialTrackerApp.Components.Dialogs.EditBudgetDialog>("Setup Budget", options);
-        var result = await dialog.Result;
-        if (!result.Canceled && result.Data is Budget budget)
+        var filtered = _allGoals.AsEnumerable();
+
+        if (!string.IsNullOrEmpty(_filterCategory))
         {
-            await BudgetSvc.AddAsync(budget);
+            filtered = filtered.Where(g => g.Category == _filterCategory);
+        }
+
+        if (!string.IsNullOrEmpty(_filterStatus))
+        {
+            filtered = _filterStatus switch
+            {
+                "Active" => filtered.Where(g => g.IsActive && !g.IsCompleted),
+                "Completed" => filtered.Where(g => g.IsCompleted),
+                _ => filtered
+            };
+        }
+
+        _filteredGoals = filtered.OrderByDescending(g => g.CreatedDate).ToList();
+        StateHasChanged();
+    }
+
+    private async Task OpenCreateGoalDialog()
+    {
+        var parameters = new DialogParameters();
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true, Position = DialogPosition.Center };
+        var dialog = DialogService.Show<DotnetFinancialTrackerApp.Components.Dialogs.CreateSavingsGoalDialog>("Create Savings Goal", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is SavingsGoal goal)
+        {
+            try
+            {
+                await SavingsGoalSvc.CreateAsync(goal);
+                Snackbar.Add("Savings goal created successfully!", Severity.Success);
+                await LoadDataAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error creating goal: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenGoalActions(MouseEventArgs e, SavingsGoal goal)
+    {
+        e.StopPropagation();
+
+        var parameters = new DialogParameters
+        {
+            [nameof(DotnetFinancialTrackerApp.Components.Dialogs.SavingsGoalActionsDialog.Goal)] = goal
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true, Position = DialogPosition.Center };
+        var dialog = DialogService.Show<DotnetFinancialTrackerApp.Components.Dialogs.SavingsGoalActionsDialog>("Goal Actions", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
             await LoadDataAsync();
         }
     }
 
-    private void NavigateToFinance() => Nav.NavigateTo("/finance");
+    private async Task OpenContributeDialog(MouseEventArgs e, SavingsGoal goal)
+    {
+        e.StopPropagation();
+
+        var parameters = new DialogParameters
+        {
+            [nameof(DotnetFinancialTrackerApp.Components.Dialogs.ContributeToGoalDialog.Goal)] = goal
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true, Position = DialogPosition.Center };
+        var dialog = DialogService.Show<DotnetFinancialTrackerApp.Components.Dialogs.ContributeToGoalDialog>("Contribute to Goal", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    private void ViewGoalDetails(SavingsGoal goal)
+    {
+        Nav.NavigateTo($"/savings-goal/{goal.Id}");
+    }
+
+    private string FilterCategory
+    {
+        get => _filterCategory;
+        set
+        {
+            _filterCategory = value;
+            ApplyFilters();
+        }
+    }
+
+    private string FilterStatus
+    {
+        get => _filterStatus;
+        set
+        {
+            _filterStatus = value;
+            ApplyFilters();
+        }
+    }
 }
 
 <style>
-.wellbeing-container {
+.savings-container {
     padding: 24px;
     background: #FFFFFF;
     min-height: 100vh;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
-.wellbeing-header {
+.savings-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -255,11 +376,13 @@
     color: #000000;
     font-weight: 700;
     margin: 0;
+    font-family: 'Inter', sans-serif;
 }
 
 .header-subtitle {
     color: rgba(0, 0, 0, 0.7);
     margin: 0;
+    font-family: 'Inter', sans-serif;
 }
 
 .header-actions {
@@ -267,15 +390,38 @@
     gap: 12px;
 }
 
-.budget-setup-section, .savings-section {
+.summary-section {
     margin-bottom: 32px;
 }
 
-.budget-setup-card, .budget-summary-card, .savings-transfer-card {
+.summary-card {
     background: #FFFFFF;
     border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 20px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.card-amount {
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #000000;
+    font-family: 'Inter', sans-serif;
+}
+
+.card-meta {
+    color: rgba(0, 0, 0, 0.6);
+    font-family: 'Inter', sans-serif;
+}
+
+.goals-section {
+    margin-bottom: 32px;
 }
 
 .section-header {
@@ -283,141 +429,138 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 16px;
 }
 
 .section-title {
     color: #000000;
     font-weight: 600;
     margin: 0;
+    font-family: 'Inter', sans-serif;
 }
 
-.savings-grid {
+.header-filters {
+    display: flex;
+    gap: 12px;
+}
+
+.goals-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: 24px;
-    margin-bottom: 24px;
 }
 
-.transfer-section {
+.goal-card {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s ease;
+}
+
+.goal-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.goal-card.completed {
+    background: rgba(76, 175, 80, 0.05);
+    border-color: rgba(76, 175, 80, 0.2);
+}
+
+.goal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.goal-title-section {
+    flex: 1;
+}
+
+.goal-title {
+    color: #000000;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    font-family: 'Inter', sans-serif;
+}
+
+.goal-category {
+    border-color: black;
+    color: black;
+}
+
+.goal-subtitle {
+    color: rgba(0, 0, 0, 0.7);
+    margin: 0 0 16px 0;
+    font-family: 'Inter', sans-serif;
+}
+
+.goal-progress {
+    margin-bottom: 16px;
+}
+
+.progress-amounts {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.current-amount {
+    font-weight: 600;
+    color: #000000;
+}
+
+.target-amount {
+    color: rgba(0, 0, 0, 0.7);
+}
+
+.goal-progress-bar {
+    margin-bottom: 8px;
+}
+
+.progress-info {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 16px;
 }
 
-.transfer-info {
+.progress-text {
+    font-weight: 600;
+    color: #000000;
+}
+
+.target-date {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.goal-actions {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 16px;
 }
 
-.transfer-details {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.transfer-title {
-    color: #000000;
-    font-weight: 600;
-    margin: 0;
-}
-
-.transfer-amount {
+.remaining-amount {
     color: rgba(0, 0, 0, 0.7);
-    margin: 0;
+    font-weight: 500;
 }
 
-.transfer-icon {
-    color: #4CAF50;
+.empty-state-card {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    padding: 48px 24px;
 }
 
-.transfer-button {
-    background-color: #4CAF50 !important;
-    color: white !important;
-    border-radius: 12px;
-    padding: 12px 24px;
-    font-weight: 600;
-}
-
-.transfer-button:hover {
-    background-color: #45a049 !important;
-    transform: translateY(-1px);
-}
-
-.setup-content {
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
-}
-
-.setup-text {
-    flex: 1;
-}
-
-.setup-description {
-    color: rgba(0, 0, 0, 0.7);
-    margin-bottom: 16px;
-}
-
-.budget-benefits {
-    background: #F8F9FA;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    padding: 12px;
-    border-radius: 8px;
-    margin-bottom: 16px;
-}
-
-.benefit-label {
-    font-weight: 600;
-    color: #000000;
-    margin-bottom: 4px;
-}
-
-.benefit-text {
-    color: rgba(0, 0, 0, 0.7);
-    margin-bottom: 2px;
-}
-
-.budget-status {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 16px;
-}
-
-.status-text {
-    flex: 1;
-}
-
-.budget-stat {
-    text-align: center;
-    padding: 16px;
-}
-
-.budget-actions {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    margin-top: 16px;
-}
-
-.savings {
-    color: #000000;
-    font-weight: 700;
-}
-
-.expense {
-    color: #000000;
-    font-weight: 700;
-}
-
-@@media (max-width: 767px) {
-    .wellbeing-container {
+@media (max-width: 768px) {
+    .savings-container {
         padding: 16px;
     }
 
-    .wellbeing-header {
+    .savings-header {
         flex-direction: column;
         align-items: flex-start;
         gap: 16px;
@@ -429,31 +572,30 @@
         justify-content: center;
     }
 
-    .setup-content {
+    .section-header {
         flex-direction: column;
-        text-align: center;
+        align-items: flex-start;
+    }
+
+    .header-filters {
+        align-self: stretch;
+        justify-content: space-between;
+    }
+
+    .goals-grid {
+        grid-template-columns: 1fr;
         gap: 16px;
     }
 
-    .budget-actions {
+    .goal-header {
         flex-direction: column;
         gap: 8px;
     }
 
-    .savings-grid {
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        gap: 16px;
-    }
-
-    .transfer-section {
+    .goal-actions {
         flex-direction: column;
+        gap: 8px;
         align-items: stretch;
-        gap: 16px;
-    }
-
-    .transfer-info {
-        justify-content: center;
-        text-align: center;
     }
 }
 </style>

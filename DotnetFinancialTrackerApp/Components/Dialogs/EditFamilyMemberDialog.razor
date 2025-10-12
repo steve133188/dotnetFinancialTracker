@@ -1,0 +1,202 @@
+@using DotnetFinancialTrackerApp.Models
+@using DotnetFinancialTrackerApp.Services
+@using System.ComponentModel.DataAnnotations
+@inject IFamilyMemberService FamilyMemberService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6" Class="mb-4">Edit Family Member</MudText>
+
+        @if (_isLoading)
+        {
+            <div class="d-flex justify-center pa-4">
+                <MudProgressCircular Indeterminate="true" Size="Size.Medium" />
+            </div>
+        }
+        else
+        {
+            <EditForm Model="@_editModel" OnValidSubmit="@SaveChanges">
+                <DataAnnotationsValidator />
+                <MudStack Spacing="4">
+                    <MudTextField @bind-Value="_editModel.Name"
+                                 Label="Full Name"
+                                 Variant="Variant.Outlined"
+                                 Required="true"
+                                 For="@(() => _editModel.Name)" />
+
+                    <MudSelect @bind-Value="_editModel.Role"
+                              Label="Role"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              For="@(() => _editModel.Role)">
+                        <MudSelectItem Value="@("Parent")">Parent</MudSelectItem>
+                        <MudSelectItem Value="@("Teen")">Teen</MudSelectItem>
+                        <MudSelectItem Value="@("Child")">Child</MudSelectItem>
+                    </MudSelect>
+
+                    <MudNumericField @bind-Value="_editModel.MonthlyAllowance"
+                                    Label="Monthly Allowance"
+                                    Variant="Variant.Outlined"
+                                    Min="0"
+                                    Format="C2"
+                                    For="@(() => _editModel.MonthlyAllowance)" />
+
+                    <MudNumericField @bind-Value="_editModel.SpendingLimit"
+                                    Label="Spending Limit"
+                                    Variant="Variant.Outlined"
+                                    Min="0"
+                                    Format="C2"
+                                    For="@(() => _editModel.SpendingLimit)" />
+
+                    <MudNumericField @bind-Value="_editModel.Balance"
+                                    Label="Current Balance"
+                                    Variant="Variant.Outlined"
+                                    Format="C2"
+                                    For="@(() => _editModel.Balance)" />
+
+                    <MudSwitch @bind-Value="_editModel.IsActive"
+                              Label="Active Member"
+                              Color="Color.Primary" />
+
+                    @if (!string.IsNullOrEmpty(_editModel.ProfileImageUrl))
+                    {
+                        <div class="d-flex align-center gap-3">
+                            <MudAvatar Size="Size.Medium">
+                                <MudImage Src="@_editModel.ProfileImageUrl" Alt="Profile" />
+                            </MudAvatar>
+                            <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="@RemoveProfileImage">
+                                Remove Image
+                            </MudButton>
+                        </div>
+                    }
+                    else
+                    {
+                        <MudButton Variant="Variant.Outlined" OnClick="@AddProfileImage">
+                            Add Profile Image
+                        </MudButton>
+                    }
+                </MudStack>
+
+                <ValidationSummary />
+            </EditForm>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="@Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary"
+                  Variant="Variant.Filled"
+                  OnClick="@SaveChanges"
+                  Disabled="@_isSaving"
+                  Style="background-color: #000; color: white;">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                <span>Saving...</span>
+            }
+            else
+            {
+                <span>Save Changes</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public FamilyMember Member { get; set; } = null!;
+
+    private EditMemberModel _editModel = new();
+    private bool _isLoading = true;
+    private bool _isSaving = false;
+
+    protected override void OnInitialized()
+    {
+        if (Member != null)
+        {
+            _editModel = new EditMemberModel
+            {
+                Name = Member.Name,
+                Role = Member.Role,
+                MonthlyAllowance = Member.MonthlyAllowance,
+                SpendingLimit = Member.SpendingLimit,
+                Balance = Member.Balance,
+                IsActive = Member.IsActive,
+                ProfileImageUrl = Member.ProfileImageUrl ?? string.Empty
+            };
+        }
+        _isLoading = false;
+    }
+
+    private async Task SaveChanges()
+    {
+        if (Member == null) return;
+
+        try
+        {
+            _isSaving = true;
+
+            // Update the member properties
+            Member.Name = _editModel.Name;
+            Member.Role = _editModel.Role;
+            Member.MonthlyAllowance = _editModel.MonthlyAllowance;
+            Member.SpendingLimit = _editModel.SpendingLimit;
+            Member.Balance = _editModel.Balance;
+            Member.IsActive = _editModel.IsActive;
+            Member.ProfileImageUrl = string.IsNullOrEmpty(_editModel.ProfileImageUrl) ? null : _editModel.ProfileImageUrl;
+            Member.UpdatedAt = DateTime.UtcNow;
+
+            await FamilyMemberService.UpdateAsync(Member);
+
+            Snackbar.Add($"{Member.Name} updated successfully", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(Member));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error updating family member: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task AddProfileImage()
+    {
+        // TODO: Implement image picker functionality
+        Snackbar.Add("Image upload functionality coming soon", Severity.Info);
+    }
+
+    private void RemoveProfileImage()
+    {
+        _editModel.ProfileImageUrl = string.Empty;
+    }
+
+    public class EditMemberModel
+    {
+        [Required(ErrorMessage = "Name is required")]
+        [StringLength(100, ErrorMessage = "Name must be less than 100 characters")]
+        public string Name { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Role is required")]
+        public string Role { get; set; } = string.Empty;
+
+        [Range(0, 10000, ErrorMessage = "Monthly allowance must be between 0 and $10,000")]
+        public decimal MonthlyAllowance { get; set; }
+
+        [Range(0, 10000, ErrorMessage = "Spending limit must be between 0 and $10,000")]
+        public decimal SpendingLimit { get; set; }
+
+        public decimal Balance { get; set; }
+
+        public bool IsActive { get; set; } = true;
+
+        public string ProfileImageUrl { get; set; } = string.Empty;
+    }
+}

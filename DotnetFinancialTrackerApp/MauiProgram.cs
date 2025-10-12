@@ -36,6 +36,7 @@ public static class MauiProgram
         builder.Services.AddScoped<ITransactionTemplateService, TransactionTemplateService>();
         builder.Services.AddScoped<IBudgetsService, BudgetsService>();
         builder.Services.AddScoped<ISavingsGoalService, SavingsGoalService>();
+        builder.Services.AddScoped<IFamilyMemberService, FamilyMemberService>();
         // Removed: IGamificationService - not part of MVP
         builder.Services.AddScoped<IUserService, UserService>();
         // Removed: Wellbeing and AI services - not part of MVP
@@ -96,12 +97,12 @@ public static class MauiProgram
 
             if (defaultFamily != null && defaultMember != null)
             {
-                // Create overall family budget
-                var overallBudget = Models.Budget.CreateOverallFamilyBudget(
+                // Create family budget
+                var familyBudget = Models.Budget.CreateFamilyBudget(
                     defaultFamily.FamilyId,
                     2600m,
                     defaultMember.MemberId);
-                db.Budgets.Add(overallBudget);
+                db.Budgets.Add(familyBudget);
             }
         }
 

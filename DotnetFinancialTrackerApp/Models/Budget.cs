@@ -12,9 +12,7 @@ public class Budget
     [MaxLength(50)]
     public string FamilyId { get; set; } = string.Empty;
 
-    // For overall family budget, CategoryId can be null
-    // For category-specific budgets, CategoryId links to TransactionCategory
-    public int? CategoryId { get; set; }
+    // Budget is now family-only, no category support
 
     [Required]
     [Column(TypeName = "decimal(18,2)")]
@@ -24,14 +22,14 @@ public class Budget
     public DateTime Month { get; set; } = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
 
     [MaxLength(100)]
-    public string? Name { get; set; } // e.g., "Overall Family Budget", "Groceries Budget"
+    public string? Name { get; set; } = "Family Budget"; // Always family budget
 
     [MaxLength(300)]
     public string? Description { get; set; }
 
     public bool IsActive { get; set; } = true;
 
-    public bool IsOverallBudget { get; set; } = false; // True for family-wide budget, False for category-specific
+    // Removed IsOverallBudget as all budgets are family-wide now
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -44,14 +42,11 @@ public class Budget
     [ForeignKey(nameof(FamilyId))]
     public virtual FamilyAccount? Family { get; set; }
 
-    [ForeignKey(nameof(CategoryId))]
-    public virtual TransactionCategory? Category { get; set; }
-
     [ForeignKey(nameof(CreatedByMemberId))]
     public virtual FamilyMember? CreatedBy { get; set; }
 
     // Calculated properties
-    public string DisplayName => IsOverallBudget ? "Family Budget" : Category?.Name ?? Name ?? "Budget";
+    public string DisplayName => Name ?? "Family Budget";
 
     public DateTime MonthEnd => Month.AddMonths(1).AddDays(-1);
 
@@ -72,18 +67,8 @@ public class Budget
             t.Date < monthEnd &&
             !t.Type.IsPositive());
 
-        if (IsOverallBudget)
-        {
-            // For overall budget, sum all non-income transactions
-            return relevantTransactions.Sum(t => t.Amount);
-        }
-        else if (CategoryId.HasValue)
-        {
-            // For category budget, sum only transactions in this category
-            return relevantTransactions.Where(t => t.CategoryId == CategoryId.Value).Sum(t => t.Amount);
-        }
-
-        return 0;
+        // Family budget includes all non-income transactions
+        return relevantTransactions.Sum(t => t.Amount);
     }
 
     public decimal GetRemainingAmount(IEnumerable<Transaction> transactions)
@@ -107,30 +92,14 @@ public class Budget
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public static Budget CreateOverallFamilyBudget(string familyId, decimal limit, string createdByMemberId)
+    public static Budget CreateFamilyBudget(string familyId, decimal limit, string createdByMemberId, string? description = null)
     {
         return new Budget
         {
             FamilyId = familyId,
-            CategoryId = null,
             Limit = limit,
-            Name = "Overall Family Budget",
-            Description = "Total monthly spending limit for the entire family",
-            IsOverallBudget = true,
-            CreatedByMemberId = createdByMemberId,
-            Month = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1)
-        };
-    }
-
-    public static Budget CreateCategoryBudget(string familyId, int categoryId, decimal limit, string createdByMemberId, string? description = null)
-    {
-        return new Budget
-        {
-            FamilyId = familyId,
-            CategoryId = categoryId,
-            Limit = limit,
-            Description = description,
-            IsOverallBudget = false,
+            Name = "Family Budget",
+            Description = description ?? "Monthly spending limit for the entire family",
             CreatedByMemberId = createdByMemberId,
             Month = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1)
         };
