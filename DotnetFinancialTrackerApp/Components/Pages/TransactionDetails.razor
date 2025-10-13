@@ -97,18 +97,6 @@
             </MudCard>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="actions-section">
-            <MudButton Variant="Variant.Outlined"
-                       Color="Color.Default"
-                       Elevation="0"
-                       FullWidth="true"
-                       OnClick="@EditTransaction"
-                       Style="border-color: black; color: black;">
-                <MudIcon Icon="@Icons.Material.Filled.Edit" Class="mr-2" />
-                Edit Transaction
-            </MudButton>
-        </div>
     }
     else if (_loading)
     {
@@ -174,11 +162,6 @@
         Nav.NavigateTo("/finance");
     }
 
-    private void EditTransaction()
-    {
-        Nav.NavigateTo($"/finance?edit={TransactionId}");
-    }
-
     private string GetMemberInitial(string? name)
     {
         return string.IsNullOrEmpty(name) ? "?" : name.Substring(0, 1).ToUpper();
@@ -193,10 +176,11 @@
 }
 
 .amount-section {
-    background: #01FFFF;
+    background: #F3F3F3;
     padding: 24px;
     text-align: center;
     border-radius: 20px;
+    color: #000000;
 }
 
 .amount-header {
@@ -212,13 +196,13 @@
 }
 
 .amount-income {
-    color: #4CAF50;
+    color: #333333;
     font-weight: 700;
     margin-bottom: 8px;
 }
 
 .amount-expense {
-    color: #F44336;
+    color: #555555;
     font-weight: 700;
     margin-bottom: 8px;
 }
@@ -236,7 +220,7 @@
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(1, 255, 255, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.12);
     border-radius: 20px;
 }
 
@@ -274,11 +258,6 @@
     font-weight: 500;
 }
 
-.actions-section {
-    padding: 24px;
-    padding-top: 0;
-}
-
 .loading-section, .error-section {
     display: flex;
     flex-direction: column;
@@ -294,7 +273,7 @@
         padding: 20px 16px;
     }
 
-    .info-section, .actions-section {
+    .info-section {
         padding: 16px;
     }
 

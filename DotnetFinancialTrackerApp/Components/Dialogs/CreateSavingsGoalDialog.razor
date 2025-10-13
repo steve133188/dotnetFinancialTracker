@@ -1,0 +1,182 @@
+@using DotnetFinancialTrackerApp.Models
+@using DotnetFinancialTrackerApp.Services
+@inject IFamilyMemberService FamilyMemberSvc
+
+<MudDialog MaxWidth="MaxWidth.Medium">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Create New Savings Goal</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="_isValid" ValidationDelay="0">
+            <MudStack Spacing="3">
+                <MudTextField Label="Goal Name"
+                              Variant="Variant.Outlined"
+                              @bind-Value="_model.Title"
+                              Required="true"
+                              RequiredError="Goal name is required"
+                              MaxLength="50"
+                              Placeholder="e.g., Vacation to Japan" />
+
+                <MudTextField Label="Description"
+                              Variant="Variant.Outlined"
+                              @bind-Value="_model.Description"
+                              Lines="2"
+                              Placeholder="Optional description for your goal" />
+
+                <MudNumericField T="decimal"
+                                 Label="Target Amount"
+                                 Variant="Variant.Outlined"
+                                 @bind-Value="_model.TargetAmount"
+                                 Required="true"
+                                 RequiredError="Target amount is required"
+                                 Min="1"
+                                 Step="0.01M"
+                                 Adornment="Adornment.Start"
+                                 AdornmentText="$"
+                                 Placeholder="0.00" />
+
+                <MudDatePicker Label="Target Date"
+                               Variant="Variant.Outlined"
+                               @bind-Date="_targetDate"
+                               MinDate="DateTime.Today"
+                               Required="true"
+                               RequiredError="Target date is required"
+                               Placeholder="Select target date" />
+
+                <MudSelect T="string"
+                           Label="Category"
+                           Variant="Variant.Outlined"
+                           @bind-Value="_model.Category"
+                           Required="true"
+                           RequiredError="Category is required">
+                    @foreach (var category in _categories)
+                    {
+                        <MudSelectItem Value="@category.Value">@category.Display</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudSelect T="GoalPriority"
+                           Label="Priority"
+                           Variant="Variant.Outlined"
+                           @bind-Value="_model.Priority">
+                    <MudSelectItem Value="GoalPriority.Low">Low</MudSelectItem>
+                    <MudSelectItem Value="GoalPriority.Medium">Medium</MudSelectItem>
+                    <MudSelectItem Value="GoalPriority.High">High</MudSelectItem>
+                    <MudSelectItem Value="GoalPriority.Critical">Critical</MudSelectItem>
+                </MudSelect>
+
+                <MudTextField Label="Color (optional)"
+                              Variant="Variant.Outlined"
+                              @bind-Value="_model.Color"
+                              Placeholder="#000000"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Filled.Palette" />
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+            Cancel
+        </MudButton>
+        <MudButton OnClick="Create"
+                   Variant="Variant.Filled"
+                   Color="Color.Default"
+                   Style="background-color: black; color: white;"
+                   Disabled="@(!_isValid || _isCreating)">
+            @if (_isCreating)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                <span class="ml-2">Creating...</span>
+            }
+            else
+            {
+                <span>Create Goal</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+
+    private readonly SavingsGoal _model = new();
+    private MudForm? _form;
+    private bool _isValid;
+    private bool _isCreating;
+    private DateTime? _targetDate = DateTime.Today.AddMonths(6);
+
+    private readonly List<(string Value, string Display)> _categories = new()
+    {
+        ("Emergency", "Emergency Fund"),
+        ("Vacation", "Vacation"),
+        ("Education", "Education"),
+        ("Purchase", "Major Purchase"),
+        ("Home", "Home Improvement"),
+        ("Car", "Vehicle"),
+        ("Wedding", "Wedding"),
+        ("Retirement", "Retirement"),
+        ("Other", "Other")
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Set default values
+        _model.Priority = GoalPriority.Medium;
+        _model.Color = "#000000";
+        _model.Category = "Other";
+
+        // Get default family ID for the simplified MVP workflow
+        _model.FamilyId = await FamilyMemberSvc.GetDefaultFamilyIdAsync();
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Create()
+    {
+        if (!_isValid || _isCreating || _targetDate == null)
+        {
+            return;
+        }
+
+        _isCreating = true;
+
+        try
+        {
+            // Set the target date
+            _model.TargetDate = _targetDate.Value;
+            _model.CurrentAmount = 0m;
+            _model.IsActive = true;
+            _model.CreatedDate = DateTime.UtcNow;
+
+            // Get the first family member as creator (for now)
+            var familyMembers = await FamilyMemberSvc.GetFamilyMembersWithSpendingAsync(_model.FamilyId);
+            var firstMember = familyMembers.FirstOrDefault();
+            if (firstMember != null)
+            {
+                _model.CreatedByMemberId = firstMember.Id;
+            }
+
+            MudDialog.Close(DialogResult.Ok(_model));
+        }
+        catch (Exception ex)
+        {
+            // Handle error - this will be caught by the calling component
+            MudDialog.Close(DialogResult.Cancel());
+        }
+        finally
+        {
+            _isCreating = false;
+        }
+    }
+}
+
+<style>
+.ml-2 {
+    margin-left: 8px;
+}
+</style>

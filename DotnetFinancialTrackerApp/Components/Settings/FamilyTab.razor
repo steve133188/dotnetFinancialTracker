@@ -15,42 +15,12 @@
             <EditForm Model="@_newMemberModel" OnValidSubmit="@AddFamilyMember">
                 <DataAnnotationsValidator />
                 <MudGrid>
-                    <MudItem xs="12" md="6">
+                    <MudItem xs="12">
                         <MudTextField @bind-Value="_newMemberModel.Name"
                                      Label="Full Name"
                                      Variant="Variant.Outlined"
                                      Required="true"
                                      For="@(() => _newMemberModel.Name)" />
-                    </MudItem>
-
-                    <MudItem xs="12" md="6">
-                        <MudSelect @bind-Value="_newMemberModel.Role"
-                                  Label="Role"
-                                  Variant="Variant.Outlined"
-                                  Required="true"
-                                  For="@(() => _newMemberModel.Role)">
-                            <MudSelectItem Value="@("Parent")">Parent</MudSelectItem>
-                            <MudSelectItem Value="@("Teen")">Teen</MudSelectItem>
-                            <MudSelectItem Value="@("Child")">Child</MudSelectItem>
-                        </MudSelect>
-                    </MudItem>
-
-                    <MudItem xs="12" md="6">
-                        <MudNumericField @bind-Value="_newMemberModel.MonthlyAllowance"
-                                        Label="Monthly Allowance"
-                                        Variant="Variant.Outlined"
-                                        Min="0"
-                                        Format="C2"
-                                        For="@(() => _newMemberModel.MonthlyAllowance)" />
-                    </MudItem>
-
-                    <MudItem xs="12" md="6">
-                        <MudNumericField @bind-Value="_newMemberModel.SpendingLimit"
-                                        Label="Spending Limit"
-                                        Variant="Variant.Outlined"
-                                        Min="0"
-                                        Format="C2"
-                                        For="@(() => _newMemberModel.SpendingLimit)" />
                     </MudItem>
                 </MudGrid>
 
@@ -59,7 +29,7 @@
                 <MudCardActions Class="pa-0 mt-4">
                     <MudButton ButtonType="ButtonType.Submit"
                               Variant="Variant.Filled"
-                              Color="Color.Primary"
+                              Color="Color.Default"
                               StartIcon="@Icons.Material.Filled.PersonAdd"
                               Size="Size.Large"
                               Disabled="@_isAddingMember"
@@ -84,7 +54,7 @@
         <MudCardContent>
             <div class="d-flex justify-space-between align-center mb-4">
                 <MudText Typo="Typo.h6" Style="font-weight: 600;">Family Members</MudText>
-                <MudChip Label="true" Color="Color.Info" Size="Size.Small">
+                <MudChip Label="true" Variant="Variant.Outlined" Color="Color.Default" Size="Size.Small">
                     @FamilyMembers.Count member@(FamilyMembers.Count != 1 ? "s" : "")
                 </MudChip>
             </div>
@@ -102,78 +72,39 @@
             else
             {
                 <MudStack Spacing="3">
-                    @foreach (var member in FamilyMembers.OrderBy(m => m.Role).ThenBy(m => m.Name))
+                    @foreach (var member in FamilyMembers.OrderBy(m => m.Name))
                     {
                         <MudPaper Elevation="0" Class="pa-4 family-member-card">
                             <div class="d-flex align-center justify-space-between">
                                 <div class="d-flex align-center gap-3">
                                     <MudAvatar Size="Size.Medium" Class="member-avatar">
-                                        @if (!string.IsNullOrEmpty(member.ProfileImageUrl))
-                                        {
-                                            <MudImage Src="@member.ProfileImageUrl" Alt="@member.Name" />
-                                        }
-                                        else
-                                        {
-                                            @member.Name.FirstOrDefault()
-                                        }
+                                        @member.Name.FirstOrDefault()
                                     </MudAvatar>
 
                                     <div>
                                         <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@member.Name</MudText>
                                         <div class="d-flex align-center gap-2">
-                                            <MudChip Label="true" Size="Size.Small" Color="@GetRoleColor(member.Role)">
-                                                @member.Role
-                                            </MudChip>
-                                            <MudChip Label="true" Size="Size.Small" Color="@(member.IsActive ? Color.Success : Color.Default)">
-                                                @(member.IsActive ? "Active" : "Inactive")
-                                            </MudChip>
+                                        <MudChip Label="true" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default">
+                                            Active
+                                        </MudChip>
                                         </div>
                                         <MudText Typo="Typo.caption" Style="color: #666;">
-                                            @member.StatusDescription
+                                            Member since @member.CreatedAt.ToString("MMM yyyy")
                                         </MudText>
                                     </div>
                                 </div>
 
                                 <div class="d-flex align-center gap-2">
-                                    <div class="text-right me-3">
-                                        <MudText Typo="Typo.body2" Style="color: #666;">Balance</MudText>
-                                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
-                                            @member.Balance.ToString("C2")
-                                        </MudText>
-                                    </div>
-
                                     <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small">
                                         <MudMenuItem OnClick="@(() => EditMember(member))" Icon="@Icons.Material.Filled.Edit">
                                             Edit Details
                                         </MudMenuItem>
-                                        <MudMenuItem OnClick="@(() => ToggleMemberStatus(member))" Icon="@(member.IsActive ? Icons.Material.Filled.Block : Icons.Material.Filled.CheckCircle)">
-                                            @(member.IsActive ? "Deactivate" : "Activate")
-                                        </MudMenuItem>
-                                        <MudMenuItem OnClick="@(() => ViewMemberDetails(member))" Icon="@Icons.Material.Filled.Visibility">
-                                            View Details
-                                        </MudMenuItem>
-                                        <MudDivider />
-                                        <MudMenuItem OnClick="@(() => DeleteMember(member))" Icon="@Icons.Material.Filled.Delete" Style="color: #f44336;">
-                                            Delete Member
-                                        </MudMenuItem>
+                                        <MudMenuItem OnClick="@(() => DeleteMember(member))" Icon="@Icons.Material.Filled.Delete">Delete Member</MudMenuItem>
+                                        <MudMenuItem OnClick="@(() => ViewMemberDetails(member))" Icon="@Icons.Material.Filled.Visibility">View Details</MudMenuItem>
                                     </MudMenu>
                                 </div>
                             </div>
 
-                            @if (member.Role == "Child" || member.Role == "Teen")
-                            {
-                                <div class="mt-3">
-                                    <div class="d-flex justify-space-between mb-1">
-                                        <MudText Typo="Typo.caption">Monthly Spending</MudText>
-                                        <MudText Typo="Typo.caption">
-                                            @member.SpentThisMonth.ToString("C2") / @member.SpendingLimit.ToString("C2")
-                                        </MudText>
-                                    </div>
-                                    <MudProgressLinear Value="@((double)(member.SpentThisMonth / Math.Max(member.SpendingLimit, 1)) * 100)"
-                                                      Color="@(member.IsOverBudget ? Color.Error : Color.Primary)"
-                                                      Size="Size.Small" />
-                                </div>
-                            }
                         </MudPaper>
                     }
                 </MudStack>
@@ -196,24 +127,10 @@
         {
             _isAddingMember = true;
 
-            var defaultFamilyId = await FamilyMemberService.GetDefaultFamilyIdAsync();
-            if (string.IsNullOrEmpty(defaultFamilyId))
-            {
-                Snackbar.Add("No default family found", Severity.Error);
-                return;
-            }
-
             var newMember = new FamilyMember
             {
                 Name = _newMemberModel.Name,
-                Role = _newMemberModel.Role,
-                MonthlyAllowance = _newMemberModel.MonthlyAllowance,
-                SpendingLimit = _newMemberModel.SpendingLimit,
-                FamilyId = defaultFamilyId,
-                IsActive = true,
-                Balance = _newMemberModel.MonthlyAllowance, // Initial balance equals allowance
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                Pin = "1234" // Default PIN - should be changed on first login
             };
 
             await FamilyMemberService.AddAsync(newMember);
@@ -246,22 +163,17 @@
         }
     }
 
-    private async Task ToggleMemberStatus(FamilyMember member)
+    private async Task DeleteMember(FamilyMember member)
     {
         try
         {
-            member.IsActive = !member.IsActive;
-            member.UpdatedAt = DateTime.UtcNow;
-
-            await FamilyMemberService.UpdateAsync(member);
+            await FamilyMemberService.DeleteAsync(member.Id);
             await OnFamilyUpdated.InvokeAsync();
-
-            var status = member.IsActive ? "activated" : "deactivated";
-            Snackbar.Add($"{member.Name} has been {status}", Severity.Success);
+            Snackbar.Add($"{member.Name} has been removed from the family", Severity.Success);
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error updating member status: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Error deleting member: {ex.Message}", Severity.Error);
         }
     }
 
@@ -273,51 +185,13 @@
         DialogService.Show<FamilyMemberDetailsDialog>("Member Details", parameters, options);
     }
 
-    private async Task DeleteMember(FamilyMember member)
-    {
-        var result = await DialogService.ShowMessageBox(
-            "Delete Family Member",
-            $"Are you sure you want to delete {member.Name}? This action cannot be undone and will remove all their transaction history.",
-            yesText: "Delete",
-            cancelText: "Cancel");
 
-        if (result == true)
-        {
-            try
-            {
-                await FamilyMemberService.DeleteAsync(member.MemberId);
-                await OnFamilyUpdated.InvokeAsync();
-                Snackbar.Add($"{member.Name} has been removed from the family", Severity.Success);
-            }
-            catch (Exception ex)
-            {
-                Snackbar.Add($"Error deleting family member: {ex.Message}", Severity.Error);
-            }
-        }
-    }
-
-    private Color GetRoleColor(string role) => role.ToLower() switch
-    {
-        "parent" => Color.Primary,
-        "teen" => Color.Secondary,
-        "child" => Color.Success,
-        _ => Color.Default
-    };
 
     public class NewMemberModel
     {
         [Required(ErrorMessage = "Name is required")]
         [StringLength(100, ErrorMessage = "Name must be less than 100 characters")]
         public string Name { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Role is required")]
-        public string Role { get; set; } = "Child";
-
-        [Range(0, 10000, ErrorMessage = "Monthly allowance must be between 0 and $10,000")]
-        public decimal MonthlyAllowance { get; set; } = 0;
-
-        [Range(0, 10000, ErrorMessage = "Spending limit must be between 0 and $10,000")]
-        public decimal SpendingLimit { get; set; } = 100;
     }
 }
 
@@ -325,17 +199,17 @@
 .family-member-card {
     border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 12px;
-    background: rgba(1, 255, 255, 0.02);
+    background: rgba(0, 0, 0, 0.02);
     transition: all 0.2s ease;
 }
 
 .family-member-card:hover {
-    border-color: rgba(1, 255, 255, 0.3);
-    background: rgba(1, 255, 255, 0.05);
+    border-color: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.05);
 }
 
 .member-avatar {
-    background: linear-gradient(135deg, rgba(1, 255, 255, 0.2), rgba(1, 255, 255, 0.1));
+    background: rgba(0, 0, 0, 0.06);
     color: #000;
     font-weight: 600;
 }

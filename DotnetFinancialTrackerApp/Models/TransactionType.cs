@@ -15,12 +15,7 @@ public static class TransactionTypeExtensions
         _ => "Unknown"
     };
 
-    public static string GetDisplayColor(this TransactionType type) => type switch
-    {
-        TransactionType.Expense => "#F44336",    // Red
-        TransactionType.Income => "#4CAF50",     // Green
-        _ => "#607D8B"                           // Gray
-    };
+    public static string GetDisplayColor(this TransactionType type) => "#000000"; // Consistent black color
 
     public static string GetIcon(this TransactionType type) => type switch
     {

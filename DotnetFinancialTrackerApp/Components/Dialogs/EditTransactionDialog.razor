@@ -2,6 +2,7 @@
 @using DotnetFinancialTrackerApp.Data
 @using Microsoft.EntityFrameworkCore
 @inject AppDbContext DbContext
+@inject DotnetFinancialTrackerApp.Services.IFamilyMemberService FamilyMemberSvc
 
 <MudDialog MaxWidth="MaxWidth.Small">
     <TitleContent>
@@ -11,13 +12,18 @@
     <DialogContent>
         <MudForm @ref="_form" @bind-IsValid="_isValid" ValidationDelay="0">
             <MudStack Spacing="3">
-                <MudTextField T="string"
-                              Label="User"
-                              Variant="Variant.Outlined"
-                              Required="true"
-                              Immediate="true"
-                              @bind-Value="_model.User"
-                              RequiredError="User is required" />
+                <MudSelect T="FamilyMember?"
+                           Label="Family Member"
+                           Variant="Variant.Outlined"
+                           @bind-Value="_selectedMember"
+                           ToStringFunc="@(m => m?.Name ?? "Select Member")"
+                           Required="true"
+                           RequiredError="Please select a family member">
+                    @foreach (var member in _familyMembers)
+                    {
+                        <MudSelectItem Value="member">@member.Name</MudSelectItem>
+                    }
+                </MudSelect>
 
                 <MudSelect T="TransactionCategory?"
                            Label="Category"
@@ -70,7 +76,7 @@
 
     <DialogActions>
         <MudSpacer />
-        <MudButton Variant="Variant.Text" Color="Color.Secondary" Elevation="0" OnClick="@Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Text" Color="Color.Default" Elevation="0" OnClick="@Cancel">Cancel</MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Default" Elevation="0" OnClick="@Ok" Style="background-color: black; color: white;">Save</MudButton>
     </DialogActions>
 </MudDialog>
@@ -84,26 +90,41 @@
     private bool _isValid;
     private DateTime? _transactionDate;
     private List<TransactionCategory> _categories = new();
+    private List<FamilyMember> _familyMembers = new();
+    private FamilyMember? _selectedMember;
 
     private string Title => _model.Id == 0 ? "Add Transaction" : "Edit Transaction";
 
     protected override async Task OnInitializedAsync()
     {
+        // Load categories
         _categories = await DbContext.TransactionCategories
             .Where(c => c.IsActive)
             .OrderBy(c => c.SortOrder)
             .ToListAsync();
 
+        // Load family members
+        var defaultFamilyId = await FamilyMemberSvc.GetDefaultFamilyIdAsync();
+        _familyMembers = await FamilyMemberSvc.GetAsync(defaultFamilyId);
+
         if (Model is not null)
         {
             _model.Id = Model.Id;
-            _model.User = Model.User;
+            _model.FamilyMemberId = Model.FamilyMemberId;
             _model.Category = Model.Category;
             _model.CategoryId = Model.CategoryId;
             _model.Amount = Model.Amount;
             _model.Date = Model.Date;
             _model.Description = Model.Description;
             _model.Type = Model.Type;
+
+            // Find the selected member
+            _selectedMember = _familyMembers.FirstOrDefault(m => m.Id == Model.FamilyMemberId);
+        }
+        else
+        {
+            // Pre-select first family member for new transactions
+            _selectedMember = _familyMembers.FirstOrDefault();
         }
 
         _transactionDate = _model.Date == default ? DateTime.Today : _model.Date;
@@ -130,13 +151,14 @@
 
         await _form.Validate();
 
-        if (!_isValid || _transactionDate is null || _model.Category is null)
+        if (!_isValid || _transactionDate is null || _model.Category is null || _selectedMember is null)
         {
             return;
         }
 
         _model.Date = _transactionDate.Value;
         _model.CategoryId = _model.Category.Id;
+        _model.FamilyMemberId = _selectedMember.Id;
 
         MudDialog.Close(DialogResult.Ok(_model));
     }

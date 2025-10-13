@@ -3,6 +3,8 @@
 @using System.Globalization
 @inject DotnetFinancialTrackerApp.Services.ISavingsGoalService SavingsGoalSvc
 @inject DotnetFinancialTrackerApp.Services.IFamilyMemberService FamilyMemberSvc
+@inject DotnetFinancialTrackerApp.Services.IBudgetsService BudgetSvc
+@inject DotnetFinancialTrackerApp.Services.ITransactionsService TxSvc
 @inject AuthState Auth
 @inject IDialogService DialogService
 @inject NavigationManager Nav
@@ -69,7 +71,7 @@
                             <MudText Typo="Typo.subtitle1">Target Amount</MudText>
                         </div>
                         <MudText Typo="Typo.h4" Class="card-amount">@_totalTarget.ToString("C", CultureInfo.CurrentCulture)</MudText>
-                        <MudText Typo="Typo.body2" Class="card-meta">remaining: @(_totalTarget - _totalSaved).ToString("C", CultureInfo.CurrentCulture)</MudText>
+                        <MudText Typo="Typo.body2" Class="card-meta">remaining: @( (_totalTarget - _totalSaved).ToString("C", CultureInfo.CurrentCulture) )</MudText>
                     </MudCardContent>
                 </MudCard>
             </MudItem>
@@ -88,22 +90,87 @@
         </MudGrid>
     </div>
 
+    <!-- Monthly Budget -->
+    <div class="budget-section">
+        <MudCard Class="budget-card" Elevation="0">
+            <MudCardContent>
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.subtitle1" Class="budget-title">Monthly Budget · @DateTime.Today.ToString("MMMM yyyy")</MudText>
+                    <MudText Typo="Typo.caption" Class="budget-description">
+                        Set a spending cap to keep savings goals on track.
+                    </MudText>
+                    <MudGrid Class="budget-metrics" Spacing="2">
+                        <MudItem xs="12" md="4">
+                            <MudText Typo="Typo.caption" Class="budget-metric-label">Budget Set</MudText>
+                            <MudText Typo="Typo.h6" Class="budget-metric-value">
+                                @(_monthlyBudget > 0 ? _monthlyBudget.ToString("C", CultureInfo.CurrentCulture) : "Not set")
+                            </MudText>
+                        </MudItem>
+                        <MudItem xs="12" md="4">
+                            <MudText Typo="Typo.caption" Class="budget-metric-label">Spent This Month</MudText>
+                            <MudText Typo="Typo.h6" Class="budget-metric-value">@_monthlySpending.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                        </MudItem>
+                        <MudItem xs="12" md="4">
+                            <MudText Typo="Typo.caption" Class="budget-metric-label">Remaining</MudText>
+                            <MudText Typo="Typo.h6" Class="budget-metric-value">
+                                @(_monthlyBudget > 0 ? _budgetRemaining.ToString("C", CultureInfo.CurrentCulture) : "--")
+                            </MudText>
+                        </MudItem>
+                    </MudGrid>
+                    <MudProgressLinear Value="@_budgetUsage" Color="Color.Default" Class="budget-progress" />
+                    <MudText Typo="Typo.caption" Class="budget-usage-note">@GetBudgetStatusText()</MudText>
+
+                    <MudForm @ref="_budgetForm" @bind-IsValid="_isBudgetValid">
+                        <MudStack Direction="Row" Spacing="2" AlignItems="AlignItems.Center" Class="budget-form">
+                            <MudNumericField T="decimal"
+                                             Label="Monthly Budget"
+                                             Variant="Variant.Outlined"
+                                             @bind-Value="_monthlyBudget"
+                                             Immediate="true"
+                                             Min="0"
+                                             Adornment="Adornment.Start"
+                                             AdornmentText="@CultureInfo.CurrentCulture.NumberFormat.CurrencySymbol"
+                                             Class="budget-input" />
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Default"
+                                       Disabled="@(!_isBudgetValid || _isSavingBudget)"
+                                       Style="background-color: black; color: white;"
+                                       OnClick="@SaveMonthlyBudgetAsync">
+                                @if (_isSavingBudget)
+                                {
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                                }
+                                <span>@(_currentBudget is null ? "Create Budget" : "Update Budget")</span>
+                            </MudButton>
+                        </MudStack>
+                    </MudForm>
+                    @if (_currentBudget is not null)
+                    {
+                        <MudText Typo="Typo.caption" Class="budget-meta">
+                            Last updated @(_currentBudget.UpdatedAt.ToLocalTime().ToString("MMM dd, HH:mm"))
+                        </MudText>
+                    }
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
+    </div>
+
     <!-- Goals Section -->
     <div class="goals-section">
         <div class="section-header">
             <MudText Typo="Typo.h6" Class="section-title">Your Savings Goals</MudText>
             <div class="header-filters">
-                <MudSelect T="string" Dense="true" Label="Filter" Variant="Variant.Outlined" @bind-Value="_filterCategory" Style="min-width: 150px;">
+                <MudSelect T="string" Dense="true" Label="Filter" Variant="Variant.Outlined" @bind-Value="FilterCategory" Style="min-width: 150px;">
                     <MudSelectItem Value="@string.Empty">All Categories</MudSelectItem>
                     @foreach (var category in _categories)
                     {
                         <MudSelectItem Value="@category">@category</MudSelectItem>
                     }
                 </MudSelect>
-                <MudSelect T="string" Dense="true" Label="Status" Variant="Variant.Outlined" @bind-Value="_filterStatus" Style="min-width: 150px;">
+                <MudSelect T="string" Dense="true" Label="Status" Variant="Variant.Outlined" @bind-Value="FilterStatus" Style="min-width: 150px;">
                     <MudSelectItem Value="@string.Empty">All Status</MudSelectItem>
-                    @* <MudSelectItem Value="Active">Active</MudSelectItem> *@
-                    @* <MudSelectItem Value="Completed">Completed</MudSelectItem> *@
+                    <MudSelectItem Value="@StatusActive">Active</MudSelectItem>
+                    <MudSelectItem Value="@StatusCompleted">Completed</MudSelectItem>
                 </MudSelect>
             </div>
         </div>
@@ -112,7 +179,7 @@
         {
             <MudCard Class="empty-state-card" Elevation="0">
                 <MudCardContent Class="text-center">
-                    <MudIcon Icon="@Icons.Material.Filled.Savings" Size="Size.Large" Color="Color.Secondary" />
+            <MudIcon Icon="@Icons.Material.Filled.Savings" Size="Size.Large" Color="Color.Default" />
                     <MudText Typo="Typo.h6" Class="mt-2">@(_allGoals.Any() ? "No goals match your filters" : "No savings goals yet")</MudText>
                     <MudText Typo="Typo.body2" Class="mb-3">@(_allGoals.Any() ? "Try adjusting your filters or create a new goal" : "Create your first savings goal to start building your future")</MudText>
                     <MudButton Variant="Variant.Filled" Color="Color.Default" Elevation="0" StartIcon="@Icons.Material.Filled.Add" OnClick="@OpenCreateGoalDialog" Style="background-color: black; color: white;">
@@ -126,14 +193,17 @@
             <div class="goals-grid">
                 @foreach (var goal in _filteredGoals)
                 {
-                    <MudCard Class="goal-card @(goal.IsCompleted ? "completed" : "")" Elevation="0" Style="cursor: pointer;" @onclick="@(() => ViewGoalDetails(goal))">
+                    <MudCard Class="@GetGoalCardClass(goal)" Elevation="0" Style="cursor: pointer;" @onclick="@(() => ViewGoalDetails(goal))">
                         <MudCardContent>
                             <div class="goal-header">
                                 <div class="goal-title-section">
                                     <MudText Typo="Typo.h6" Class="goal-title">@goal.Title</MudText>
                                     <MudChip T="string" Text="@goal.Category" Size="Size.Small" Variant="Variant.Outlined" Class="goal-category" />
                                 </div>
-                                <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" OnClick="@(async (e) => await OpenGoalActions(e, goal))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.MoreVert"
+                                               Size="Size.Small"
+                                               OnClick="@(async () => await OpenGoalActions(goal))"
+                                               OnClick:StopPropagation="true" />
                             </div>
 
                             @if (!string.IsNullOrEmpty(goal.Subtitle))
@@ -157,12 +227,18 @@
                             </div>
 
                             <div class="goal-actions">
-                                <MudButton Variant="Variant.Text" Color="Color.Default" Size="Size.Small" StartIcon="@Icons.Material.Filled.Add" OnClick="@(async (e) => await OpenContributeDialog(e, goal))" Style="color: black;">
+                                <MudButton Variant="Variant.Text"
+                                           Color="Color.Default"
+                                           Size="Size.Small"
+                                           StartIcon="@Icons.Material.Filled.Add"
+                                           OnClick="@(async () => await OpenContributeDialog(goal))"
+                                           OnClick:StopPropagation="true"
+                                           Style="color: black;">
                                     Contribute
                                 </MudButton>
                                 @if (goal.IsCompleted)
                                 {
-                                    <MudChip T="string" Text="Completed" Color="Color.Success" Size="Size.Small" Icon="@Icons.Material.Filled.CheckCircle" />
+                                    <MudChip T="string" Text="Completed" Variant="Variant.Outlined" Color="Color.Default" Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" />
                                 }
                                 else
                                 {
@@ -179,6 +255,8 @@
 
 @code {
     private string? _error;
+    private const string StatusActive = "Active";
+    private const string StatusCompleted = "Completed";
     private List<SavingsGoal> _allGoals = new();
     private List<SavingsGoal> _activeGoals = new();
     private List<SavingsGoal> _filteredGoals = new();
@@ -188,6 +266,15 @@
     private double _overallProgress;
     private string _filterCategory = string.Empty;
     private string _filterStatus = string.Empty;
+    private Budget? _currentBudget;
+    private decimal _monthlyBudget;
+    private decimal _monthlySpending;
+    private decimal _budgetRemaining;
+    private double _budgetUsage;
+    private bool _isSavingBudget;
+    private MudForm? _budgetForm;
+    private bool _isBudgetValid;
+    private string _familyId = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -204,15 +291,10 @@
     {
         try
         {
-            var familyId = await FamilyMemberSvc.GetDefaultFamilyIdAsync();
-            if (string.IsNullOrEmpty(familyId))
-            {
-                _error = "No family account found. Please set up your family account first.";
-                return;
-            }
+            _familyId = await FamilyMemberSvc.GetDefaultFamilyIdAsync();
 
             // Load all goals
-            var allGoals = await SavingsGoalSvc.GetAllAsync(familyId);
+            var allGoals = await SavingsGoalSvc.GetAllAsync(_familyId);
             _allGoals = allGoals.ToList();
             _activeGoals = _allGoals.Where(g => g.IsActive && !g.IsCompleted).ToList();
 
@@ -226,10 +308,36 @@
 
             // Apply filters
             ApplyFilters();
+
+            await LoadBudgetAsync();
         }
         catch (Exception ex)
         {
             _error = $"Error loading savings goals: {ex.Message}";
+        }
+    }
+
+    private async Task LoadBudgetAsync()
+    {
+        try
+        {
+            var currentMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+            var nextMonth = currentMonth.AddMonths(1);
+
+            var budgets = await BudgetSvc.GetAsync(currentMonth, _familyId);
+            _currentBudget = budgets.FirstOrDefault();
+            _monthlyBudget = _currentBudget?.Limit ?? 0;
+
+            var monthTransactions = await TxSvc.GetAsync(from: currentMonth, to: nextMonth);
+            _monthlySpending = monthTransactions.Where(t => !t.IsIncome).Sum(t => t.Amount);
+            _budgetRemaining = _monthlyBudget > 0 ? _monthlyBudget - _monthlySpending : 0;
+            _budgetUsage = _monthlyBudget > 0
+                ? Math.Min(100d, Math.Max(0d, (double)(_monthlySpending / _monthlyBudget) * 100))
+                : 0;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Unable to load monthly budget: {ex.Message}", Severity.Error);
         }
     }
 
@@ -246,14 +354,107 @@
         {
             filtered = _filterStatus switch
             {
-                "Active" => filtered.Where(g => g.IsActive && !g.IsCompleted),
-                "Completed" => filtered.Where(g => g.IsCompleted),
+                StatusActive => filtered.Where(g => g.IsActive && !g.IsCompleted),
+                StatusCompleted => filtered.Where(g => g.IsCompleted),
                 _ => filtered
             };
         }
 
         _filteredGoals = filtered.OrderByDescending(g => g.CreatedDate).ToList();
         StateHasChanged();
+    }
+
+    private async Task SaveMonthlyBudgetAsync()
+    {
+        if (_budgetForm is not null)
+        {
+            await _budgetForm.Validate();
+            if (!_isBudgetValid)
+            {
+                return;
+            }
+        }
+
+        if (_monthlyBudget <= 0)
+        {
+            Snackbar.Add("Enter a positive monthly budget.", Severity.Warning);
+            return;
+        }
+
+        _isSavingBudget = true;
+
+        try
+        {
+            var memberId = await ResolveMemberIdAsync();
+            if (string.IsNullOrEmpty(memberId))
+            {
+                Snackbar.Add("Add at least one family member before creating a budget.", Severity.Warning);
+                return;
+            }
+
+            var currentMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+
+            if (_currentBudget is null)
+            {
+                var budget = Budget.CreateFamilyBudget(_familyId, _monthlyBudget, memberId);
+                budget.Month = currentMonth;
+                _currentBudget = await BudgetSvc.AddAsync(budget);
+            }
+            else
+            {
+                _currentBudget.Limit = _monthlyBudget;
+                _currentBudget.Month = currentMonth;
+                _currentBudget.UpdateTimestamp();
+                await BudgetSvc.UpdateAsync(_currentBudget);
+            }
+
+            await LoadBudgetAsync();
+            Snackbar.Add("Monthly budget saved.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Unable to save budget: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSavingBudget = false;
+        }
+    }
+
+    private async Task<string?> ResolveMemberIdAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_familyId))
+        {
+            _familyId = await FamilyMemberSvc.GetDefaultFamilyIdAsync();
+        }
+
+        if (Auth.CurrentUser is not null)
+        {
+            return Auth.CurrentUser.Id;
+        }
+
+        var members = await FamilyMemberSvc.GetAsync(_familyId);
+        return members.FirstOrDefault()?.Id;
+    }
+
+    private string GetBudgetStatusText()
+    {
+        if (_monthlyBudget <= 0)
+        {
+            return "Set a budget to start tracking progress.";
+        }
+
+        if (_monthlySpending <= 0)
+        {
+            return "No spending recorded for this month yet.";
+        }
+
+        if (_budgetRemaining < 0)
+        {
+            return $"Over budget by {Math.Abs(_budgetRemaining).ToString("C", CultureInfo.CurrentCulture)}.";
+        }
+
+        return $"{_budgetRemaining.ToString("C", CultureInfo.CurrentCulture)} remaining this month.";
     }
 
     private async Task OpenCreateGoalDialog()
@@ -278,9 +479,8 @@
         }
     }
 
-    private async Task OpenGoalActions(MouseEventArgs e, SavingsGoal goal)
+    private async Task OpenGoalActions(SavingsGoal goal)
     {
-
         var parameters = new DialogParameters
         {
             [nameof(DotnetFinancialTrackerApp.Components.Dialogs.SavingsGoalActionsDialog.Goal)] = goal
@@ -296,9 +496,8 @@
         }
     }
 
-    private async Task OpenContributeDialog(MouseEventArgs e, SavingsGoal goal)
+    private async Task OpenContributeDialog(SavingsGoal goal)
     {
-
         var parameters = new DialogParameters
         {
             [nameof(DotnetFinancialTrackerApp.Components.Dialogs.ContributeToGoalDialog.Goal)] = goal
@@ -337,6 +536,11 @@
             _filterStatus = value;
             ApplyFilters();
         }
+    }
+
+    private string GetGoalCardClass(SavingsGoal goal)
+    {
+        return $"goal-card {(goal.IsCompleted ? "completed" : "")}";
     }
 }
 
@@ -441,6 +645,12 @@
 .header-filters {
     display: flex;
     gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.header-filters .mud-input-control {
+    min-width: 160px;
 }
 
 .goals-grid {
@@ -553,7 +763,74 @@
     padding: 48px 24px;
 }
 
-@media (max-width: 768px) {
+.budget-section {
+    margin-bottom: 32px;
+}
+
+.budget-card {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+}
+
+.budget-title {
+    font-weight: 600;
+    color: #000000;
+}
+
+.budget-description {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.budget-metrics {
+    margin-top: 8px;
+}
+
+.budget-metric-label {
+    color: rgba(0, 0, 0, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.budget-metric-value {
+    font-weight: 600;
+}
+
+.budget-form {
+    flex-wrap: wrap;
+}
+
+.budget-input {
+    min-width: 200px;
+    flex: 1 1 200px;
+}
+
+.budget-meta {
+    color: rgba(0, 0, 0, 0.5);
+}
+
+.budget-progress {
+    margin-top: 8px;
+    height: 8px;
+    border-radius: 4px;
+}
+
+.budget-usage-note {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+@@media (max-width: 767px) {
+    .budget-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .budget-metrics {
+        margin-top: 4px;
+    }
+}
+
+@@media (max-width: 768px) {
     .savings-container {
         padding: 16px;
     }
@@ -576,8 +853,12 @@
     }
 
     .header-filters {
-        align-self: stretch;
-        justify-content: space-between;
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .header-filters .mud-input-control {
+        flex: 1 1 160px;
     }
 
     .goals-grid {

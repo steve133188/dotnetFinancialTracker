@@ -68,7 +68,7 @@
         {
             <MudCard Class="empty-card" Elevation="0">
                 <MudCardContent Class="text-center">
-                    <MudIcon Icon="@Icons.Material.Filled.Receipt" Size="Size.Large" Color="Color.Secondary" />
+                    <MudIcon Icon="@Icons.Material.Filled.Receipt" Size="Size.Large" Color="Color.Default" />
                     <MudText Typo="Typo.h6" Class="mt-2">No transactions yet</MudText>
                     <MudText Typo="Typo.body2" Class="mb-3">Start tracking your family spending</MudText>
                     <MudButton Variant="Variant.Filled" Color="Color.Default" Elevation="0" OnClick="@NavigateToFinance" Style="background-color: black; color: white;">
@@ -115,6 +115,7 @@
     private string? _error;
     private List<Transaction> _recentTransactions = new();
     private List<FamilyMember> _familyMembers = new();
+    private string? _familyId;
 
     protected override async Task OnInitializedAsync()
     {
@@ -135,11 +136,13 @@
             var nextMonth = currentMonth.AddMonths(1);
 
             // Load month spending using real transaction data
+            _familyId = await FamilyMemberSvc.GetDefaultFamilyIdAsync();
+
             var transactions = await TxSvc.GetAsync(from: currentMonth, to: nextMonth);
             _monthSpent = transactions.Where(t => !t.IsIncome).Sum(t => t.Amount);
 
             // Load budget using real budget data
-            var budgets = await BudgetSvc.GetAsync(currentMonth);
+            var budgets = await BudgetSvc.GetAsync(currentMonth, _familyId);
             _totalBudget = budgets.Sum(b => b.Limit);
 
             // Load recent transactions (last 5) using real data
@@ -164,13 +167,7 @@
         try
         {
             // Get the default family ID from seeded data
-            var defaultFamilyId = await FamilyMemberSvc.GetDefaultFamilyIdAsync();
-
-            if (string.IsNullOrEmpty(defaultFamilyId))
-            {
-                _familyMembers = new List<FamilyMember>();
-                return;
-            }
+            var defaultFamilyId = _familyId ?? await FamilyMemberSvc.GetDefaultFamilyIdAsync();
 
             // Load family members with calculated spending from the service
             _familyMembers = await FamilyMemberSvc.GetFamilyMembersWithSpendingAsync(defaultFamilyId);
@@ -186,7 +183,7 @@
                     if (!string.IsNullOrEmpty(user))
                     {
                         // Create family member for each unique transaction user
-                        await FamilyMemberSvc.GetOrCreateMemberAsync(user, defaultFamilyId, "Parent");
+                        await FamilyMemberSvc.GetOrCreateMemberAsync(user, defaultFamilyId);
                     }
                 }
 
@@ -221,7 +218,9 @@
 
     private double GetMemberBudgetPercentage(FamilyMember member)
     {
-        return member.SpendingLimit > 0 ? Math.Min((double)(member.SpentThisMonth / member.SpendingLimit) * 100, 100) : 0;
+        // For simplified version, return a placeholder -
+        // this method will need to be updated with async UserService calls
+        return 0;
     }
 
     // Removed GetMemberProgressColor - now using consistent Color.Primary for all donuts
@@ -340,7 +339,7 @@
 }
 
 .transfer-icon {
-    color: #4CAF50;
+    color: #000000;
 }
 
 .transfer-details {

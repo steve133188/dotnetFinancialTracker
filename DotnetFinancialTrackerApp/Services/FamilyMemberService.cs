@@ -17,15 +17,8 @@ public class FamilyMemberService : IFamilyMemberService
 
     public async Task<List<FamilyMember>> GetAsync(string? familyId = null)
     {
-        var query = _db.FamilyMembers.AsQueryable();
-
-        if (!string.IsNullOrEmpty(familyId))
-        {
-            query = query.Where(fm => fm.FamilyId == familyId);
-        }
-
-        return await query
-            .Where(fm => fm.IsActive)
+        // Simplified - no family groups, all members are active
+        return await _db.FamilyMembers
             .OrderBy(fm => fm.Name)
             .ToListAsync();
     }
@@ -33,13 +26,12 @@ public class FamilyMemberService : IFamilyMemberService
     public async Task<FamilyMember?> GetByIdAsync(string memberId)
     {
         return await _db.FamilyMembers
-            .FirstOrDefaultAsync(fm => fm.MemberId == memberId && fm.IsActive);
+            .FirstOrDefaultAsync(fm => fm.Id == memberId);
     }
 
     public async Task<FamilyMember> AddAsync(FamilyMember familyMember)
     {
         familyMember.CreatedAt = DateTime.UtcNow;
-        familyMember.UpdatedAt = DateTime.UtcNow;
 
         _db.FamilyMembers.Add(familyMember);
         await _db.SaveChangesAsync();
@@ -48,7 +40,6 @@ public class FamilyMemberService : IFamilyMemberService
 
     public async Task UpdateAsync(FamilyMember familyMember)
     {
-        familyMember.UpdatedAt = DateTime.UtcNow;
         _db.FamilyMembers.Update(familyMember);
         await _db.SaveChangesAsync();
     }
@@ -58,23 +49,20 @@ public class FamilyMemberService : IFamilyMemberService
         var member = await GetByIdAsync(memberId);
         if (member != null)
         {
-            member.IsActive = false;
-            member.UpdatedAt = DateTime.UtcNow;
-            await UpdateAsync(member);
+            _db.FamilyMembers.Remove(member);
+            await _db.SaveChangesAsync();
         }
     }
 
-    public async Task<FamilyMember?> GetByNameAsync(string name, string familyId)
+    public async Task<FamilyMember?> GetByNameAsync(string name, string? familyId = null)
     {
         return await _db.FamilyMembers
-            .FirstOrDefaultAsync(fm => fm.Name.ToLower() == name.ToLower()
-                                    && fm.FamilyId == familyId
-                                    && fm.IsActive);
+            .FirstOrDefaultAsync(fm => fm.Name.ToLower() == name.ToLower());
     }
 
-    public async Task<FamilyMember> GetOrCreateMemberAsync(string name, string familyId, string role = "Parent")
+    public async Task<FamilyMember> GetOrCreateMemberAsync(string name, string? familyId = null)
     {
-        var existingMember = await GetByNameAsync(name, familyId);
+        var existingMember = await GetByNameAsync(name);
         if (existingMember != null)
         {
             return existingMember;
@@ -82,52 +70,37 @@ public class FamilyMemberService : IFamilyMemberService
 
         var newMember = new FamilyMember
         {
-            MemberId = Guid.NewGuid().ToString(),
             Name = name,
-            FamilyId = familyId,
-            Role = role,
-            SpendingLimit = role.ToLower() switch
-            {
-                "parent" => 2000m,
-                "teen" => 500m,
-                "child" => 100m,
-                _ => 1000m
-            },
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            Pin = "1234" // Default PIN - should be changed on first login
         };
 
         return await AddAsync(newMember);
     }
 
-    public async Task<List<FamilyMember>> GetFamilyMembersWithSpendingAsync(string familyId, DateTime? month = null)
+    public async Task<List<FamilyMember>> GetFamilyMembersWithSpendingAsync(string? familyId = null, DateTime? month = null)
     {
-        var members = await GetAsync(familyId);
-
-        // Calculate current month spending for each member
-        var currentMonth = month ?? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-        var nextMonth = currentMonth.AddMonths(1);
-
-        var transactions = await _transactionsService.GetAsync(from: currentMonth, to: nextMonth);
-
-        foreach (var member in members)
-        {
-            var memberSpending = transactions
-                .Where(t => !t.IsIncome && (t.User == member.Name || t.FamilyMemberId == member.MemberId))
-                .Sum(t => t.Amount);
-
-            member.SpentThisMonth = memberSpending;
-            member.TransactionsThisMonth = transactions
-                .Count(t => t.User == member.Name || t.FamilyMemberId == member.MemberId);
-        }
-
-        return members;
+        // Simplified - just return all members
+        // Spending calculations are now handled by UserService
+        return await GetAsync();
     }
 
-    public async Task<string?> GetDefaultFamilyIdAsync()
+    public async Task<string> GetDefaultFamilyIdAsync()
     {
         var familyAccount = await _db.FamilyAccounts.FirstOrDefaultAsync();
-        return familyAccount?.FamilyId;
+        if (familyAccount is not null)
+        {
+            return familyAccount.FamilyId;
+        }
+
+        var defaultAccount = new FamilyAccount
+        {
+            FamilyId = "family-default",
+            FamilyName = "Family"
+        };
+
+        _db.FamilyAccounts.Add(defaultAccount);
+        await _db.SaveChangesAsync();
+
+        return defaultAccount.FamilyId;
     }
 }

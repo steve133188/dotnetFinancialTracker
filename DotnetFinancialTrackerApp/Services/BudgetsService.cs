@@ -13,13 +13,17 @@ public class BudgetsService : IBudgetsService
         _db = db;
     }
 
-    public async Task<List<Budget>> GetAsync(DateTime? month = null)
+    public async Task<List<Budget>> GetAsync(DateTime? month = null, string? familyId = null)
     {
         var q = _db.Budgets.AsQueryable();
         if (month.HasValue)
         {
             var first = new DateTime(month.Value.Year, month.Value.Month, 1);
             q = q.Where(b => b.Month.Year == first.Year && b.Month.Month == first.Month);
+        }
+        if (!string.IsNullOrEmpty(familyId))
+        {
+            q = q.Where(b => b.FamilyId == familyId);
         }
         return await q.OrderBy(b => b.Month).ToListAsync();
     }
@@ -47,4 +51,3 @@ public class BudgetsService : IBudgetsService
         await _db.SaveChangesAsync();
     }
 }
-

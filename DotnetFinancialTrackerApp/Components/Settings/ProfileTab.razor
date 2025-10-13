@@ -4,9 +4,9 @@
 @inject IUserService UserService
 @inject ISnackbar Snackbar
 
-<MudCard Elevation="0" Class="pa-6" Style="border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 12px;">
+<MudCard Elevation="0" Class="pa-6 profile-card">
     <MudCardContent>
-        <MudText Typo="Typo.h6" Class="mb-4" Style="font-weight: 600;">Profile Information</MudText>
+        <MudText Typo="Typo.h6" Class="mb-4 profile-title">Profile</MudText>
 
         @if (_isLoading)
         {
@@ -16,88 +16,20 @@
         {
             <EditForm Model="@_profileModel" OnValidSubmit="@SaveProfile">
                 <DataAnnotationsValidator />
-                <MudGrid>
-                    <MudItem xs="12" md="4" Class="d-flex justify-center">
-                        <div class="profile-image-container">
-                            <MudAvatar Size="Size.Large" Class="profile-avatar">
-                                @if (!string.IsNullOrEmpty(_profileModel.ProfileImageUrl))
-                                {
-                                    <MudImage Src="@_profileModel.ProfileImageUrl" Alt="Profile" />
-                                }
-                                else
-                                {
-                                    <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Large" />
-                                }
-                            </MudAvatar>
-                            <MudButton Variant="Variant.Outlined"
-                                      Size="Size.Small"
-                                      Class="mt-2 change-photo-btn"
-                                      OnClick="@ChangeProfileImage">
-                                Change Photo
-                            </MudButton>
-                        </div>
-                    </MudItem>
-
-                    <MudItem xs="12" md="8">
-                        <MudStack Spacing="4">
-                            <MudTextField @bind-Value="_profileModel.Name"
-                                         Label="Full Name"
-                                         Variant="Variant.Outlined"
-                                         Required="true"
-                                         For="@(() => _profileModel.Name)" />
-
-                            <MudTextField @bind-Value="_profileModel.Email"
-                                         Label="Email Address"
-                                         Variant="Variant.Outlined"
-                                         InputType="InputType.Email"
-                                         For="@(() => _profileModel.Email)" />
-
-                            <MudTextField @bind-Value="_profileModel.Phone"
-                                         Label="Phone Number"
-                                         Variant="Variant.Outlined"
-                                         InputType="InputType.Telephone"
-                                         For="@(() => _profileModel.Phone)" />
-
-                            <MudSelect @bind-Value="_profileModel.Language"
-                                      Label="Language"
-                                      Variant="Variant.Outlined"
-                                      For="@(() => _profileModel.Language)">
-                                <MudSelectItem Value="@("English")">English</MudSelectItem>
-                                <MudSelectItem Value="@("Spanish")">Spanish</MudSelectItem>
-                                <MudSelectItem Value="@("French")">French</MudSelectItem>
-                                <MudSelectItem Value="@("German")">German</MudSelectItem>
-                                <MudSelectItem Value="@("Chinese")">Chinese</MudSelectItem>
-                            </MudSelect>
-
-                            <MudSelect @bind-Value="_profileModel.Currency"
-                                      Label="Default Currency"
-                                      Variant="Variant.Outlined"
-                                      For="@(() => _profileModel.Currency)">
-                                <MudSelectItem Value="@("USD")">USD ($)</MudSelectItem>
-                                <MudSelectItem Value="@("EUR")">EUR (€)</MudSelectItem>
-                                <MudSelectItem Value="@("GBP")">GBP (£)</MudSelectItem>
-                                <MudSelectItem Value="@("CAD")">CAD ($)</MudSelectItem>
-                                <MudSelectItem Value="@("AUD")">AUD ($)</MudSelectItem>
-                            </MudSelect>
-
-                            <MudSwitch @bind-Value="_profileModel.NotificationsEnabled"
-                                      Label="Enable Notifications"
-                                      Color="Color.Primary" />
-
-                            <MudSwitch @bind-Value="_profileModel.PrivacyMode"
-                                      Label="Privacy Mode"
-                                      Color="Color.Primary" />
-                        </MudStack>
-                    </MudItem>
-                </MudGrid>
+                <MudStack Spacing="3">
+                    <MudTextField @bind-Value="_profileModel.Name"
+                                 Label="Display Name"
+                                 Variant="Variant.Outlined"
+                                 Required="true"
+                                 For="@(() => _profileModel.Name)" />
+                </MudStack>
 
                 <ValidationSummary />
 
                 <MudCardActions Class="pa-0 mt-4">
                     <MudButton ButtonType="ButtonType.Submit"
                               Variant="Variant.Filled"
-                              Color="Color.Primary"
-                              Size="Size.Large"
+                              Color="Color.Default"
                               Disabled="@_isSaving"
                               Style="background-color: #000; color: white;">
                         @if (_isSaving)
@@ -107,28 +39,76 @@
                         }
                         else
                         {
-                            <span>Save Changes</span>
+                            <span>Save</span>
                         }
                     </MudButton>
                 </MudCardActions>
             </EditForm>
+
+            <MudDivider Class="my-4" />
+
+            <MudText Typo="Typo.subtitle1" Class="security-title">Security</MudText>
+            <MudText Typo="Typo.caption" Class="security-description">
+                Update the 4-digit PIN you use to sign in.
+            </MudText>
+
+            <MudForm @ref="_pinForm" @bind-IsValid="_isPinValid">
+                <MudStack Spacing="2">
+                    <MudTextField T="string"
+                                  Label="Current PIN"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Password"
+                                  @bind-Value="_pinModel.CurrentPin"
+                                  For="@(() => _pinModel.CurrentPin)" />
+
+                    <MudTextField T="string"
+                                  Label="New PIN"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Password"
+                                  @bind-Value="_pinModel.NewPin"
+                                  For="@(() => _pinModel.NewPin)" />
+
+                    <MudTextField T="string"
+                                  Label="Confirm PIN"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Password"
+                                  @bind-Value="_pinModel.ConfirmPin"
+                                  For="@(() => _pinModel.ConfirmPin)" />
+
+                    <MudButton Variant="Variant.Filled"
+                              Color="Color.Default"
+                              Disabled="@(!_isPinValid || _isUpdatingPin)"
+                              Style="background-color: #000; color: white;"
+                              OnClick="@UpdatePinAsync">
+                        @if (_isUpdatingPin)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                        }
+                        <span>Update PIN</span>
+                    </MudButton>
+                </MudStack>
+            </MudForm>
         }
         else
         {
             <MudAlert Severity="Severity.Warning">
-                Unable to load user profile. Please try refreshing the page.
+                Unable to load user profile right now. Please try refreshing.
             </MudAlert>
         }
     </MudCardContent>
 </MudCard>
 
 @code {
-    [Parameter] public UserProfile? CurrentUser { get; set; }
+    [Parameter] public FamilyMember? CurrentUser { get; set; }
     [Parameter] public EventCallback OnUserUpdated { get; set; }
 
     private ProfileModel _profileModel = new();
+    private PinModel _pinModel = new();
     private bool _isLoading = false;
     private bool _isSaving = false;
+    private bool _isUpdatingPin = false;
+    private MudForm? _pinForm;
+    private bool _isPinValid;
 
     protected override void OnParametersSet()
     {
@@ -136,14 +116,7 @@
         {
             _profileModel = new ProfileModel
             {
-                Name = CurrentUser.Name,
-                Email = string.Empty, // UserProfile doesn't have email, using default
-                Phone = string.Empty, // UserProfile doesn't have phone, using default
-                Language = "English",
-                Currency = "USD",
-                NotificationsEnabled = true,
-                PrivacyMode = false,
-                ProfileImageUrl = string.Empty
+                Name = CurrentUser.Name
             };
         }
     }
@@ -179,10 +152,54 @@
         }
     }
 
-    private async Task ChangeProfileImage()
+    private async Task UpdatePinAsync()
     {
-        // TODO: Implement image picker/upload functionality
-        Snackbar.Add("Image upload functionality coming soon", Severity.Info);
+        if (CurrentUser == null)
+        {
+            return;
+        }
+
+        if (_pinForm is not null)
+        {
+            await _pinForm.Validate();
+            if (!_isPinValid)
+            {
+                return;
+            }
+        }
+
+        if (_pinModel.NewPin != _pinModel.ConfirmPin)
+        {
+            Snackbar.Add("PIN confirmation does not match.", Severity.Warning);
+            return;
+        }
+
+        _isUpdatingPin = true;
+
+        try
+        {
+            var updated = await UserService.UpdatePinAsync(CurrentUser.Id, _pinModel.CurrentPin, _pinModel.NewPin);
+            if (!updated)
+            {
+                Snackbar.Add("Current PIN is incorrect.", Severity.Error);
+                return;
+            }
+
+            _pinModel = new PinModel();
+            if (_pinForm is not null)
+            {
+                await _pinForm.ResetAsync();
+            }
+            Snackbar.Add("PIN updated successfully.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error updating PIN: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isUpdatingPin = false;
+        }
     }
 
     public class ProfileModel
@@ -190,42 +207,41 @@
         [Required(ErrorMessage = "Name is required")]
         [StringLength(100, ErrorMessage = "Name must be less than 100 characters")]
         public string Name { get; set; } = string.Empty;
+    }
 
-        [EmailAddress(ErrorMessage = "Please enter a valid email address")]
-        public string Email { get; set; } = string.Empty;
+    public class PinModel
+    {
+        [Required(ErrorMessage = "Current PIN is required")]
+        [RegularExpression("^[0-9]{4}$", ErrorMessage = "PIN must be 4 digits.")]
+        public string CurrentPin { get; set; } = string.Empty;
 
-        [Phone(ErrorMessage = "Please enter a valid phone number")]
-        public string Phone { get; set; } = string.Empty;
+        [Required(ErrorMessage = "New PIN is required")]
+        [RegularExpression("^[0-9]{4}$", ErrorMessage = "PIN must be 4 digits.")]
+        public string NewPin { get; set; } = string.Empty;
 
-        public string Language { get; set; } = "English";
-        public string Currency { get; set; } = "USD";
-        public bool NotificationsEnabled { get; set; } = true;
-        public bool PrivacyMode { get; set; } = false;
-        public string ProfileImageUrl { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Please confirm the new PIN")]
+        [RegularExpression("^[0-9]{4}$", ErrorMessage = "PIN must be 4 digits.")]
+        public string ConfirmPin { get; set; } = string.Empty;
     }
 }
 
 <style>
-.profile-image-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
+.profile-card {
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
 }
 
-.profile-avatar {
-    width: 120px;
-    height: 120px;
-    border: 3px solid rgba(1, 255, 255, 0.2);
-}
-
-.change-photo-btn {
-    border-color: #000;
-    color: #000;
+.profile-title {
     font-weight: 600;
+    color: #000;
 }
 
-.change-photo-btn:hover {
-    background-color: rgba(0, 0, 0, 0.1);
+.security-title {
+    font-weight: 600;
+    color: #000;
+}
+
+.security-description {
+    color: rgba(0, 0, 0, 0.6);
 }
 </style>

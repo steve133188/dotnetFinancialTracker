@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using DotnetFinancialTrackerApp.Data;
 using DotnetFinancialTrackerApp.Models;
 using Microsoft.EntityFrameworkCore;
@@ -12,61 +10,90 @@ public class UserService : IUserService
 
     public UserService(AppDbContext db) => _db = db;
 
-    public Task<List<UserProfile>> GetUsersAsync() => _db.Users.OrderBy(u => u.Name).ToListAsync();
+    public Task<List<FamilyMember>> GetUsersAsync() => _db.FamilyMembers.OrderBy(m => m.Name).ToListAsync();
 
-    public Task<UserProfile?> GetByIdAsync(int userId) => _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+    public Task<FamilyMember?> GetByIdAsync(string memberId) => _db.FamilyMembers.FirstOrDefaultAsync(m => m.Id == memberId);
 
-    public async Task<UserProfile> CreateAsync(string name, string pin)
+    public async Task<FamilyMember> CreateAsync(string name, string pin)
     {
-        var salt = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
-        var hash = HashPin(pin, salt);
-        var user = new UserProfile { Name = name.Trim(), Salt = salt, PinHash = hash };
-        _db.Users.Add(user);
+        var member = new FamilyMember
+        {
+            Name = name.Trim(),
+            Pin = pin
+        };
+        _db.FamilyMembers.Add(member);
         await _db.SaveChangesAsync();
-        return user;
+        return member;
     }
 
-    public async Task<UserProfile?> VerifyAsync(int userId, string pin)
+    public async Task<FamilyMember?> VerifyAsync(string memberId, string pin)
     {
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
-        if (user is null) return null;
-        var hash = HashPin(pin, user.Salt);
-        return string.Equals(hash, user.PinHash, StringComparison.Ordinal) ? user : null;
+        var member = await _db.FamilyMembers.FirstOrDefaultAsync(m => m.Id == memberId);
+        if (member is null) return null;
+        return string.Equals(pin, member.Pin, StringComparison.Ordinal) ? member : null;
     }
 
-    public async Task<UserProfile?> UpdateNameAsync(int userId, string name)
+    public async Task<FamilyMember?> UpdateNameAsync(string memberId, string name)
     {
         var trimmed = name.Trim();
         if (string.IsNullOrWhiteSpace(trimmed)) return null;
 
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
-        if (user is null) return null;
+        var member = await _db.FamilyMembers.FirstOrDefaultAsync(m => m.Id == memberId);
+        if (member is null) return null;
 
-        user.Name = trimmed;
+        member.Name = trimmed;
         await _db.SaveChangesAsync();
-        return user;
+        return member;
     }
 
-    public async Task<bool> UpdatePinAsync(int userId, string currentPin, string newPin)
+    public async Task<bool> UpdatePinAsync(string memberId, string currentPin, string newPin)
     {
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
-        if (user is null) return false;
+        var member = await _db.FamilyMembers.FirstOrDefaultAsync(m => m.Id == memberId);
+        if (member is null) return false;
 
-        var currentHash = HashPin(currentPin, user.Salt);
-        if (!string.Equals(currentHash, user.PinHash, StringComparison.Ordinal)) return false;
+        if (!string.Equals(currentPin, member.Pin, StringComparison.Ordinal)) return false;
 
-        var newSalt = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
-        user.Salt = newSalt;
-        user.PinHash = HashPin(newPin, newSalt);
+        member.Pin = newPin;
         await _db.SaveChangesAsync();
         return true;
     }
 
-    private static string HashPin(string pin, string salt)
+    // Calculated data methods
+    public async Task<decimal> GetUserSpentThisMonthAsync(string memberId)
     {
-        using var sha = SHA256.Create();
-        var bytes = Encoding.UTF8.GetBytes(pin + ":" + salt);
-        var hash = sha.ComputeHash(bytes);
-        return Convert.ToBase64String(hash);
+        var currentMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        var nextMonth = currentMonth.AddMonths(1);
+
+        return await _db.Transactions
+            .Where(t => t.FamilyMemberId == memberId &&
+                       t.Date >= currentMonth &&
+                       t.Date < nextMonth &&
+                       t.Type == TransactionType.Expense)
+            .SumAsync(t => t.Amount);
+    }
+
+    public async Task<int> GetUserTransactionCountThisMonthAsync(string memberId)
+    {
+        var currentMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        var nextMonth = currentMonth.AddMonths(1);
+
+        return await _db.Transactions
+            .Where(t => t.FamilyMemberId == memberId &&
+                       t.Date >= currentMonth &&
+                       t.Date < nextMonth)
+            .CountAsync();
+    }
+
+    public async Task<decimal> GetUserIncomeThisMonthAsync(string memberId)
+    {
+        var currentMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        var nextMonth = currentMonth.AddMonths(1);
+
+        return await _db.Transactions
+            .Where(t => t.FamilyMemberId == memberId &&
+                       t.Date >= currentMonth &&
+                       t.Date < nextMonth &&
+                       t.Type == TransactionType.Income)
+            .SumAsync(t => t.Amount);
     }
 }

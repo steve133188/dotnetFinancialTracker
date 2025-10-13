@@ -41,6 +41,11 @@ public class SavingsGoal
     [MaxLength(50)]
     public string CreatedByMemberId { get; set; } = string.Empty;
 
+    public GoalPriority Priority { get; set; } = GoalPriority.Medium;
+
+    [MaxLength(7)]
+    public string Color { get; set; } = "#000000";
+
     // Navigation properties
     [ForeignKey(nameof(FamilyId))]
     public virtual FamilyAccount? Family { get; set; }

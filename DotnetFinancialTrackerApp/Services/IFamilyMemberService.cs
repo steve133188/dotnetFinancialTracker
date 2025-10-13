@@ -9,8 +9,8 @@ public interface IFamilyMemberService
     Task<FamilyMember> AddAsync(FamilyMember familyMember);
     Task UpdateAsync(FamilyMember familyMember);
     Task DeleteAsync(string memberId);
-    Task<FamilyMember?> GetByNameAsync(string name, string familyId);
-    Task<FamilyMember> GetOrCreateMemberAsync(string name, string familyId, string role = "Parent");
-    Task<List<FamilyMember>> GetFamilyMembersWithSpendingAsync(string familyId, DateTime? month = null);
-    Task<string?> GetDefaultFamilyIdAsync();
+    Task<FamilyMember?> GetByNameAsync(string name, string? familyId = null);
+    Task<FamilyMember> GetOrCreateMemberAsync(string name, string? familyId = null);
+    Task<List<FamilyMember>> GetFamilyMembersWithSpendingAsync(string? familyId = null, DateTime? month = null);
+    Task<string> GetDefaultFamilyIdAsync();
 }

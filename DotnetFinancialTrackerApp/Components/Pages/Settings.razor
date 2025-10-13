@@ -19,22 +19,14 @@
             <ProfileTab CurrentUser="@_currentUser" OnUserUpdated="@HandleUserUpdated" />
         </MudTabPanel>
 
-        <MudTabPanel Text="Security" Icon="@Icons.Material.Filled.Security">
-            <SecurityTab CurrentUser="@_currentUser" OnPinUpdated="@HandlePinUpdated" />
-        </MudTabPanel>
-
         <MudTabPanel Text="Family" Icon="@Icons.Material.Filled.Home">
             <FamilyTab FamilyMembers="@_familyMembers" OnFamilyUpdated="@HandleFamilyUpdated" />
-        </MudTabPanel>
-
-        <MudTabPanel Text="App" Icon="@Icons.Material.Filled.Settings">
-            <AppTab />
         </MudTabPanel>
     </MudTabs>
 </MudContainer>
 
 @code {
-    private UserProfile? _currentUser;
+    private FamilyMember? _currentUser;
     private List<FamilyMember> _familyMembers = new();
     private int _activeTabIndex = 0;
     private bool _isLoading = true;
@@ -50,14 +42,13 @@
         {
             _isLoading = true;
 
-            // Load current user (assuming user ID 1 for demo)
-            _currentUser = await UserService.GetByIdAsync(1);
+            // Load family members (now they are the same as users)
+            _familyMembers = await UserService.GetUsersAsync();
 
-            // Load family members
-            var defaultFamilyId = await FamilyMemberService.GetDefaultFamilyIdAsync();
-            if (!string.IsNullOrEmpty(defaultFamilyId))
+            // Load current user (first user for demo)
+            if (_familyMembers.Any())
             {
-                _familyMembers = await FamilyMemberService.GetAsync(defaultFamilyId);
+                _currentUser = _familyMembers.First();
             }
         }
         catch (Exception ex)
@@ -75,12 +66,6 @@
     {
         await LoadData();
         Snackbar.Add("Profile updated successfully", Severity.Success);
-    }
-
-    private async Task HandlePinUpdated()
-    {
-        await LoadData();
-        Snackbar.Add("PIN updated successfully", Severity.Success);
     }
 
     private async Task HandleFamilyUpdated()
@@ -106,7 +91,7 @@
 
 .settings-tabs .mud-tab.mud-tab-active {
     color: #000;
-    background: rgba(1, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.05);
     border-radius: 8px 8px 0 0;
 }
 

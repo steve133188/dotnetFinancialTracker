@@ -106,14 +106,14 @@ public class TransactionTemplateService : ITransactionTemplateService
 
         var defaultTemplates = new[]
         {
-            new TransactionTemplate { Name = "Coffee", Category = "Food", DefaultAmount = 5.00m, Icon = "Icons.Material.Filled.LocalCafe", Color = "#8D6E63" },
-            new TransactionTemplate { Name = "Lunch", Category = "Food", DefaultAmount = 15.00m, Icon = "Icons.Material.Filled.Restaurant", Color = "#FF8A65" },
-            new TransactionTemplate { Name = "Gas", Category = "Transportation", DefaultAmount = 40.00m, Icon = "Icons.Material.Filled.LocalGasStation", Color = "#4FC3F7" },
-            new TransactionTemplate { Name = "Groceries", Category = "Food", DefaultAmount = 75.00m, Icon = "Icons.Material.Filled.ShoppingCart", Color = "#81C784" },
-            new TransactionTemplate { Name = "Parking", Category = "Transportation", DefaultAmount = 8.00m, Icon = "Icons.Material.Filled.LocalParking", Color = "#90A4AE" },
-            new TransactionTemplate { Name = "Salary", Category = "Income", DefaultAmount = 3000.00m, IsIncome = true, Icon = "Icons.Material.Filled.AccountBalance", Color = "#66BB6A" },
-            new TransactionTemplate { Name = "Bills", Category = "Bills", DefaultAmount = 100.00m, Icon = "Icons.Material.Filled.Receipt", Color = "#F06292" },
-            new TransactionTemplate { Name = "Entertainment", Category = "Entertainment", DefaultAmount = 25.00m, Icon = "Icons.Material.Filled.Movie", Color = "#BA68C8" }
+            new TransactionTemplate { Name = "Coffee", Category = "Food", DefaultAmount = 5.00m, Icon = "Icons.Material.Filled.LocalCafe", Color = "#333333" },
+            new TransactionTemplate { Name = "Lunch", Category = "Food", DefaultAmount = 15.00m, Icon = "Icons.Material.Filled.Restaurant", Color = "#444444" },
+            new TransactionTemplate { Name = "Gas", Category = "Transportation", DefaultAmount = 40.00m, Icon = "Icons.Material.Filled.LocalGasStation", Color = "#555555" },
+            new TransactionTemplate { Name = "Groceries", Category = "Food", DefaultAmount = 75.00m, Icon = "Icons.Material.Filled.ShoppingCart", Color = "#666666" },
+            new TransactionTemplate { Name = "Parking", Category = "Transportation", DefaultAmount = 8.00m, Icon = "Icons.Material.Filled.LocalParking", Color = "#777777" },
+            new TransactionTemplate { Name = "Salary", Category = "Income", DefaultAmount = 3000.00m, IsIncome = true, Icon = "Icons.Material.Filled.AccountBalance", Color = "#222222" },
+            new TransactionTemplate { Name = "Bills", Category = "Bills", DefaultAmount = 100.00m, Icon = "Icons.Material.Filled.Receipt", Color = "#888888" },
+            new TransactionTemplate { Name = "Entertainment", Category = "Entertainment", DefaultAmount = 25.00m, Icon = "Icons.Material.Filled.Movie", Color = "#999999" }
         };
 
         _context.TransactionTemplates.AddRange(defaultTemplates);

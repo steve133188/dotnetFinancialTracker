@@ -19,8 +19,7 @@ public class AppDbContext : DbContext
     public DbSet<SavingsGoal> SavingsGoals => Set<SavingsGoal>();
     public DbSet<SavingsGoalContribution> SavingsGoalContributions => Set<SavingsGoalContribution>();
 
-    // User Management
-    public DbSet<UserProfile> Users => Set<UserProfile>();
+    // User Management (consolidated into FamilyMembers)
 
     // Family Banking Entities (essential for MVP)
     public DbSet<FamilyAccount> FamilyAccounts => Set<FamilyAccount>();

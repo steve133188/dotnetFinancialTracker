@@ -4,10 +4,10 @@ namespace DotnetFinancialTrackerApp.Services;
 
 public interface IUserService
 {
-    Task<List<UserProfile>> GetUsersAsync();
-    Task<UserProfile> CreateAsync(string name, string pin);
-    Task<UserProfile?> VerifyAsync(int userId, string pin);
-    Task<UserProfile?> UpdateNameAsync(int userId, string name);
-    Task<bool> UpdatePinAsync(int userId, string currentPin, string newPin);
-    Task<UserProfile?> GetByIdAsync(int userId);
+    Task<List<FamilyMember>> GetUsersAsync();
+    Task<FamilyMember> CreateAsync(string name, string pin);
+    Task<FamilyMember?> VerifyAsync(string memberId, string pin);
+    Task<FamilyMember?> UpdateNameAsync(string memberId, string name);
+    Task<bool> UpdatePinAsync(string memberId, string currentPin, string newPin);
+    Task<FamilyMember?> GetByIdAsync(string memberId);
 }

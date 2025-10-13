@@ -29,17 +29,9 @@ namespace DotnetFinancialTrackerApp.Models
 
         public virtual ICollection<FamilyGoal> Goals { get; set; } = new List<FamilyGoal>();
 
-        // Removed: FamilyInsights - not part of MVP
+        // Simplified calculated properties for MVP
+        public int ActiveMemberCount => Members?.Count() ?? 0;
 
-        // Calculated properties
-        public decimal TotalMemberBalances => Members?.Sum(m => m.Balance) ?? 0m;
-
-        public int ActiveMemberCount => Members?.Count(m => m.IsActive) ?? 0;
-
-        public decimal MonthlyIncome => Members?.Sum(m => m.MonthlyAllowance) ?? 0m;
-
-        public decimal MonthlySpending => Members?.Sum(m => m.SpentThisMonth) ?? 0m;
-
-        public double SavingsRate => MonthlyIncome == 0 ? 0 : (double)((MonthlyIncome - MonthlySpending) / MonthlyIncome);
+        // Complex calculations moved to service layer per user requirements
     }
 }

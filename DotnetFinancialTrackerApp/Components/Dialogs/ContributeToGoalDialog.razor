@@ -1,0 +1,222 @@
+@using DotnetFinancialTrackerApp.Models
+@using DotnetFinancialTrackerApp.Services
+@inject ISavingsGoalService SavingsGoalSvc
+@inject IFamilyMemberService FamilyMemberSvc
+
+<MudDialog MaxWidth="MaxWidth.Medium">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Contribute to Goal</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        @if (Goal != null)
+        {
+            <MudForm @ref="_form" @bind-IsValid="_isValid" ValidationDelay="0">
+                <MudStack Spacing="3">
+                    <div class="goal-summary">
+                        <MudText Typo="Typo.h6">@Goal.Title</MudText>
+                        <MudText Typo="Typo.body2">
+                            Progress: @Goal.CurrentAmount.ToString("C") / @Goal.TargetAmount.ToString("C")
+                        </MudText>
+                        <MudProgressLinear Value="@Goal.ProgressPercentage"
+                                         Color="Color.Default"
+                                         Size="Size.Medium"
+                                         Class="mt-2" />
+                        <MudText Typo="Typo.caption" Class="mt-1">
+                            @Goal.RemainingAmount.ToString("C") remaining
+                        </MudText>
+                    </div>
+
+                    <MudDivider />
+
+                    <MudNumericField T="decimal"
+                                     Label="Contribution Amount"
+                                     Variant="Variant.Outlined"
+                                     @bind-Value="_contributionAmount"
+                                     Required="true"
+                                     RequiredError="Contribution amount is required"
+                                     Min="0.01M"
+                                     Step="0.01M"
+                                     Adornment="Adornment.Start"
+                                     AdornmentText="$"
+                                     Placeholder="0.00"
+                                     HelperText="Enter the amount you want to contribute" />
+
+                    <MudTextField Label="Description (optional)"
+                                  Variant="Variant.Outlined"
+                                  @bind-Value="_description"
+                                  Lines="2"
+                                  Placeholder="What's this contribution for?" />
+
+                    @if (_familyMembers.Count > 1)
+                    {
+                        <MudSelect T="string"
+                                   Label="Contributing Member"
+                                   Variant="Variant.Outlined"
+                                   @bind-Value="_selectedMemberId"
+                                   Required="true"
+                                   RequiredError="Please select a family member">
+                            @foreach (var member in _familyMembers)
+                            {
+                                <MudSelectItem Value="@member.Id">@member.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+
+                    @if (_contributionAmount > 0 && Goal.RemainingAmount > 0)
+                    {
+                        <div class="contribution-preview">
+                            <MudText Typo="Typo.subtitle2">After this contribution:</MudText>
+                            <MudText Typo="Typo.body2">
+                                New total: @((Goal.CurrentAmount + _contributionAmount).ToString("C")) / @Goal.TargetAmount.ToString("C")
+                            </MudText>
+                            <MudText Typo="Typo.body2">
+                                Progress: @(Math.Min(100, ((Goal.CurrentAmount + _contributionAmount) / Goal.TargetAmount * 100)).ToString("F1"))%
+                            </MudText>
+                            @if (Goal.CurrentAmount + _contributionAmount >= Goal.TargetAmount)
+                            {
+                                <MudAlert Severity="Severity.Success" Class="mt-2">
+                                    🎉 This contribution will complete your goal!
+                                </MudAlert>
+                            }
+                        </div>
+                    }
+                </MudStack>
+            </MudForm>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+            Cancel
+        </MudButton>
+        <MudButton OnClick="Contribute"
+                   Variant="Variant.Filled"
+                   Color="Color.Default"
+                   Style="background-color: black; color: white;"
+                   Disabled="@(!_isValid || _isContributing || _contributionAmount <= 0)">
+            @if (_isContributing)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                <span class="ml-2">Contributing...</span>
+            }
+            else
+            {
+                <span>Contribute @_contributionAmount.ToString("C")</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public SavingsGoal? Goal { get; set; }
+
+    private MudForm? _form;
+    private bool _isValid;
+    private bool _isContributing;
+    private decimal _contributionAmount;
+    private string _description = string.Empty;
+    private string _selectedMemberId = string.Empty;
+    private List<FamilyMember> _familyMembers = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Goal == null) return;
+
+        try
+        {
+            // Load family members
+            _familyMembers = await FamilyMemberSvc.GetFamilyMembersWithSpendingAsync(Goal.FamilyId);
+
+            // Pre-select first family member if available
+            if (_familyMembers.Any())
+            {
+                _selectedMemberId = _familyMembers.First().Id;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle error loading family members
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Contribute()
+    {
+        if (!_isValid || _isContributing || Goal == null || _contributionAmount <= 0)
+        {
+            return;
+        }
+
+        _isContributing = true;
+
+        try
+        {
+            var cleanedDescription = string.IsNullOrWhiteSpace(_description) ? null : _description.Trim();
+            var contributorId = string.IsNullOrWhiteSpace(_selectedMemberId) ? Goal.CreatedByMemberId : _selectedMemberId;
+
+            if (string.IsNullOrWhiteSpace(contributorId) && _familyMembers.Any())
+            {
+                contributorId = _familyMembers.First().Id;
+            }
+
+            if (string.IsNullOrWhiteSpace(contributorId))
+            {
+                MudDialog.Close(DialogResult.Cancel());
+                return;
+            }
+
+            var success = await SavingsGoalSvc.AddContributionAsync(Goal.Id, _contributionAmount, contributorId, cleanedDescription);
+            if (!success)
+            {
+                MudDialog.Close(DialogResult.Cancel());
+                return;
+            }
+
+            var contribution = new SavingsGoalContribution
+            {
+                SavingsGoalId = Goal.Id,
+                Amount = _contributionAmount,
+                ContributorMemberId = contributorId,
+                Description = cleanedDescription,
+                ContributionDate = DateTime.UtcNow,
+                IsReversal = false
+            };
+
+            MudDialog.Close(DialogResult.Ok(contribution));
+        }
+        catch
+        {
+            MudDialog.Close(DialogResult.Cancel());
+        }
+        finally
+        {
+            _isContributing = false;
+        }
+    }
+}
+
+<style>
+.goal-summary {
+    padding: 16px;
+    background: #F8F9FA;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.contribution-preview {
+    padding: 12px;
+    background: #E3F2FD;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.ml-2 {
+    margin-left: 8px;
+}
+</style>

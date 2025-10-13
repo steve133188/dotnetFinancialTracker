@@ -6,7 +6,7 @@
 @inject NavigationManager Nav
 
 <div class="login-page">
-    <UiSurface Class="login-form-wrapper">
+    <MudPaper Class="login-form-wrapper">
         <MudStack Spacing="3">
             <MudStack AlignItems="AlignItems.Center" Spacing="1">
                 <MudAvatar Class="login-avatar" Color="Color.Dark" Size="Size.Large" Style="background-color: black; color: white;">
@@ -16,39 +16,42 @@
                 <MudText Typo="Typo.body2" Class="login-subtitle">Sign in to your account</MudText>
             </MudStack>
 
-            <UiForm Model="_formModel"
-                    OnChanged="HandleFormChanged"
+            <EditForm Model="_formModel"
                     OnValidSubmit="HandleSubmit"
                     OnInvalidSubmit="HandleInvalidSubmit">
                 <MudStack Spacing="3">
-                    <UiSelect T="int"
+                    <MudSelect T="string"
                               Label="Select User"
-                              Dense="true"
+                              Variant="Variant.Outlined"
                               @bind-Value="_formModel.SelectedUserId"
-                              Disabled="_users.Count == 0">
+                              Disabled="@(_users.Count == 0)">
                         @foreach (var user in _users)
                         {
                             <MudSelectItem Value="@user.Id">@user.Name</MudSelectItem>
                         }
-                    </UiSelect>
+                    </MudSelect>
                     <ValidationMessage For="@(() => _formModel.SelectedUserId)" />
 
-                    <UiTextField T="string"
+                    <MudTextField T="string"
                                  Label="PIN Code"
-                                 Dense="true"
+                                 Variant="Variant.Outlined"
                                  InputType="InputType.Password"
                                  Immediate="true"
+                                 Adornment="Adornment.Start"
                                  AdornmentIcon="@Icons.Material.Outlined.Lock"
                                  @bind-Value="_formModel.Pin" />
                     <ValidationMessage For="@(() => _formModel.Pin)" />
 
-                    <UiButton FullWidth="true"
+                    <MudButton FullWidth="true"
                               ButtonType="ButtonType.Submit"
-                              Disabled="@(!CanSignIn)">
+                              Variant="Variant.Filled"
+                              Color="Color.Default"
+                              Disabled="@(!CanSignIn)"
+                              Style="background-color: black; color: white;">
                         Sign In
-                    </UiButton>
+                    </MudButton>
                 </MudStack>
-            </UiForm>
+            </EditForm>
 
             @if (!string.IsNullOrEmpty(_error))
             {
@@ -57,12 +60,12 @@
                 </MudAlert>
             }
         </MudStack>
-    </UiSurface>
+    </MudPaper>
 </div>
 
 @code {
     private readonly LoginFormModel _formModel = new();
-    private readonly List<UserProfile> _users = new();
+    private readonly List<FamilyMember> _users = new();
     private ValidationMessageStore? _validationMessages;
     private EditContext? _currentContext;
     private string? _error;
@@ -71,14 +74,14 @@
     {
         var users = await Users.GetUsersAsync();
         _users.AddRange(users);
-        if (_users.Count > 0 && _formModel.SelectedUserId == 0)
+        if (_users.Count > 0 && string.IsNullOrEmpty(_formModel.SelectedUserId))
         {
             _formModel.SelectedUserId = _users[0].Id;
         }
         StateHasChanged();
     }
 
-    private bool CanSignIn => _formModel.SelectedUserId > 0 && (_formModel.Pin?.Trim().Length ?? 0) >= 4;
+    private bool CanSignIn => !string.IsNullOrEmpty(_formModel.SelectedUserId) && (_formModel.Pin?.Trim().Length ?? 0) >= 4;
 
     private Task HandleFormChanged(EditContext context)
     {
@@ -109,7 +112,7 @@
             return;
         }
 
-        var user = await Users.VerifyAsync(_formModel.SelectedUserId, pin);
+        var user = await Users.VerifyAsync(_formModel.SelectedUserId!, pin);
         if (user is null)
         {
             _error = "Invalid PIN code. Please try again.";
@@ -157,17 +160,16 @@
     width: 100%;
     padding: 2rem;
     border-radius: 28px;
-    background: rgba(255, 255, 255, 0.95);
-    border: 1px solid rgba(1, 255, 255, 0.2);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
 }
 
 .login-avatar {
     width: 72px;
     height: 72px;
-    /*background: linear-gradient(135deg, rgba(1, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.9) 100%);*/
     color: #000000;
-    box-shadow: 0 8px 24px rgba(1, 255, 255, 0.2);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 .login-title {
