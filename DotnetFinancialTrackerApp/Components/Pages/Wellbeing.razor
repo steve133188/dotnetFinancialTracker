@@ -1,5 +1,7 @@
 @page "/wellbeing"
 @using DotnetFinancialTrackerApp.Models
+@using DotnetFinancialTrackerApp.Components.Dialogs
+@using System.Linq
 @using System.Globalization
 @inject DotnetFinancialTrackerApp.Services.ISavingsGoalService SavingsGoalSvc
 @inject DotnetFinancialTrackerApp.Services.IFamilyMemberService FamilyMemberSvc
@@ -120,30 +122,19 @@
                     <MudProgressLinear Value="@_budgetUsage" Color="Color.Default" Class="budget-progress" />
                     <MudText Typo="Typo.caption" Class="budget-usage-note">@GetBudgetStatusText()</MudText>
 
-                    <MudForm @ref="_budgetForm" @bind-IsValid="_isBudgetValid">
-                        <MudStack Direction="Row" Spacing="2" AlignItems="AlignItems.Center" Class="budget-form">
-                            <MudNumericField T="decimal"
-                                             Label="Monthly Budget"
-                                             Variant="Variant.Outlined"
-                                             @bind-Value="_monthlyBudget"
-                                             Immediate="true"
-                                             Min="0"
-                                             Adornment="Adornment.Start"
-                                             AdornmentText="@CultureInfo.CurrentCulture.NumberFormat.CurrencySymbol"
-                                             Class="budget-input" />
-                            <MudButton Variant="Variant.Filled"
-                                       Color="Color.Default"
-                                       Disabled="@(!_isBudgetValid || _isSavingBudget)"
-                                       Style="background-color: black; color: white;"
-                                       OnClick="@SaveMonthlyBudgetAsync">
-                                @if (_isSavingBudget)
-                                {
-                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
-                                }
-                                <span>@(_currentBudget is null ? "Create Budget" : "Update Budget")</span>
-                            </MudButton>
-                        </MudStack>
-                    </MudForm>
+                    <MudStack Direction="Row" Spacing="2" AlignItems="AlignItems.Center" Class="budget-actions">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Default"
+                                   Style="background-color: black; color: white;"
+                                   OnClick="@OpenBudgetDialogAsync">
+                            @(_currentBudget is null ? "Create Budget" : "Update Budget")
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Default"
+                                   OnClick="@OpenBudgetHistoryAsync">
+                            View History
+                        </MudButton>
+                    </MudStack>
                     @if (_currentBudget is not null)
                     {
                         <MudText Typo="Typo.caption" Class="budget-meta">
@@ -159,21 +150,38 @@
     <div class="goals-section">
         <div class="section-header">
             <MudText Typo="Typo.h6" Class="section-title">Your Savings Goals</MudText>
-            <div class="header-filters">
-                <MudSelect T="string" Dense="true" Label="Filter" Variant="Variant.Outlined" @bind-Value="FilterCategory" Style="min-width: 150px;">
+        </div>
+
+        <MudGrid Class="goal-filter-grid" Spacing="2">
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="string"
+                           Dense="true"
+                           Label="Category"
+                           Variant="Variant.Outlined"
+                           @bind-Value="FilterCategory"
+                           ShrinkLabel
+                           >
                     <MudSelectItem Value="@string.Empty">All Categories</MudSelectItem>
                     @foreach (var category in _categories)
                     {
                         <MudSelectItem Value="@category">@category</MudSelectItem>
                     }
                 </MudSelect>
-                <MudSelect T="string" Dense="true" Label="Status" Variant="Variant.Outlined" @bind-Value="FilterStatus" Style="min-width: 150px;">
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="string"
+                           Dense="true"
+                           Label="Status"
+                           Variant="Variant.Outlined"
+                           @bind-Value="FilterStatus"
+                           ShrinkLabel
+                           >
                     <MudSelectItem Value="@string.Empty">All Status</MudSelectItem>
                     <MudSelectItem Value="@StatusActive">Active</MudSelectItem>
                     <MudSelectItem Value="@StatusCompleted">Completed</MudSelectItem>
                 </MudSelect>
-            </div>
-        </div>
+            </MudItem>
+        </MudGrid>
 
         @if (!_filteredGoals.Any())
         {
@@ -193,7 +201,10 @@
             <div class="goals-grid">
                 @foreach (var goal in _filteredGoals)
                 {
-                    <MudCard Class="@GetGoalCardClass(goal)" Elevation="0" Style="cursor: pointer;" @onclick="@(() => ViewGoalDetails(goal))">
+                    <MudCard Class="@GetGoalCardClass(goal)"
+                             Elevation="0"
+                             Style="cursor: pointer;"
+                             @onclick="@(async () => await OpenGoalHistoryAsync(goal))">
                         <MudCardContent>
                             <div class="goal-header">
                                 <div class="goal-title-section">
@@ -271,9 +282,6 @@
     private decimal _monthlySpending;
     private decimal _budgetRemaining;
     private double _budgetUsage;
-    private bool _isSavingBudget;
-    private MudForm? _budgetForm;
-    private bool _isBudgetValid;
     private string _familyId = string.Empty;
 
     protected override async Task OnInitializedAsync()
@@ -364,25 +372,51 @@
         StateHasChanged();
     }
 
-    private async Task SaveMonthlyBudgetAsync()
+    private async Task OpenBudgetDialogAsync()
     {
-        if (_budgetForm is not null)
+        if (string.IsNullOrEmpty(_familyId))
         {
-            await _budgetForm.Validate();
-            if (!_isBudgetValid)
-            {
-                return;
-            }
+            _familyId = await FamilyMemberSvc.GetDefaultFamilyIdAsync();
         }
 
-        if (_monthlyBudget <= 0)
+        var parameters = new DialogParameters();
+        if (_currentBudget is not null)
         {
-            Snackbar.Add("Enter a positive monthly budget.", Severity.Warning);
+            parameters[nameof(EditBudgetDialog.Model)] = new Budget
+            {
+                Id = _currentBudget.Id,
+                FamilyId = _currentBudget.FamilyId,
+                Limit = _currentBudget.Limit,
+                Month = _currentBudget.Month,
+                Name = _currentBudget.Name,
+                Description = _currentBudget.Description,
+                CreatedByMemberId = _currentBudget.CreatedByMemberId,
+                CreatedAt = _currentBudget.CreatedAt,
+                UpdatedAt = _currentBudget.UpdatedAt
+            };
+        }
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = true,
+            Position = DialogPosition.Center
+        };
+
+        var dialog = DialogService.Show<DotnetFinancialTrackerApp.Components.Dialogs.EditBudgetDialog>("Manage Budget", parameters, options);
+        var result = await dialog.Result;
+
+        if (result.Canceled || result.Data is not Budget budgetFromDialog)
+        {
             return;
         }
 
-        _isSavingBudget = true;
+        await SaveBudgetAsync(budgetFromDialog);
+    }
 
+    private async Task SaveBudgetAsync(Budget budgetFromDialog)
+    {
         try
         {
             var memberId = await ResolveMemberIdAsync();
@@ -392,32 +426,86 @@
                 return;
             }
 
-            var currentMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+            budgetFromDialog.FamilyId = _familyId;
+            budgetFromDialog.CreatedByMemberId = budgetFromDialog.Id == 0
+                ? memberId
+                : (_currentBudget?.CreatedByMemberId ?? memberId);
+            budgetFromDialog.CreatedAt = budgetFromDialog.Id == 0
+                ? DateTime.UtcNow
+                : (_currentBudget?.CreatedAt ?? DateTime.UtcNow);
+            budgetFromDialog.UpdateTimestamp();
 
-            if (_currentBudget is null)
+            if (budgetFromDialog.Id == 0)
             {
-                var budget = Budget.CreateFamilyBudget(_familyId, _monthlyBudget, memberId);
-                budget.Month = currentMonth;
-                _currentBudget = await BudgetSvc.AddAsync(budget);
+                _currentBudget = await BudgetSvc.AddAsync(budgetFromDialog);
+                Snackbar.Add("Monthly budget created.", Severity.Success);
             }
             else
             {
-                _currentBudget.Limit = _monthlyBudget;
-                _currentBudget.Month = currentMonth;
-                _currentBudget.UpdateTimestamp();
-                await BudgetSvc.UpdateAsync(_currentBudget);
+                await BudgetSvc.UpdateAsync(budgetFromDialog);
+                _currentBudget = budgetFromDialog;
+                Snackbar.Add("Monthly budget updated.", Severity.Success);
             }
 
             await LoadBudgetAsync();
-            Snackbar.Add("Monthly budget saved.", Severity.Success);
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Unable to save budget: {ex.Message}", Severity.Error);
         }
-        finally
+    }
+
+    private async Task OpenBudgetHistoryAsync()
+    {
+        try
         {
-            _isSavingBudget = false;
+            if (string.IsNullOrEmpty(_familyId))
+            {
+                _familyId = await FamilyMemberSvc.GetDefaultFamilyIdAsync();
+            }
+
+            var budgets = await BudgetSvc.GetAsync(null, _familyId);
+            if (budgets.Count == 0)
+            {
+                Snackbar.Add("No historical budgets available yet.", Severity.Info);
+                return;
+            }
+
+            var historyItems = new List<BudgetHistoryDialog.BudgetHistoryEntry>();
+
+            foreach (var budget in budgets.OrderByDescending(b => b.Month))
+            {
+                var monthStart = new DateTime(budget.Month.Year, budget.Month.Month, 1);
+                var monthEnd = monthStart.AddMonths(1);
+                var transactions = await TxSvc.GetAsync(from: monthStart, to: monthEnd);
+                var spent = transactions.Where(t => !t.IsIncome).Sum(t => t.Amount);
+                historyItems.Add(new BudgetHistoryDialog.BudgetHistoryEntry
+                {
+                    Budget = budget,
+                    Spent = spent,
+                    Remaining = budget.Limit - spent,
+                    UsagePercent = budget.Limit > 0 ? Math.Min(100d, (double)(spent / budget.Limit) * 100) : 0d
+                });
+            }
+
+            var parameters = new DialogParameters
+            {
+                [nameof(BudgetHistoryDialog.Items)] = historyItems
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true,
+                CloseButton = true,
+                Position = DialogPosition.Center
+            };
+
+            DialogService.Show<BudgetHistoryDialog>("Budget History", parameters, options);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Unable to load budget history: {ex.Message}", Severity.Error);
         }
     }
 
@@ -513,9 +601,33 @@
         }
     }
 
-    private void ViewGoalDetails(SavingsGoal goal)
+    private async Task OpenGoalHistoryAsync(SavingsGoal goal)
     {
-        Nav.NavigateTo($"/savings-goal/{goal.Id}");
+        try
+        {
+            var detailedGoal = await SavingsGoalSvc.GetByIdAsync(goal.Id) ?? goal;
+            var contributions = await SavingsGoalSvc.GetContributionsAsync(goal.Id);
+
+            var parameters = new DialogParameters
+            {
+                [nameof(GoalContributionHistoryDialog.Goal)] = detailedGoal,
+                [nameof(GoalContributionHistoryDialog.Contributions)] = contributions.ToList()
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseButton = true,
+                Position = DialogPosition.Center
+            };
+
+            DialogService.Show<GoalContributionHistoryDialog>("Contribution History", parameters, options);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Unable to load contribution history: {ex.Message}", Severity.Error);
+        }
     }
 
     private string FilterCategory
@@ -642,15 +754,12 @@
     font-family: 'Inter', sans-serif;
 }
 
-.header-filters {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    align-items: center;
+.goal-filter-grid {
+    margin-bottom: 16px;
 }
 
-.header-filters .mud-input-control {
-    min-width: 160px;
+.goal-filter-grid .mud-input-control {
+    width: 100%;
 }
 
 .goals-grid {
@@ -796,13 +905,13 @@
     font-weight: 600;
 }
 
-.budget-form {
+.budget-actions {
     flex-wrap: wrap;
+    gap: 12px;
 }
 
-.budget-input {
-    min-width: 200px;
-    flex: 1 1 200px;
+.budget-actions .mud-button-root {
+    min-width: 160px;
 }
 
 .budget-meta {
@@ -820,13 +929,21 @@
 }
 
 @@media (max-width: 767px) {
-    .budget-form {
+    .budget-actions {
         flex-direction: column;
         align-items: stretch;
     }
 
+    .budget-actions .mud-button-root {
+        width: 100%;
+    }
+
     .budget-metrics {
         margin-top: 4px;
+    }
+
+    .goal-filter-grid .mud-input-control {
+        width: 100%;
     }
 }
 

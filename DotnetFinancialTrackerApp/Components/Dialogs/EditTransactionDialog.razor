@@ -21,7 +21,7 @@
                            RequiredError="Please select a family member">
                     @foreach (var member in _familyMembers)
                     {
-                        <MudSelectItem Value="member">@member.Name</MudSelectItem>
+                        <MudSelectItem Value="@member">@member.Name</MudSelectItem>
                     }
                 </MudSelect>
 
@@ -34,7 +34,7 @@
                            RequiredError="Category is required">
                     @foreach (var category in _categories)
                     {
-                        <MudSelectItem Value="category">@category.Name</MudSelectItem>
+                        <MudSelectItem Value="@category">@category.Name</MudSelectItem>
                     }
                 </MudSelect>
 

@@ -55,7 +55,7 @@
             <div class="d-flex justify-space-between align-center mb-4">
                 <MudText Typo="Typo.h6" Style="font-weight: 600;">Family Members</MudText>
                 <MudChip Label="true" Variant="Variant.Outlined" Color="Color.Default" Size="Size.Small">
-                    @FamilyMembers.Count member@(FamilyMembers.Count != 1 ? "s" : "")
+                    @_members.Count member@(_members.Count != 1 ? "s" : "")
                 </MudChip>
             </div>
 
@@ -63,7 +63,7 @@
             {
                 <MudProgressCircular Indeterminate="true" Size="Size.Medium" Class="ma-4" />
             }
-            else if (!FamilyMembers.Any())
+            else if (!_members.Any())
             {
                 <MudAlert Severity="Severity.Info" Class="mt-4">
                     No family members found. Add your first family member above.
@@ -72,7 +72,7 @@
             else
             {
                 <MudStack Spacing="3">
-                    @foreach (var member in FamilyMembers.OrderBy(m => m.Name))
+                    @foreach (var member in _members)
                     {
                         <MudPaper Elevation="0" Class="pa-4 family-member-card">
                             <div class="d-flex align-center justify-space-between">
@@ -120,6 +120,53 @@
     private NewMemberModel _newMemberModel = new();
     private bool _isAddingMember = false;
     private bool _isLoadingMembers = false;
+    private List<FamilyMember> _members = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!_members.Any())
+        {
+            await RefreshMembersAsync();
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (FamilyMembers is not null && FamilyMembers.Count > 0)
+        {
+            _members = FamilyMembers
+                .OrderBy(m => m.Name)
+                .ToList();
+        }
+        else if (!_members.Any())
+        {
+            _members = new List<FamilyMember>();
+        }
+    }
+
+    private async Task RefreshMembersAsync(bool notifyParent = false)
+    {
+        try
+        {
+            _isLoadingMembers = true;
+            StateHasChanged();
+            var latest = await FamilyMemberService.GetAsync();
+            _members = latest.OrderBy(m => m.Name).ToList();
+            StateHasChanged();
+            if (notifyParent)
+            {
+                await OnFamilyUpdated.InvokeAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Unable to refresh family members: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoadingMembers = false;
+        }
+    }
 
     private async Task AddFamilyMember()
     {
@@ -133,11 +180,11 @@
                 Pin = "1234" // Default PIN - should be changed on first login
             };
 
-            await FamilyMemberService.AddAsync(newMember);
+            var created = await FamilyMemberService.AddAsync(newMember);
 
             _newMemberModel = new NewMemberModel();
-            await OnFamilyUpdated.InvokeAsync();
-            Snackbar.Add($"{newMember.Name} has been added to the family", Severity.Success);
+            await RefreshMembersAsync(notifyParent: true);
+            Snackbar.Add($"{created.Name} has been added to the family", Severity.Success);
         }
         catch (Exception ex)
         {
@@ -159,7 +206,7 @@
 
         if (!result.Canceled)
         {
-            await OnFamilyUpdated.InvokeAsync();
+            await RefreshMembersAsync(notifyParent: true);
         }
     }
 
@@ -168,7 +215,7 @@
         try
         {
             await FamilyMemberService.DeleteAsync(member.Id);
-            await OnFamilyUpdated.InvokeAsync();
+            await RefreshMembersAsync(notifyParent: true);
             Snackbar.Add($"{member.Name} has been removed from the family", Severity.Success);
         }
         catch (Exception ex)

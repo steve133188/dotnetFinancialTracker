@@ -1,0 +1,69 @@
+@using DotnetFinancialTrackerApp.Models
+@using System.Collections.Generic
+
+<MudDialog MaxWidth="MaxWidth.Small">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Budget History</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        @if (Items.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Filled">
+                No previous budgets have been recorded yet.
+            </MudAlert>
+        }
+        else
+        {
+            <MudTable T="BudgetHistoryEntry" Items="Items" Dense="true" Hover="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>Month</MudTh>
+                    <MudTh Class="text-end">Limit</MudTh>
+                    <MudTh Class="text-end">Spent</MudTh>
+                    <MudTh Class="text-end">Remaining</MudTh>
+                    <MudTh>Status</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Budget.Month.ToString("MMMM yyyy")</MudTd>
+                    <MudTd Class="text-end">@context.Budget.Limit.ToString("C")</MudTd>
+                    <MudTd Class="text-end">@context.Spent.ToString("C")</MudTd>
+                    <MudTd Class="text-end" Style="@($"color: {(context.IsOverBudget ? "#DC2626" : "#111827")}")">
+                        @context.Remaining.ToString("C")
+                    </MudTd>
+                    <MudTd>
+                        <MudChip Size="Size.Small"
+                                 Variant="Variant.Outlined"
+                                 Color="@(context.IsOverBudget ? Color.Error : Color.Success)"
+                                 StartIcon="@(context.IsOverBudget ? Icons.Material.Filled.Warning : Icons.Material.Filled.CheckCircle)">
+                            @(context.IsOverBudget ? "Over budget" : "On track")
+                        </MudChip>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudSpacer />
+        <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="Close">
+            Close
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public IReadOnlyList<BudgetHistoryEntry> Items { get; set; } = Array.Empty<BudgetHistoryEntry>();
+
+    private void Close() => MudDialog.Close();
+
+    public class BudgetHistoryEntry
+    {
+        public required Budget Budget { get; init; }
+        public decimal Spent { get; init; }
+        public decimal Remaining { get; init; }
+        public double UsagePercent { get; init; }
+        public bool IsOverBudget => Remaining < 0;
+    }
+}

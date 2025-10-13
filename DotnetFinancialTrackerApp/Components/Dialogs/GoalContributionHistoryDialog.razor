@@ -1,0 +1,77 @@
+@using DotnetFinancialTrackerApp.Models
+@using System.Collections.Generic
+
+<MudDialog MaxWidth="MaxWidth.Medium">
+    <TitleContent>
+        <MudStack Spacing="1">
+            <MudText Typo="Typo.h6">@Goal.Title</MudText>
+            <MudText Typo="Typo.caption" Class="text-muted">
+                Contribution history
+            </MudText>
+        </MudStack>
+    </TitleContent>
+
+    <DialogContent>
+        <MudStack Spacing="2">
+            <MudPaper Class="goal-summary" Elevation="0">
+                <MudStack Direction="Row" Spacing="3" Wrap="true">
+                    <MudStack>
+                        <MudText Typo="Typo.caption" Class="text-muted">Target</MudText>
+                        <MudText Typo="Typo.subtitle2">@Goal.TargetAmount.ToString("C")</MudText>
+                    </MudStack>
+                    <MudStack>
+                        <MudText Typo="Typo.caption" Class="text-muted">Saved</MudText>
+                        <MudText Typo="Typo.subtitle2">@Goal.CurrentAmount.ToString("C")</MudText>
+                    </MudStack>
+                    <MudStack>
+                        <MudText Typo="Typo.caption" Class="text-muted">Remaining</MudText>
+                        <MudText Typo="Typo.subtitle2">@Goal.RemainingAmount.ToString("C")</MudText>
+                    </MudStack>
+                </MudStack>
+                <MudProgressLinear Value="Goal.ProgressPercentage"
+                                   Color="Color.Default"
+                                   Class="mt-3" />
+            </MudPaper>
+
+            @if (Contributions.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                    No contributions have been recorded for this goal yet.
+                </MudAlert>
+            }
+            else
+            {
+                <MudTable Items="Contributions" Dense="true" Hover="true">
+                    <HeaderContent>
+                        <MudTh>Date</MudTh>
+                        <MudTh>Contributor</MudTh>
+                        <MudTh>Description</MudTh>
+                        <MudTh Class="text-end">Amount</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.ContributionDate.ToLocalTime().ToString("MMM dd, yyyy")</MudTd>
+                        <MudTd>@(context.Contributor?.Name ?? "Family member")</MudTd>
+                        <MudTd>@(!string.IsNullOrWhiteSpace(context.Description) ? context.Description : "Contribution")</MudTd>
+                        <MudTd Class="text-end">@context.Amount.ToString("C")</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudSpacer />
+        <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="Close">
+            Close
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public SavingsGoal Goal { get; set; } = default!;
+    [Parameter] public IReadOnlyList<SavingsGoalContribution> Contributions { get; set; } = Array.Empty<SavingsGoalContribution>();
+
+    private void Close() => MudDialog.Close();
+}

@@ -92,7 +92,7 @@
                         </MudSelect>
                     </MudItem>
                     <MudItem xs="12" sm="6" md="3">
-                        <MudSelect T="string" Dense="true" Label="Category" Variant="Variant.Outlined" @bind-Value="TableCategory">
+                        <MudSelect T="string" Dense="true" Label="Category" Variant="Variant.Outlined" @bind-Value="TableCategory" ShrinkLabel>
                             @foreach (var category in _tableCategoryOptions)
                             {
                                 <MudSelectItem Value="@category">@category</MudSelectItem>
@@ -100,7 +100,7 @@
                         </MudSelect>
                     </MudItem>
                     <MudItem xs="12" sm="6" md="3">
-                        <MudSelect T="string" Dense="true" Label="Family Member" Variant="Variant.Outlined" @bind-Value="TableMember">
+                        <MudSelect T="string" Dense="true" Label="Family Member" Variant="Variant.Outlined" @bind-Value="TableMember" ShrinkLabel>
                             @foreach (var member in _tableMemberOptions)
                             {
                                 <MudSelectItem Value="@member">@member</MudSelectItem>
