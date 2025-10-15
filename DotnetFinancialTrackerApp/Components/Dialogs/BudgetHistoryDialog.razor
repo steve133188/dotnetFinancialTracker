@@ -1,45 +1,52 @@
 @using DotnetFinancialTrackerApp.Models
 @using System.Collections.Generic
 
-<MudDialog MaxWidth="MaxWidth.Small">
+<MudDialog MaxWidth="MaxWidth.Medium">
     <TitleContent>
-        <MudText Typo="Typo.h6">Budget History</MudText>
+        <MudStack Spacing="1">
+            <MudText Typo="Typo.h6">Budget History</MudText>
+            <MudText Typo="Typo.caption" Class="dialog-subtitle">
+                Review monthly spending and remaining balance across the family budget.
+            </MudText>
+        </MudStack>
     </TitleContent>
 
     <DialogContent>
         @if (Items.Count == 0)
         {
-            <MudAlert Severity="Severity.Info" Variant="Variant.Filled">
-                No previous budgets have been recorded yet.
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                No previous budgets have been recorded yet. Start tracking a budget to see history here.
             </MudAlert>
         }
         else
         {
-            <MudTable T="BudgetHistoryEntry" Items="Items" Dense="true" Hover="true" Elevation="0">
-                <HeaderContent>
-                    <MudTh>Month</MudTh>
-                    <MudTh Class="text-end">Limit</MudTh>
-                    <MudTh Class="text-end">Spent</MudTh>
-                    <MudTh Class="text-end">Remaining</MudTh>
-                    <MudTh>Status</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd>@context.Budget.Month.ToString("MMMM yyyy")</MudTd>
-                    <MudTd Class="text-end">@context.Budget.Limit.ToString("C")</MudTd>
-                    <MudTd Class="text-end">@context.Spent.ToString("C")</MudTd>
-                    <MudTd Class="text-end" Style="@($"color: {(context.IsOverBudget ? "#DC2626" : "#111827")}")">
-                        @context.Remaining.ToString("C")
-                    </MudTd>
-                    <MudTd>
-                        <MudChip Size="Size.Small"
-                                 Variant="Variant.Outlined"
-                                 Color="@(context.IsOverBudget ? Color.Error : Color.Success)"
-                                 StartIcon="@(context.IsOverBudget ? Icons.Material.Filled.Warning : Icons.Material.Filled.CheckCircle)">
-                            @(context.IsOverBudget ? "Over budget" : "On track")
-                        </MudChip>
-                    </MudTd>
-                </RowTemplate>
-            </MudTable>
+            <MudPaper Class="history-card" Elevation="0">
+                <MudTable T="BudgetHistoryEntry" Items="Items" Dense="true" Hover="true" Elevation="0">
+                    <HeaderContent>
+                        <MudTh>Month</MudTh>
+                        <MudTh class="text-end">Limit</MudTh>
+                        <MudTh class="text-end">Spent</MudTh>
+                        <MudTh class="text-end">Remaining</MudTh>
+                        <MudTh>Status</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.Budget.Month.ToString("MMMM yyyy")</MudTd>
+                        <MudTd Class="text-end">@context.Budget.Limit.ToString("C")</MudTd>
+                        <MudTd Class="text-end">@context.Spent.ToString("C")</MudTd>
+                        <MudTd Class="text-end" Style="@($"color: {(context.IsOverBudget ? "#DC2626" : "#111827")}")">
+                            @context.Remaining.ToString("C")
+                        </MudTd>
+                        <MudTd>
+                            <MudChip Size="Size.Small"
+                                     Variant="Variant.Outlined"
+                                     Color="@GetStatusColor(context)"
+                                     StartIcon="@GetStatusIcon(context)">
+                                @GetStatusLabel(context)
+                            </MudChip>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudPaper>
         }
     </DialogContent>
 
@@ -66,4 +73,46 @@
         public double UsagePercent { get; init; }
         public bool IsOverBudget => Remaining < 0;
     }
+
+    private bool IsCurrentMonth(BudgetHistoryEntry entry)
+    {
+        var monthStart = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        return entry.Budget.Month.Year == monthStart.Year && entry.Budget.Month.Month == monthStart.Month;
+    }
+
+    private (Color color, string icon, string label) GetStatus(BudgetHistoryEntry entry)
+    {
+        if (entry.IsOverBudget)
+        {
+            return (Color.Error, Icons.Material.Filled.Warning, "Over budget");
+        }
+
+        if (IsCurrentMonth(entry))
+        {
+            return (Color.Success, Icons.Material.Filled.CheckCircle, "On track");
+        }
+
+        return (Color.Info, Icons.Material.Filled.History, "Closed");
+    }
+
+    private Color GetStatusColor(BudgetHistoryEntry entry) => GetStatus(entry).color;
+    private string GetStatusIcon(BudgetHistoryEntry entry) => GetStatus(entry).icon;
+    private string GetStatusLabel(BudgetHistoryEntry entry) => GetStatus(entry).label;
 }
+
+<style>
+.history-card {
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    background: #ffffff;
+}
+
+.history-card .mud-table {
+    --mud-palette-background: transparent;
+}
+
+.dialog-subtitle {
+    color: rgba(0, 0, 0, 0.6);
+}
+</style>

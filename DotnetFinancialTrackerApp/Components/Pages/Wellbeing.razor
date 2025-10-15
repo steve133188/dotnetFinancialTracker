@@ -154,32 +154,34 @@
 
         <MudGrid Class="goal-filter-grid" Spacing="2">
             <MudItem xs="12" sm="6" md="3">
-                <MudSelect T="string"
-                           Dense="true"
-                           Label="Category"
-                           Variant="Variant.Outlined"
-                           @bind-Value="FilterCategory"
-                           ShrinkLabel
-                           >
-                    <MudSelectItem Value="@string.Empty">All Categories</MudSelectItem>
-                    @foreach (var category in _categories)
-                    {
-                        <MudSelectItem Value="@category">@category</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudStack Spacing="1" Class="goal-filter-field">
+                    <MudText Typo="Typo.caption" Class="goal-filter-label">Category</MudText>
+                    <MudSelect T="string"
+                               Dense="true"
+                               Variant="Variant.Outlined"
+                               Placeholder="All categories"
+                               @bind-Value="FilterCategory">
+                        <MudSelectItem Value="@string.Empty">All Categories</MudSelectItem>
+                        @foreach (var category in _categories)
+                        {
+                            <MudSelectItem Value="@category">@category</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudStack>
             </MudItem>
             <MudItem xs="12" sm="6" md="3">
-                <MudSelect T="string"
-                           Dense="true"
-                           Label="Status"
-                           Variant="Variant.Outlined"
-                           @bind-Value="FilterStatus"
-                           ShrinkLabel
-                           >
-                    <MudSelectItem Value="@string.Empty">All Status</MudSelectItem>
-                    <MudSelectItem Value="@StatusActive">Active</MudSelectItem>
-                    <MudSelectItem Value="@StatusCompleted">Completed</MudSelectItem>
-                </MudSelect>
+                <MudStack Spacing="1" Class="goal-filter-field">
+                    <MudText Typo="Typo.caption" Class="goal-filter-label">Status</MudText>
+                    <MudSelect T="string"
+                               Dense="true"
+                               Variant="Variant.Outlined"
+                               Placeholder="All status"
+                               @bind-Value="FilterStatus">
+                        <MudSelectItem Value="@string.Empty">All Status</MudSelectItem>
+                        <MudSelectItem Value="@StatusActive">Active</MudSelectItem>
+                        <MudSelectItem Value="@StatusCompleted">Completed</MudSelectItem>
+                    </MudSelect>
+                </MudStack>
             </MudItem>
         </MudGrid>
 
@@ -332,9 +334,34 @@
             var currentMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
             var nextMonth = currentMonth.AddMonths(1);
 
-            var budgets = await BudgetSvc.GetAsync(currentMonth, _familyId);
-            _currentBudget = budgets.FirstOrDefault();
-            _monthlyBudget = _currentBudget?.Limit ?? 0;
+            var budgets = await BudgetSvc.GetAsync(null, _familyId);
+
+            var outdatedBudgets = budgets.Where(b => b.Month < currentMonth && b.IsActive).ToList();
+            foreach (var past in outdatedBudgets)
+            {
+                past.IsActive = false;
+                past.UpdateTimestamp();
+                await BudgetSvc.UpdateAsync(past);
+            }
+
+            _currentBudget = budgets.FirstOrDefault(b => b.Month == currentMonth);
+            if (_currentBudget is not null && !_currentBudget.IsActive)
+            {
+                _currentBudget.IsActive = true;
+                _currentBudget.UpdateTimestamp();
+                await BudgetSvc.UpdateAsync(_currentBudget);
+            }
+
+            if (_currentBudget is null)
+            {
+                _monthlyBudget = 0;
+                _monthlySpending = 0;
+                _budgetRemaining = 0;
+                _budgetUsage = 0;
+                return;
+            }
+
+            _monthlyBudget = _currentBudget.Limit;
 
             var monthTransactions = await TxSvc.GetAsync(from: currentMonth, to: nextMonth);
             _monthlySpending = monthTransactions.Where(t => !t.IsIncome).Sum(t => t.Amount);
@@ -427,6 +454,8 @@
             }
 
             budgetFromDialog.FamilyId = _familyId;
+            budgetFromDialog.Month = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+            budgetFromDialog.IsActive = true;
             budgetFromDialog.CreatedByMemberId = budgetFromDialog.Id == 0
                 ? memberId
                 : (_currentBudget?.CreatedByMemberId ?? memberId);
@@ -472,13 +501,13 @@
             }
 
             var historyItems = new List<BudgetHistoryDialog.BudgetHistoryEntry>();
-
             foreach (var budget in budgets.OrderByDescending(b => b.Month))
             {
                 var monthStart = new DateTime(budget.Month.Year, budget.Month.Month, 1);
                 var monthEnd = monthStart.AddMonths(1);
                 var transactions = await TxSvc.GetAsync(from: monthStart, to: monthEnd);
                 var spent = transactions.Where(t => !t.IsIncome).Sum(t => t.Amount);
+
                 historyItems.Add(new BudgetHistoryDialog.BudgetHistoryEntry
                 {
                     Budget = budget,
@@ -495,7 +524,7 @@
 
             var options = new DialogOptions
             {
-                MaxWidth = MaxWidth.Small,
+                MaxWidth = MaxWidth.Medium,
                 FullWidth = true,
                 CloseButton = true,
                 Position = DialogPosition.Center
@@ -508,6 +537,48 @@
             Snackbar.Add($"Unable to load budget history: {ex.Message}", Severity.Error);
         }
     }
+
+    private async Task ShowGoalManagementDialogAsync(
+        SavingsGoal goal,
+        GoalManagementDialog.GoalManagementInitialView initialView)
+    {
+        try
+        {
+            var detailedGoal = await SavingsGoalSvc.GetByIdAsync(goal.Id) ?? goal;
+            var contributions = (await SavingsGoalSvc.GetContributionsAsync(goal.Id)).ToList();
+
+            var parameters = new DialogParameters
+            {
+                [nameof(GoalManagementDialog.Goal)] = detailedGoal,
+                [nameof(GoalManagementDialog.Contributions)] = contributions,
+                [nameof(GoalManagementDialog.InitialView)] = initialView
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Large,
+                FullWidth = true,
+                CloseButton = true,
+                Position = DialogPosition.Center
+            };
+
+            var dialog = DialogService.Show<GoalManagementDialog>("Goal Center", parameters, options);
+            var result = await dialog.Result;
+
+            if (!result.Canceled && result.Data is GoalManagementDialog.GoalDialogResult dialogResult)
+            {
+                if (dialogResult.Outcome == GoalManagementDialog.GoalDialogOutcome.Refresh)
+                {
+                    await LoadDataAsync();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Unable to load goal details: {ex.Message}", Severity.Error);
+        }
+    }
+
 
     private async Task<string?> ResolveMemberIdAsync()
     {
@@ -569,19 +640,7 @@
 
     private async Task OpenGoalActions(SavingsGoal goal)
     {
-        var parameters = new DialogParameters
-        {
-            [nameof(DotnetFinancialTrackerApp.Components.Dialogs.SavingsGoalActionsDialog.Goal)] = goal
-        };
-
-        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true, Position = DialogPosition.Center };
-        var dialog = DialogService.Show<DotnetFinancialTrackerApp.Components.Dialogs.SavingsGoalActionsDialog>("Goal Actions", parameters, options);
-        var result = await dialog.Result;
-
-        if (!result.Canceled)
-        {
-            await LoadDataAsync();
-        }
+        await ShowGoalManagementDialogAsync(goal, GoalManagementDialog.GoalManagementInitialView.Overview);
     }
 
     private async Task OpenContributeDialog(SavingsGoal goal)
@@ -601,34 +660,8 @@
         }
     }
 
-    private async Task OpenGoalHistoryAsync(SavingsGoal goal)
-    {
-        try
-        {
-            var detailedGoal = await SavingsGoalSvc.GetByIdAsync(goal.Id) ?? goal;
-            var contributions = await SavingsGoalSvc.GetContributionsAsync(goal.Id);
-
-            var parameters = new DialogParameters
-            {
-                [nameof(GoalContributionHistoryDialog.Goal)] = detailedGoal,
-                [nameof(GoalContributionHistoryDialog.Contributions)] = contributions.ToList()
-            };
-
-            var options = new DialogOptions
-            {
-                MaxWidth = MaxWidth.Medium,
-                FullWidth = true,
-                CloseButton = true,
-                Position = DialogPosition.Center
-            };
-
-            DialogService.Show<GoalContributionHistoryDialog>("Contribution History", parameters, options);
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Unable to load contribution history: {ex.Message}", Severity.Error);
-        }
-    }
+    private async Task OpenGoalHistoryAsync(SavingsGoal goal) =>
+        await ShowGoalManagementDialogAsync(goal, GoalManagementDialog.GoalManagementInitialView.Contributions);
 
     private string FilterCategory
     {
@@ -760,6 +793,21 @@
 
 .goal-filter-grid .mud-input-control {
     width: 100%;
+}
+
+.goal-filter-field {
+    background: #F9FAFB;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    gap: 4px;
+}
+
+.goal-filter-label {
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6B7280;
+    font-weight: 600;
 }
 
 .goals-grid {

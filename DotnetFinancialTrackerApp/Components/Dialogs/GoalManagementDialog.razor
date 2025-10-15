@@ -1,0 +1,692 @@
+@using System.Linq
+@using System.Globalization
+@using DotnetFinancialTrackerApp.Models
+@inject ISavingsGoalService SavingsGoalSvc
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudDialog MaxWidth="MaxWidth.Large">
+    <TitleContent>
+        <MudStack Spacing="1">
+            <MudText Typo="Typo.h6">@GetDialogTitle()</MudText>
+            @if (Goal is not null)
+            {
+                <MudText Typo="Typo.caption" Class="dialog-subtitle">
+                    @Goal.Category · Created @Goal.CreatedDate.ToLocalTime().ToString("MMM dd, yyyy")
+                </MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.caption" Class="dialog-subtitle">
+                    Select a goal to explore its progress and activity.
+                </MudText>
+            }
+        </MudStack>
+    </TitleContent>
+
+    <DialogContent>
+        @if (Goal is null)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                No goal selected. Please choose a savings goal to open Goal Center.
+            </MudAlert>
+        }
+        else
+        {
+            <MudStack Spacing="3" Class="goal-center-stack">
+                <MudPaper Class="goal-hero-card" Elevation="0">
+                    <MudGrid Spacing="2" Class="hero-grid" AlignItems="AlignItems.Stretch">
+                        <MudItem xs="12" md="7">
+                            <MudStack Spacing="2">
+                                <MudText Typo="Typo.caption" Class="goal-breadcrumb">
+                                    Savings Goal · @Goal.Category
+                                </MudText>
+                                <MudStack Spacing="1">
+                                    <MudText Typo="Typo.h5" Class="goal-title-text">@Goal.Title</MudText>
+                                    @if (!string.IsNullOrWhiteSpace(Goal.Subtitle))
+                                    {
+                                        <MudText Typo="Typo.body2" Class="goal-subtitle-text">@Goal.Subtitle</MudText>
+                                    }
+                                </MudStack>
+                                <MudStack Spacing="1" Class="progress-section">
+                                    <MudText Typo="Typo.caption" Class="goal-summary-label">Progress</MudText>
+                                    <MudStack Direction="Direction.Row" AlignItems="AlignItems.Baseline" Spacing="1">
+                                        <MudText Typo="Typo.h4" Class="goal-amount-highlight">
+                                            @Goal.CurrentAmount.ToString("C0", CultureInfo.CurrentCulture)
+                                        </MudText>
+                                        <MudText Typo="Typo.body2" Class="goal-amount-secondary">
+                                            saved of @Goal.TargetAmount.ToString("C0", CultureInfo.CurrentCulture)
+                                        </MudText>
+                                    </MudStack>
+                                    <MudProgressLinear Value="Goal.ProgressPercentage"
+                                                       Color="Color.Default"
+                                                       Class="goal-progress-bar" />
+                                    <MudText Typo="Typo.caption" Class="goal-amount-secondary">
+                                        @GetProgressSummary()
+                                    </MudText>
+                                </MudStack>
+                            </MudStack>
+                        </MudItem>
+                        <MudItem xs="12" md="5">
+                            <MudStack Spacing="2" Class="hero-right">
+                                <MudStack Direction="Direction.Row" Spacing="1" Wrap="true">
+                                    <MudChip Variant="Variant.Filled"
+                                             Color="Color.Dark"
+                                             Class="category-chip"
+                                             StartIcon="@Icons.Material.Filled.Bookmark">
+                                        @Goal.Category
+                                    </MudChip>
+                                    <MudChip Variant="Variant.Outlined"
+                                             Color="@GetPriorityColor()"
+                                             StartIcon="@Icons.Material.Filled.Flag">
+                                        Priority · @GetPriorityText()
+                                    </MudChip>
+                                    @if (Goal.TargetDate.HasValue)
+                                    {
+                                        <MudChip Variant="Variant.Outlined"
+                                                 Color="Color.Default"
+                                                 StartIcon="@Icons.Material.Filled.Event">
+                                            Target · @Goal.TargetDate.Value.ToString("MMM dd, yyyy")
+                                        </MudChip>
+                                    }
+                                </MudStack>
+
+                                <MudPaper Class="hero-status-card" Elevation="0">
+                                    <MudStack Spacing="2">
+                                        <MudStack Direction="Direction.Row" AlignItems="AlignItems.Center" Spacing="1">
+                                            <MudAvatar Icon="@GetStatusIcon()" Color="@GetStatusColor()" Size="Size.Medium" />
+                                            <MudStack Spacing="1">
+                                                <MudText Typo="Typo.subtitle2">@GetStatusText()</MudText>
+                                                <MudText Typo="Typo.caption" Class="goal-amount-secondary">
+                                                    @GetTimeRemainingText()
+                                                </MudText>
+                                            </MudStack>
+                                        </MudStack>
+                                        <MudDivider />
+                                        <MudGrid Spacing="1">
+                                            <MudItem xs="12" sm="6">
+                                                <MudStack Spacing="1">
+                                                    <MudText Typo="Typo.caption" Class="goal-summary-label">Remaining</MudText>
+                                                    <MudText Typo="Typo.subtitle2">@Goal.RemainingAmount.ToString("C0", CultureInfo.CurrentCulture)</MudText>
+                                                </MudStack>
+                                            </MudItem>
+                                            <MudItem xs="12" sm="6">
+                                                <MudStack Spacing="1">
+                                                    <MudText Typo="Typo.caption" Class="goal-summary-label">Monthly target</MudText>
+                                                    <MudText Typo="Typo.subtitle2">@Goal.EstimatedMonthlyContribution.ToString("C0", CultureInfo.CurrentCulture)</MudText>
+                                                </MudStack>
+                                            </MudItem>
+                                        </MudGrid>
+                                    </MudStack>
+                                </MudPaper>
+                            </MudStack>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                <MudTabs @bind-ActivePanelIndex="_activeTabIndex"
+                         Rounded="true"
+                         Class="goal-tabs"
+                         Color="Color.Default">
+                    <MudTabPanel Icon="@Icons.Material.Filled.Insights" Text="Overview">
+                        <MudStack Spacing="3" Class="overview-panel">
+                            <MudGrid Spacing="2">
+                                <MudItem xs="12" sm="6" md="3">
+                                    <MudPaper Class="metric-card" Elevation="0">
+                                        <MudStack Spacing="1">
+                                            <MudText Typo="Typo.overline" Class="metric-label">Remaining</MudText>
+                                            <MudText Typo="Typo.h6">
+                                                @Goal.RemainingAmount.ToString("C0", CultureInfo.CurrentCulture)
+                                            </MudText>
+                                            <MudText Typo="Typo.caption" Class="metric-caption">
+                                                @(Goal.IsCompleted ? "Goal reached" : "Still to save")
+                                            </MudText>
+                                        </MudStack>
+                                    </MudPaper>
+                                </MudItem>
+                                <MudItem xs="12" sm="6" md="3">
+                                    <MudPaper Class="metric-card" Elevation="0">
+                                        <MudStack Spacing="1">
+                                            <MudText Typo="Typo.overline" Class="metric-label">Progress</MudText>
+                                            <MudText Typo="Typo.h6">@Goal.ProgressPercentage.ToString("F1")%</MudText>
+                                            <MudText Typo="Typo.caption" Class="metric-caption">
+                                                @(Goal.IsCompleted ? "Congratulations!" : GetProgressSummary())
+                                            </MudText>
+                                        </MudStack>
+                                    </MudPaper>
+                                </MudItem>
+                                <MudItem xs="12" sm="6" md="3">
+                                    <MudPaper Class="metric-card" Elevation="0">
+                                        <MudStack Spacing="1">
+                                            <MudText Typo="Typo.overline" Class="metric-label">Target timeline</MudText>
+                                            <MudText Typo="Typo.h6">@GetTimeRemainingText()</MudText>
+                                            <MudText Typo="Typo.caption" Class="metric-caption">
+                                                @(Goal.TargetDate.HasValue ? "Until target date" : "No target date set")
+                                            </MudText>
+                                        </MudStack>
+                                    </MudPaper>
+                                </MudItem>
+                                <MudItem xs="12" sm="6" md="3">
+                                    <MudPaper Class="metric-card" Elevation="0">
+                                        <MudStack Spacing="1">
+                                            <MudText Typo="Typo.overline" Class="metric-label">Suggested monthly</MudText>
+                                            <MudText Typo="Typo.h6">
+                                                @Goal.EstimatedMonthlyContribution.ToString("C0", CultureInfo.CurrentCulture)
+                                            </MudText>
+                                            <MudText Typo="Typo.caption" Class="metric-caption">
+                                                Keep this pace to stay on track
+                                            </MudText>
+                                        </MudStack>
+                                    </MudPaper>
+                                </MudItem>
+                            </MudGrid>
+
+                            @if (!string.IsNullOrWhiteSpace(Goal.Description))
+                            {
+                                <MudPaper Class="description-card" Elevation="0">
+                                    <MudStack Spacing="1">
+                                        <MudText Typo="Typo.subtitle2">Why this matters</MudText>
+                                        <MudText Typo="Typo.body2" Class="text-muted">
+                                            @Goal.Description
+                                        </MudText>
+                                    </MudStack>
+                                </MudPaper>
+                            }
+
+                            <MudStack Direction="Direction.Row" Spacing="1" Wrap="true" Class="action-buttons">
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Dark"
+                                           StartIcon="@Icons.Material.Filled.AddCard"
+                                           Disabled="_isProcessing"
+                                           Size="Size.Large"
+                                           OnClick="ContributeToGoal">
+                                    Add Contribution
+                                </MudButton>
+
+                                <MudButton Variant="Variant.Outlined"
+                                           Color="Color.Default"
+                                           StartIcon="@(Goal.IsActive ? Icons.Material.Filled.PauseCircle : Icons.Material.Filled.PlayCircle)"
+                                           Disabled="_isProcessing"
+                                           Size="Size.Large"
+                                           OnClick="ToggleGoalActivity">
+                                    @(Goal.IsActive ? "Pause Goal" : "Resume Goal")
+                                </MudButton>
+
+                                <MudButton Variant="Variant.Text"
+                                           Color="Color.Error"
+                                           StartIcon="@Icons.Material.Filled.DeleteForever"
+                                           Disabled="_isProcessing"
+                                           Size="Size.Large"
+                                           OnClick="DeleteGoalAsync">
+                                    Delete Goal
+                                </MudButton>
+                            </MudStack>
+                        </MudStack>
+                    </MudTabPanel>
+
+                    <MudTabPanel Icon="@Icons.Material.Filled.Savings"
+                                 Text="@($"Contributions ({Contributions.Count})")">
+                        @if (Contributions.Count == 0)
+                        {
+                            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                                No contributions have been recorded for this goal yet.
+                            </MudAlert>
+                        }
+                        else
+                        {
+                            <MudPaper Class="contribution-card" Elevation="0">
+                                <MudTable Items="SortedContributions" Dense="true" Hover="true" Elevation="0">
+                                    <HeaderContent>
+                                        <MudTh>Contributor</MudTh>
+                                        <MudTh>Date</MudTh>
+                                        <MudTh>Description</MudTh>
+                                        <MudTh class="text-end">Amount</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate>
+                                        <MudTd>@GetContributorName(context)</MudTd>
+                                        <MudTd>@FormatContributionDate(context)</MudTd>
+                                        <MudTd>@FormatContributionDescription(context)</MudTd>
+                                        <MudTd Class="text-end">@context.Amount.ToString("C", CultureInfo.CurrentCulture)</MudTd>
+                                    </RowTemplate>
+                                </MudTable>
+                            </MudPaper>
+                        }
+                    </MudTabPanel>
+                </MudTabs>
+            </MudStack>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudSpacer />
+        <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="CloseDialog">
+            Close
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public SavingsGoal? Goal { get; set; }
+    [Parameter] public IReadOnlyList<SavingsGoalContribution> Contributions { get; set; } = Array.Empty<SavingsGoalContribution>();
+    [Parameter] public GoalManagementInitialView InitialView { get; set; } = GoalManagementInitialView.Overview;
+
+    private int _activeTabIndex;
+    private bool _isProcessing;
+
+    protected override void OnParametersSet()
+    {
+        _activeTabIndex = InitialView == GoalManagementInitialView.Contributions ? 1 : 0;
+    }
+
+    private string GetDialogTitle() => Goal is null ? "Goal Center" : "Goal Center · Detailed view";
+
+    private string GetProgressSummary()
+    {
+        if (Goal is null)
+        {
+            return string.Empty;
+        }
+
+        return Goal.RemainingAmount <= 0
+            ? "Goal complete"
+            : $"{Goal.RemainingAmount.ToString("C0", CultureInfo.CurrentCulture)} remaining";
+    }
+
+    private string GetTimeRemainingText()
+    {
+        if (Goal is null || !Goal.TargetDate.HasValue)
+        {
+            return "Flexible";
+        }
+
+        var days = (Goal.TargetDate.Value.Date - DateTime.Today).Days;
+        if (Goal.IsCompleted)
+        {
+            return "Completed";
+        }
+
+        if (!Goal.IsActive)
+        {
+            return "Paused";
+        }
+
+        if (days < 0)
+        {
+            return $"Overdue by {Math.Abs(days)} day{(Math.Abs(days) == 1 ? string.Empty : "s")}";
+        }
+
+        if (days < 7)
+        {
+            return $"{days} day{(days == 1 ? string.Empty : "s")}";
+        }
+
+        var weeks = days / 7;
+        if (weeks < 5)
+        {
+            return $"{weeks} week{(weeks == 1 ? string.Empty : "s")}";
+        }
+
+        var months = (int)Math.Round(days / 30.44, MidpointRounding.AwayFromZero);
+        return $"{Math.Max(1, months)} month{(months == 1 ? string.Empty : "s")}";
+    }
+
+    private Color GetPriorityColor()
+    {
+        if (Goal is null)
+        {
+            return Color.Default;
+        }
+
+        return Goal.Priority switch
+        {
+            GoalPriority.Critical => Color.Error,
+            GoalPriority.High => Color.Warning,
+            GoalPriority.Medium => Color.Info,
+            _ => Color.Default
+        };
+    }
+
+    private string GetPriorityText()
+    {
+        if (Goal is null)
+        {
+            return "Not set";
+        }
+
+        return Goal.Priority switch
+        {
+            GoalPriority.Critical => "Critical",
+            GoalPriority.High => "High",
+            GoalPriority.Medium => "Medium",
+            _ => "Low"
+        };
+    }
+
+    private Color GetStatusColor()
+    {
+        if (Goal is null)
+        {
+            return Color.Default;
+        }
+
+        if (!Goal.IsActive)
+        {
+            return Color.Primary;
+        }
+
+        return Goal.IsCompleted ? Color.Success : Color.Default;
+    }
+
+    private string GetStatusText()
+    {
+        if (Goal is null)
+        {
+            return "Unknown";
+        }
+
+        if (!Goal.IsActive)
+        {
+            return "Paused";
+        }
+
+        if (Goal.IsCompleted)
+        {
+            return "Completed";
+        }
+
+        return Goal.RemainingAmount <= Goal.TargetAmount * 0.2m
+            ? "Almost there"
+            : "In progress";
+    }
+
+    private string GetStatusIcon()
+    {
+        if (Goal is null)
+        {
+            return Icons.Material.Filled.Info;
+        }
+
+        if (!Goal.IsActive)
+        {
+            return Icons.Material.Filled.PauseCircle;
+        }
+
+        return Goal.IsCompleted ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.TrendingUp;
+    }
+
+    private IEnumerable<SavingsGoalContribution> SortedContributions =>
+        Contributions.OrderByDescending(c => c.ContributionDate);
+
+    private string FormatContributionDate(SavingsGoalContribution contribution)
+        => contribution.ContributionDate.ToLocalTime().ToString("MMM dd, yyyy · h:mm tt");
+
+    private string FormatContributionDescription(SavingsGoalContribution contribution)
+        => string.IsNullOrWhiteSpace(contribution.Description) ? "—" : contribution.Description;
+
+    private string GetContributorName(SavingsGoalContribution contribution)
+    {
+        if (contribution.Contributor is not null && !string.IsNullOrWhiteSpace(contribution.Contributor.Name))
+        {
+            return contribution.Contributor.Name;
+        }
+
+        return contribution.ContributorMemberId switch
+        {
+            "member-alex" => "Alex Taylor",
+            "member-jamie" => "Jamie Taylor",
+            "member-sam" => "Sam Taylor",
+            _ => "Family member"
+        };
+    }
+
+    private async Task ContributeToGoal()
+    {
+        if (Goal is null || _isProcessing)
+        {
+            return;
+        }
+
+        var parameters = new DialogParameters
+        {
+            [nameof(ContributeToGoalDialog.Goal)] = Goal
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = DialogService.Show<ContributeToGoalDialog>("Contribute to Goal", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            CloseWithOutcome(GoalDialogOutcome.Refresh);
+        }
+    }
+
+    private async Task ToggleGoalActivity()
+    {
+        if (Goal is null || _isProcessing)
+        {
+            return;
+        }
+
+        _isProcessing = true;
+
+        try
+        {
+            Goal.IsActive = !Goal.IsActive;
+            await SavingsGoalSvc.UpdateAsync(Goal);
+            Snackbar.Add(Goal.IsActive ? "Goal resumed." : "Goal paused.", Severity.Success);
+            CloseWithOutcome(GoalDialogOutcome.Refresh);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Unable to update goal: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private async Task DeleteGoalAsync()
+    {
+        if (Goal is null || _isProcessing)
+        {
+            return;
+        }
+
+        var confirm = await DialogService.ShowMessageBox(
+            "Delete goal?",
+            (MarkupString)$"<div>Delete <strong>{Goal.Title}</strong>? This cannot be undone.</div>",
+            yesText: "Delete",
+            cancelText: "Cancel",
+            options: new DialogOptions { MaxWidth = MaxWidth.ExtraSmall });
+
+        if (confirm != true)
+        {
+            return;
+        }
+
+        _isProcessing = true;
+
+        try
+        {
+            await SavingsGoalSvc.DeleteAsync(Goal.Id);
+            Snackbar.Add("Goal deleted.", Severity.Success);
+            CloseWithOutcome(GoalDialogOutcome.Refresh);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Unable to delete goal: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private void CloseWithOutcome(GoalDialogOutcome outcome)
+    {
+        MudDialog.Close(DialogResult.Ok(new GoalDialogResult(outcome, Goal)));
+    }
+
+    private void CloseDialog() => MudDialog.Cancel();
+
+    public enum GoalManagementInitialView
+    {
+        Overview,
+        Contributions
+    }
+
+    public enum GoalDialogOutcome
+    {
+        None,
+        Refresh
+    }
+
+    public record GoalDialogResult(GoalDialogOutcome Outcome, SavingsGoal? Goal);
+}
+
+<style>
+.goal-center-stack {
+    padding-bottom: 8px;
+}
+
+.goal-hero-card {
+    padding: 24px;
+    border-radius: 20px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: #F3F4F6;
+}
+
+.hero-grid {
+    align-items: stretch;
+}
+
+.hero-right {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    gap: 18px;
+}
+
+.hero-status-card {
+    padding: 18px;
+    border-radius: 16px;
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.progress-section {
+    background: #FFFFFF;
+    padding: 18px;
+    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.goal-breadcrumb {
+    color: #6B7280;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.goal-title-text {
+    font-weight: 600;
+    color: #111827;
+}
+
+.goal-subtitle-text {
+    color: #4B5563;
+}
+
+.goal-summary-label {
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6B7280;
+}
+
+.goal-amount-highlight {
+    font-weight: 700;
+    color: #111827;
+}
+
+.goal-amount-secondary {
+    color: #4B5563;
+}
+
+.goal-progress-bar {
+    --mud-palette-default: #000000;
+    margin: 8px 0 4px 0;
+}
+
+.category-chip {
+    background-color: rgba(17, 24, 39, 0.1) !important;
+    color: #111827 !important;
+}
+
+.goal-tabs .mud-tabs-toolbar {
+    border-radius: 16px;
+    background: #F3F4F6;
+    padding: 4px;
+}
+
+.goal-tabs .mud-tab {
+    border-radius: 12px;
+}
+
+.overview-panel .metric-card,
+.description-card,
+.contribution-card {
+    padding: 18px;
+    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    background: #ffffff;
+}
+
+.metric-label {
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #6B7280;
+}
+
+.metric-caption {
+    color: #6B7280;
+}
+
+.description-card .text-muted {
+    color: #4B5563;
+}
+
+.action-buttons .mud-button-root {
+    text-transform: none;
+}
+
+.contribution-card .mud-table {
+    --mud-palette-background: transparent;
+}
+
+.contribution-amount {
+    color: #111827;
+    font-weight: 600;
+}
+
+.contribution-date {
+    color: #6B7280;
+}
+
+.contribution-note {
+    color: #374151;
+}
+
+.dialog-subtitle {
+    color: rgba(0, 0, 0, 0.6);
+}
+</style>

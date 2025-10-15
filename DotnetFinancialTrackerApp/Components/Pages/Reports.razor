@@ -29,18 +29,36 @@
                 <MudItem xs="12" md="6">
                     <MudStack Spacing="1">
                         <MudText Typo="Typo.subtitle2" Class="filter-label">Time Range</MudText>
-                        <MudButtonGroup Color="Color.Default" Class="range-button-group" Elevation="0">
+                        <MudButtonGroup Class="range-button-group" Color="Color.Default" Elevation="0">
                             <MudButton Variant="@GetRangeVariant(PeriodType.Weekly)"
+                                       StartIcon="@GetRangeButtonIcon(PeriodType.Weekly)"
+                                       Class="@GetRangeButtonClass(PeriodType.Weekly)"
+                                       DisableElevation="true"
                                        OnClick="@(() => SetPeriodType(PeriodType.Weekly))">
-                                Weekly
+                                <div class="range-button-content">
+                                    <span class="range-button-title">Weekly</span>
+                                    <span class="range-button-subtitle">7-day snapshot</span>
+                                </div>
                             </MudButton>
                             <MudButton Variant="@GetRangeVariant(PeriodType.Monthly)"
+                                       StartIcon="@GetRangeButtonIcon(PeriodType.Monthly)"
+                                       Class="@GetRangeButtonClass(PeriodType.Monthly)"
+                                       DisableElevation="true"
                                        OnClick="@(() => SetPeriodType(PeriodType.Monthly))">
-                                Monthly
+                                <div class="range-button-content">
+                                    <span class="range-button-title">Monthly</span>
+                                    <span class="range-button-subtitle">Week-over-week</span>
+                                </div>
                             </MudButton>
                             <MudButton Variant="@GetRangeVariant(PeriodType.Yearly)"
+                                       StartIcon="@GetRangeButtonIcon(PeriodType.Yearly)"
+                                       Class="@GetRangeButtonClass(PeriodType.Yearly)"
+                                       DisableElevation="true"
                                        OnClick="@(() => SetPeriodType(PeriodType.Yearly))">
-                                Yearly
+                                <div class="range-button-content">
+                                    <span class="range-button-title">Yearly</span>
+                                    <span class="range-button-subtitle">Month-over-month</span>
+                                </div>
                             </MudButton>
                         </MudButtonGroup>
                         <MudText Typo="Typo.caption" Class="current-period-label">
@@ -425,7 +443,7 @@
         _lineChartOptions = new ChartOptions
         {
             InterpolationOption = InterpolationOption.Straight,
-            LineStrokeWidth = 3,
+            LineStrokeWidth = 2,
             ChartPalette = _categoryPalette
         };
 
@@ -500,6 +518,25 @@
     };
 
     private Variant GetRangeVariant(PeriodType period) => _selectedPeriodType == period ? Variant.Filled : Variant.Outlined;
+
+    private string GetRangeButtonClass(PeriodType period)
+    {
+        var classes = new List<string> { "range-button" };
+        if (_selectedPeriodType == period)
+        {
+            classes.Add("range-button--active");
+        }
+
+        return string.Join(" ", classes);
+    }
+
+    private string GetRangeButtonIcon(PeriodType period) => period switch
+    {
+        PeriodType.Weekly => Icons.Material.Filled.ViewWeek,
+        PeriodType.Monthly => Icons.Material.Filled.DateRange,
+        PeriodType.Yearly => Icons.Material.Filled.CalendarMonth,
+        _ => Icons.Material.Filled.Timeline
+    };
 
     private DateTime GetWeekStart(DateTime date)
     {
@@ -771,29 +808,35 @@
     {
         var points = new List<ChartDataPoint>();
         var monthEnd = start.AddMonths(1);
-        var weekIndex = 1;
-        var weekStart = start;
+        var rollingWeekStart = GetWeekStart(start);
 
-        while (weekStart < monthEnd)
+        while (rollingWeekStart < monthEnd)
         {
-            var weekEnd = weekStart.AddDays(7);
-            if (weekEnd > monthEnd)
+            var rangeStart = rollingWeekStart < start ? start : rollingWeekStart;
+            var rangeEndExclusive = rollingWeekStart.AddDays(7);
+
+            if (rangeEndExclusive > monthEnd)
             {
-                weekEnd = monthEnd;
+                rangeEndExclusive = monthEnd;
             }
 
-            var amount = transactions.Where(t => t.Date >= weekStart && t.Date < weekEnd).Sum(t => t.Amount);
+            var amount = transactions
+                .Where(t => t.Date >= rangeStart && t.Date < rangeEndExclusive)
+                .Sum(t => t.Amount);
+
+            var rangeEndInclusive = rangeEndExclusive.AddDays(-1);
+            var label = rangeStart.Month == rangeEndInclusive.Month
+                ? $"{rangeStart:MMM d}-{rangeEndInclusive:dd}"
+                : $"{rangeStart:MMM d}-{rangeEndInclusive:MMM d}";
 
             points.Add(new ChartDataPoint
             {
-                Label = $"Week {weekIndex}",
+                Label = label,
                 Amount = amount
             });
 
-            weekIndex++;
-            weekStart = weekEnd;
+            rollingWeekStart = rollingWeekStart.AddDays(7);
         }
-
         AssignEvenlySpacedXPositions(points);
         CalculateYPositions(points);
         return points;
@@ -1014,18 +1057,69 @@
 }
 
 .range-button-group {
-    border-radius: 12px;
+    border-radius: 14px;
+    background: #F3F4F6;
+    padding: 6px;
+    gap: 8px;
 }
 
 .range-button-group .mud-button-root {
-    min-width: 110px;
+    min-width: 0;
     border-radius: 12px;
     font-weight: 500;
+    padding: 10px 16px;
+    text-transform: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.range-button-group .mud-button-filled {
-    background-color: #000000;
+.range-button-group .mud-button-root:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.range-button {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    color: #111827;
+}
+
+.range-button .mud-icon-root {
+    color: #4B5563;
+}
+
+.range-button-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.1;
+}
+
+.range-button-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.range-button-subtitle {
+    font-size: 0.75rem;
+    color: #6B7280;
+}
+
+
+.range-button--active,
+.range-button--active.mud-button-root,
+.range-button--active.mud-button-filled {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+}
+
+.range-button--active .mud-icon-root {
     color: #ffffff;
+}
+
+.range-button--active .range-button-subtitle {
+    color: rgba(255, 255, 255, 0.75);
 }
 
 .current-period-label {

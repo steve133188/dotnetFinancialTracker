@@ -180,11 +180,11 @@
                 Pin = "1234" // Default PIN - should be changed on first login
             };
 
-            var created = await FamilyMemberService.AddAsync(newMember);
+            await FamilyMemberService.AddAsync(newMember);
 
             _newMemberModel = new NewMemberModel();
             await RefreshMembersAsync(notifyParent: true);
-            Snackbar.Add($"{created.Name} has been added to the family", Severity.Success);
+            Snackbar.Add($"{newMember.Name} has been added to the family", Severity.Success);
         }
         catch (Exception ex)
         {
