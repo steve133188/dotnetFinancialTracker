@@ -8,6 +8,7 @@ using Microsoft.Maui.Storage;
 using SQLitePCL;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using System.Data.Common;
+using System.Linq;
 
 namespace DotnetFinancialTrackerApp;
 
@@ -588,15 +589,17 @@ public static class MauiProgram
     {
         try
         {
-            // Force database recreation to handle schema changes (including new Notes column)
-            // This is safe for development - in production you'd use migrations
-            db.Database.EnsureDeleted();
-            db.Database.EnsureCreated();
+            if (db.Database.GetPendingMigrations().Any())
+            {
+                db.Database.Migrate();
+            }
+            else
+            {
+                db.Database.EnsureCreated();
+            }
         }
         catch
         {
-            // As a last resort try recreating the database
-            db.Database.EnsureDeleted();
             db.Database.EnsureCreated();
         }
     }

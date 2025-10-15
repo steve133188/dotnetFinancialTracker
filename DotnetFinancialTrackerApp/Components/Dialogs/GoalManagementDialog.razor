@@ -117,6 +117,14 @@
                                                 </MudStack>
                                             </MudItem>
                                         </MudGrid>
+                                        @if (LatestContribution != null)
+                                        {
+                                            <MudDivider />
+                                            <MudStack Spacing="1">
+                                                <MudText Typo="Typo.caption" Class="goal-summary-label">Latest contribution</MudText>
+                                                <MudText Typo="Typo.caption" Class="goal-amount-secondary">@LatestContributionSummary</MudText>
+                                            </MudStack>
+                                        }
                                     </MudStack>
                                 </MudPaper>
                             </MudStack>
@@ -193,6 +201,43 @@
                                 </MudPaper>
                             }
 
+                            @if (SortedContributions.Any())
+                            {
+                                <MudPaper Class="momentum-card" Elevation="0">
+                                    <MudStack Spacing="1">
+                                        <MudText Typo="Typo.subtitle2">Savings momentum</MudText>
+                                        <MudGrid Spacing="1">
+                                            <MudItem xs="12" sm="4">
+                                                <MudStack Spacing="1">
+                                                    <MudText Typo="Typo.caption" Class="momentum-label">This month</MudText>
+                                                    <MudText Typo="Typo.subtitle1" Class="momentum-value">@ContributionsAmountThisMonth.ToString("C0", CultureInfo.CurrentCulture)</MudText>
+                                                    <MudText Typo="Typo.caption" Class="momentum-caption">@GetContributionFrequencyText()</MudText>
+                                                </MudStack>
+                                            </MudItem>
+                                            <MudItem xs="12" sm="4">
+                                                <MudStack Spacing="1">
+                                                    <MudText Typo="Typo.caption" Class="momentum-label">Total saved</MudText>
+                                                    <MudText Typo="Typo.subtitle1" Class="momentum-value">@TotalContributions.ToString("C0", CultureInfo.CurrentCulture)</MudText>
+                                                    <MudText Typo="Typo.caption" Class="momentum-caption">@GetContributionTotalCountText()</MudText>
+                                                </MudStack>
+                                            </MudItem>
+                                            <MudItem xs="12" sm="4">
+                                                <MudStack Spacing="1">
+                                                    <MudText Typo="Typo.caption" Class="momentum-label">Average gift</MudText>
+                                                    <MudText Typo="Typo.subtitle1" Class="momentum-value">@AverageContribution.ToString("C0", CultureInfo.CurrentCulture)</MudText>
+                                                    <MudText Typo="Typo.caption" Class="momentum-caption">Across all contributions</MudText>
+                                                </MudStack>
+                                            </MudItem>
+                                        </MudGrid>
+                                        <MudDivider />
+                                        <MudStack Spacing="1">
+                                            <MudText Typo="Typo.caption" Class="momentum-label">Latest contribution</MudText>
+                                            <MudText Typo="Typo.body2" Class="momentum-caption">@LatestContributionSummary</MudText>
+                                        </MudStack>
+                                    </MudStack>
+                                </MudPaper>
+                            }
+
                             <MudStack Direction="Direction.Row" Spacing="1" Wrap="true" Class="action-buttons">
                                 <MudButton Variant="Variant.Filled"
                                            Color="Color.Dark"
@@ -235,7 +280,7 @@
                         else
                         {
                             <MudPaper Class="contribution-card" Elevation="0">
-                                <MudTable Items="SortedContributions" Dense="true" Hover="true" Elevation="0">
+                                <MudTable Items="SortedContributions" Dense="true" Hover="true" Elevation="0" RowClassFunc="GetContributionRowClass">
                                     <HeaderContent>
                                         <MudTh>Contributor</MudTh>
                                         <MudTh>Date</MudTh>
@@ -416,14 +461,44 @@
         return Goal.IsCompleted ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.TrendingUp;
     }
 
+
     private IEnumerable<SavingsGoalContribution> SortedContributions =>
         Contributions.OrderByDescending(c => c.ContributionDate);
+
+    private int TotalContributionCount => Contributions.Count;
+    private decimal TotalContributions => Contributions.Sum(c => c.Amount);
+    private int ContributionsThisMonth => Contributions.Count(c => c.ContributionDate.Year == DateTime.Today.Year && c.ContributionDate.Month == DateTime.Today.Month);
+    private decimal ContributionsAmountThisMonth => Contributions.Where(c => c.ContributionDate.Year == DateTime.Today.Year && c.ContributionDate.Month == DateTime.Today.Month).Sum(c => c.Amount);
+    private decimal AverageContribution => TotalContributionCount > 0 ? Math.Round(TotalContributions / TotalContributionCount, 2) : 0m;
+    private SavingsGoalContribution? LatestContribution => SortedContributions.FirstOrDefault();
+
+    private string GetContributionTotalCountText() => TotalContributionCount == 1 ? "1 contribution" : $"{TotalContributionCount} contributions";
+
+    private string GetContributionFrequencyText() => ContributionsThisMonth switch
+    {
+        0 => "No contributions so far",
+        1 => "1 contribution",
+        _ => $"{ContributionsThisMonth} contributions"
+    };
 
     private string FormatContributionDate(SavingsGoalContribution contribution)
         => contribution.ContributionDate.ToLocalTime().ToString("MMM dd, yyyy · h:mm tt");
 
+    private string FormatContributionDateShort(SavingsGoalContribution contribution)
+        => contribution.ContributionDate.ToLocalTime().ToString("MMM dd");
+
     private string FormatContributionDescription(SavingsGoalContribution contribution)
         => string.IsNullOrWhiteSpace(contribution.Description) ? "—" : contribution.Description;
+
+    private string LatestContributionSummary => LatestContribution is null
+        ? "No contributions yet"
+        : $"{GetContributorName(LatestContribution)} · {LatestContribution.Amount.ToString("C0", CultureInfo.CurrentCulture)} on {FormatContributionDateShort(LatestContribution)}";
+
+    private bool IsContributionRecent(SavingsGoalContribution contribution)
+        => (DateTime.UtcNow - contribution.ContributionDate).TotalDays <= 7;
+
+    private string GetContributionRowClass(SavingsGoalContribution contribution, int index)
+        => IsContributionRecent(contribution) ? "contribution-row--recent" : string.Empty;
 
     private string GetContributorName(SavingsGoalContribution contribution)
     {
@@ -640,6 +715,24 @@
 
 .goal-tabs .mud-tab {
     border-radius: 12px;
+    text-transform: none;
+    font-weight: 600;
+    color: #4B5563;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.goal-tabs .mud-tab .mud-icon-root {
+    margin-right: 8px;
+    color: #6B7280;
+}
+
+.goal-tabs .mud-tab.mud-tab-active {
+    background: #111827;
+    color: #ffffff;
+}
+
+.goal-tabs .mud-tab.mud-tab-active .mud-icon-root {
+    color: #ffffff;
 }
 
 .overview-panel .metric-card,
@@ -667,6 +760,32 @@
 
 .action-buttons .mud-button-root {
     text-transform: none;
+}
+
+.momentum-card {
+    padding: 18px;
+    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    background: #ffffff;
+}
+
+.momentum-label {
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6B7280;
+}
+
+.momentum-value {
+    font-weight: 600;
+    color: #111827;
+}
+
+.momentum-caption {
+    color: #4B5563;
+}
+
+.contribution-row--recent {
+    background: rgba(17, 24, 39, 0.05);
 }
 
 .contribution-card .mud-table {
