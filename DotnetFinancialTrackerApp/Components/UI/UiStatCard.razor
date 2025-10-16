@@ -1,0 +1,72 @@
+@using System.Collections.Generic
+@using MudBlazor
+
+<MudCard @attributes="AdditionalAttributes"
+         Class="@BuildCardClass()"
+         Elevation="@Elevation">
+    <MudCardContent>
+        @if (HeaderContent is not null)
+        {
+            <div class="stat-card-header">
+                @HeaderContent
+            </div>
+        }
+        else if (!string.IsNullOrWhiteSpace(Title) || !string.IsNullOrWhiteSpace(Icon))
+        {
+            <div class="card-header">
+                @if (!string.IsNullOrWhiteSpace(Icon))
+                {
+                    <MudIcon Icon="@Icon" />
+                }
+                @if (!string.IsNullOrWhiteSpace(Title))
+                {
+                    <MudText Typo="@TitleTypo">@Title</MudText>
+                }
+            </div>
+        }
+
+        <div class="stat-card-body">
+            @if (BodyContent is not null)
+            {
+                @BodyContent
+            }
+            else
+            {
+                <MudText Typo="@ValueTypo" Class="@ValueClass">@Value</MudText>
+                @if (!string.IsNullOrWhiteSpace(Meta))
+                {
+                    <MudText Typo="@MetaTypo" Class="@MetaClass">@Meta</MudText>
+                }
+            }
+        </div>
+
+        @if (FooterContent is not null)
+        {
+            <div class="stat-card-footer">
+                @FooterContent
+            </div>
+        }
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public string Value { get; set; } = string.Empty;
+    [Parameter] public string Meta { get; set; } = string.Empty;
+    [Parameter] public string Class { get; set; } = string.Empty;
+    [Parameter] public string ValueClass { get; set; } = "card-amount";
+    [Parameter] public string MetaClass { get; set; } = "card-meta";
+    [Parameter] public Typo TitleTypo { get; set; } = Typo.subtitle1;
+    [Parameter] public Typo ValueTypo { get; set; } = Typo.h4;
+    [Parameter] public Typo MetaTypo { get; set; } = Typo.body2;
+    [Parameter] public int Elevation { get; set; } = 0;
+    [Parameter] public RenderFragment? HeaderContent { get; set; }
+    [Parameter] public RenderFragment? BodyContent { get; set; }
+    [Parameter] public RenderFragment? FooterContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string BuildCardClass() => string.IsNullOrWhiteSpace(Class)
+        ? "summary-card ui-stat-card"
+        : $"summary-card ui-stat-card {Class}";
+}

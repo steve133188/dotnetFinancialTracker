@@ -97,6 +97,7 @@ html, body {
 
 .btn-primary:hover {
     background: linear-gradient(135deg, #111111 0%, #00CCCC 100%);
+}
 
 /* Global MudBlazor Button Overrides */
 .mud-button-filled.mud-button-filled-primary {
@@ -122,6 +123,38 @@ html, body {
     background-color: #00CCCC !important;
     color: #000000 !important;
     box-shadow: none !important;
+}
+
+.ui-button {
+    border-radius: 12px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-transform: none;
+}
+
+.ui-button.mud-button-filled {
+    background-color: #000000 !important;
+    color: #FFFFFF !important;
+    box-shadow: none !important;
+}
+
+.ui-button.mud-button-filled:hover {
+    background-color: #111111 !important;
+}
+
+.ui-button.mud-button-text {
+    color: #000000 !important;
+}
+
+.ui-button.mud-button-text:hover,
+.ui-button.mud-button-text:focus {
+    background-color: rgba(0, 0, 0, 0.04) !important;
+    color: #000000 !important;
+}
+
+.ui-button.mud-button-outlined {
+    color: #000000 !important;
+    border-color: rgba(0, 0, 0, 0.24) !important;
 }
 
 /* Ensure all numbers use black text */
@@ -194,6 +227,106 @@ html, body {
 .household-card:hover {
     transform: translateY(-2px) !important;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1) !important;
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.card-header .mud-icon-root {
+    color: #000000;
+}
+
+.card-amount {
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #000000;
+    font-family: 'Inter', sans-serif;
+}
+
+.card-meta {
+    color: rgba(0, 0, 0, 0.6);
+    font-family: 'Inter', sans-serif;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    gap: 12px;
+}
+
+.section-header .mud-typography {
+    color: #000000;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+}
+
+.header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.stat-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.stat-card-footer {
+    margin-top: 16px;
+}
+
+.stat-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.filter-field {
+    background: #F9FAFB;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    gap: 4px;
+}
+
+.filter-field-label {
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6B7280;
+    font-weight: 600;
+}
+
+.filter-field-helper {
+    color: rgba(0, 0, 0, 0.54);
+    font-size: 0.75rem;
+}
+
+.filter-chip-active {
+    border-color: #000000 !important;
+    color: #000000 !important;
+}
+
+.avatar-dark {
+    background-color: #000000 !important;
+    color: #FFFFFF !important;
+}
+
+.clickable-card {
+    cursor: pointer;
+}
+
+.icon-dark {
+    color: #000000 !important;
 }
 
 /* Universal section spacing */

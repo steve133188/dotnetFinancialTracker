@@ -13,7 +13,10 @@
         <!-- Top Amount Section -->
         <div class="amount-section">
             <div class="amount-header">
-                <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Color="Color.Default" OnClick="@GoBack" Style="color: black;" />
+                <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
+                               Color="Color.Default"
+                               Class="icon-dark"
+                               OnClick="@GoBack" />
                 <MudText Typo="Typo.h4">Transaction Details</MudText>
                 <div></div> <!-- Spacer -->
             </div>
@@ -35,7 +38,10 @@
                     <!-- Category -->
                     <div class="info-item">
                         <div class="info-label">
-                            <MudIcon Icon="@Icons.Material.Filled.Category" Size="Size.Medium" Color="Color.Default" Style="color: black;" />
+                            <MudIcon Icon="@Icons.Material.Filled.Category"
+                                     Size="Size.Medium"
+                                     Color="Color.Default"
+                                     Class="icon-dark" />
                             <MudText Typo="Typo.subtitle2">Category</MudText>
                         </div>
                         <MudText Typo="Typo.body1" Class="info-value">@(_transaction.Category?.Name ?? "Uncategorized")</MudText>
@@ -46,7 +52,10 @@
                     <!-- Date -->
                     <div class="info-item">
                         <div class="info-label">
-                            <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Medium" Color="Color.Default" Style="color: black;" />
+                            <MudIcon Icon="@Icons.Material.Filled.CalendarToday"
+                                     Size="Size.Medium"
+                                     Color="Color.Default"
+                                     Class="icon-dark" />
                             <MudText Typo="Typo.subtitle2">Date</MudText>
                         </div>
                         <MudText Typo="Typo.body1" Class="info-value">@_transaction.Date.ToString("MMMM dd, yyyy")</MudText>
@@ -58,11 +67,14 @@
                     <!-- Family Member -->
                     <div class="info-item">
                         <div class="info-label">
-                            <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Medium" Color="Color.Default" Style="color: black;" />
+                            <MudIcon Icon="@Icons.Material.Filled.Person"
+                                     Size="Size.Medium"
+                                     Color="Color.Default"
+                                     Class="icon-dark" />
                             <MudText Typo="Typo.subtitle2">Family Member</MudText>
                         </div>
                         <div class="member-info">
-                            <MudAvatar Size="Size.Medium" Color="Color.Default" Style="background-color: black; color: white;">
+                            <MudAvatar Size="Size.Medium" Color="Color.Default" Class="avatar-dark">
                                 @GetMemberInitial(_transaction.User)
                             </MudAvatar>
                             <MudText Typo="Typo.body1" Class="member-name">@(_transaction.User ?? "Unknown")</MudText>
@@ -76,7 +88,10 @@
                         <!-- Description -->
                         <div class="info-item">
                             <div class="info-label">
-                                <MudIcon Icon="@Icons.Material.Filled.Notes" Size="Size.Medium" Color="Color.Default" Style="color: black;" />
+                                <MudIcon Icon="@Icons.Material.Filled.Notes"
+                                         Size="Size.Medium"
+                                         Color="Color.Default"
+                                         Class="icon-dark" />
                                 <MudText Typo="Typo.subtitle2">Description</MudText>
                             </div>
                             <MudText Typo="Typo.body1" Class="info-value">@_transaction.Description</MudText>
@@ -88,7 +103,10 @@
                     <!-- Transaction ID -->
                     <div class="info-item">
                         <div class="info-label">
-                            <MudIcon Icon="@Icons.Material.Filled.Tag" Size="Size.Medium" Color="Color.Default" Style="color: black;" />
+                            <MudIcon Icon="@Icons.Material.Filled.Tag"
+                                     Size="Size.Medium"
+                                     Color="Color.Default"
+                                     Class="icon-dark" />
                             <MudText Typo="Typo.subtitle2">Transaction ID</MudText>
                         </div>
                         <MudText Typo="Typo.body1" Class="info-value">#@_transaction.Id.ToString("D6")</MudText>
@@ -108,16 +126,15 @@
     else
     {
         <div class="error-section">
-            <MudIcon Icon="@Icons.Material.Filled.Error" Size="Size.Large" Color="Color.Default" Style="color: black;" />
+            <MudIcon Icon="@Icons.Material.Filled.Error"
+                     Size="Size.Large"
+                     Color="Color.Default"
+                     Class="icon-dark" />
             <MudText Typo="Typo.h6" Class="mt-2">Transaction Not Found</MudText>
             <MudText Typo="Typo.body2" Class="mb-3">The transaction you're looking for doesn't exist.</MudText>
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Default"
-                       Elevation="0"
-                       OnClick="@GoBack"
-                       Style="background-color: black; color: white;">
+            <UiButton OnClick="@GoBack">
                 Go Back
-            </MudButton>
+            </UiButton>
         </div>
     }
 </MudContainer>

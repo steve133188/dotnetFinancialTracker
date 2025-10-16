@@ -89,8 +89,8 @@
     <!-- Key Metrics Summary -->
     <MudGrid Class="metrics-section">
         <MudItem xs="12" md="3">
-            <MudCard Class="summary-card metric-card" Elevation="0">
-                <MudCardContent Class="text-center">
+            <UiStatCard Class="metric-card text-center">
+                <BodyContent>
                     <MudText Typo="Typo.h4" Class="metric-amount expense">
                         @_filteredExpense.ToString("C0", CultureInfo.CurrentCulture)
                     </MudText>
@@ -106,13 +106,13 @@
                             </MudText>
                         }
                     </div>
-                </MudCardContent>
-            </MudCard>
+                </BodyContent>
+            </UiStatCard>
         </MudItem>
 
         <MudItem xs="12" md="3">
-            <MudCard Class="summary-card metric-card" Elevation="0">
-                <MudCardContent Class="text-center">
+            <UiStatCard Class="metric-card text-center">
+                <BodyContent>
                     <MudText Typo="Typo.h4" Class="metric-amount income">
                         @_filteredIncome.ToString("C0", CultureInfo.CurrentCulture)
                     </MudText>
@@ -128,25 +128,25 @@
                             </MudText>
                         }
                     </div>
-                </MudCardContent>
-            </MudCard>
+                </BodyContent>
+            </UiStatCard>
         </MudItem>
 
         <MudItem xs="12" md="3">
-            <MudCard Class="summary-card metric-card" Elevation="0">
-                <MudCardContent Class="text-center">
+            <UiStatCard Class="metric-card text-center">
+                <BodyContent>
                     <MudText Typo="Typo.h4" Class="@GetBalanceClass()">
                         @NetBalance.ToString("C0", CultureInfo.CurrentCulture)
                     </MudText>
                     <MudText Typo="Typo.body2" Class="metric-label">Net Balance</MudText>
                     <MudText Typo="Typo.caption">@GetBalanceStatus()</MudText>
-                </MudCardContent>
-            </MudCard>
+                </BodyContent>
+            </UiStatCard>
         </MudItem>
 
         <MudItem xs="12" md="3">
-            <MudCard Class="summary-card metric-card" Elevation="0">
-                <MudCardContent Class="text-center">
+            <UiStatCard Class="metric-card text-center">
+                <BodyContent>
                     <MudText Typo="Typo.h4" Class="metric-amount">
                         @_highlightTransactions.Count
                     </MudText>
@@ -154,8 +154,8 @@
                     <MudText Typo="Typo.caption" Class="text-muted">
                         This period
                     </MudText>
-                </MudCardContent>
-            </MudCard>
+                </BodyContent>
+            </UiStatCard>
         </MudItem>
     </MudGrid>
 

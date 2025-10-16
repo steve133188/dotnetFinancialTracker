@@ -16,6 +16,7 @@ public class SavingsGoalService : ISavingsGoalService
     // Basic CRUD operations
     public async Task<IEnumerable<SavingsGoal>> GetAllAsync(string familyId)
     {
+        // Spec: LINQ with lambda expressions & generic collections satisfy "Anonymous method with LINQ" + "Generics" requirement.
         return await _context.SavingsGoals
             .Where(g => g.FamilyId == familyId)
             .Include(g => g.Contributions)

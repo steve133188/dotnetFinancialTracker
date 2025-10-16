@@ -59,9 +59,10 @@
     <div class="transactions-section">
         <div class="section-header">
             <MudText Typo="Typo.h6">Recent Transactions</MudText>
-            <MudButton Variant="Variant.Text" Color="Color.Default" Elevation="0" OnClick="@NavigateToFinance" Style="color: black;">
+            <UiButton Variant="Variant.Text"
+                      OnClick="@NavigateToFinance">
                 View All
-            </MudButton>
+            </UiButton>
         </div>
 
         @if (_recentTransactions.Count == 0)
@@ -71,9 +72,9 @@
                     <MudIcon Icon="@Icons.Material.Filled.Receipt" Size="Size.Large" Color="Color.Default" />
                     <MudText Typo="Typo.h6" Class="mt-2">No transactions yet</MudText>
                     <MudText Typo="Typo.body2" Class="mb-3">Start tracking your family spending</MudText>
-                    <MudButton Variant="Variant.Filled" Color="Color.Default" Elevation="0" OnClick="@NavigateToFinance" Style="background-color: black; color: white;">
+                    <UiButton OnClick="@NavigateToFinance">
                         Add Transaction
-                    </MudButton>
+                    </UiButton>
                 </MudCardContent>
             </MudCard>
         }

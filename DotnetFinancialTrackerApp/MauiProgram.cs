@@ -33,14 +33,14 @@ public static class MauiProgram
         // SQLite EF Core setup
         var dbPath = Path.Combine(FileSystem.AppDataDirectory, "financial-tracker.db");
         builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite($"Data Source={dbPath}"));
+        // Spec: interfaces + dependency injection highlight high cohesion/low coupling.
         builder.Services.AddScoped<ITransactionsService, TransactionsService>();
         builder.Services.AddScoped<ITransactionTemplateService, TransactionTemplateService>();
         builder.Services.AddScoped<IBudgetsService, BudgetsService>();
         builder.Services.AddScoped<ISavingsGoalService, SavingsGoalService>();
         builder.Services.AddScoped<IFamilyMemberService, FamilyMemberService>();
-        // Removed: IGamificationService - not part of MVP
         builder.Services.AddScoped<IUserService, UserService>();
-        // Removed: Wellbeing and AI services - not part of MVP
+
 
         builder.Services.AddSingleton<AuthState>();
 

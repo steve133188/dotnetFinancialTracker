@@ -9,7 +9,7 @@
     <MudPaper Class="login-form-wrapper">
         <MudStack Spacing="3">
             <MudStack AlignItems="AlignItems.Center" Spacing="1">
-                <MudAvatar Class="login-avatar" Color="Color.Dark" Size="Size.Large" Style="background-color: black; color: white;">
+                <MudAvatar Class="login-avatar avatar-dark" Color="Color.Dark" Size="Size.Large">
                     K
                 </MudAvatar>
                 <MudText Typo="Typo.h5" Class="login-title">Welcome Back</MudText>
@@ -42,14 +42,11 @@
                                  @bind-Value="_formModel.Pin" />
                     <ValidationMessage For="@(() => _formModel.Pin)" />
 
-                    <MudButton FullWidth="true"
+                    <UiButton FullWidth="true"
                               ButtonType="ButtonType.Submit"
-                              Variant="Variant.Filled"
-                              Color="Color.Default"
-                              Disabled="@(!CanSignIn)"
-                              Style="background-color: black; color: white;">
+                              Disabled="@(!CanSignIn)">
                         Sign In
-                    </MudButton>
+                    </UiButton>
                 </MudStack>
             </EditForm>
 

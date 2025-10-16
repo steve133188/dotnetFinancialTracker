@@ -13,6 +13,9 @@ public class TransactionsService : ITransactionsService
         _db = db;
     }
 
+    // Spec: method overloading used for polymorphism requirement (Assignment 2 - Code Requirement)
+    public Task<List<Transaction>> GetAsync() => GetAsync(null, null, null, null);
+
     public async Task<List<Transaction>> GetAsync(string? user = null, string? category = null, DateTime? from = null, DateTime? to = null)
     {
         var query = _db.Transactions

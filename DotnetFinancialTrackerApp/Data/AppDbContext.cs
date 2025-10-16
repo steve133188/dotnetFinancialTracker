@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DotnetFinancialTrackerApp.Data;
 
+// Spec: central Entity Framework context covering "File/database reading and writing and Entity Framework".
 public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)

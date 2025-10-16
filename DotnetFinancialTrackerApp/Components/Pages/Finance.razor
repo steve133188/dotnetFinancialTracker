@@ -9,6 +9,7 @@
 
 <PageTitle>Finance - Family Tracker</PageTitle>
 
+@* Spec: Responsive MudBlazor layout with cards, tables, charts, filters and dialogs to satisfy GUI/Interface design requirements (≥4 screens & ≥6 UI element categories). *@
 <MudContainer Class="home-container" MaxWidth="MaxWidth.False">
     @if (!string.IsNullOrEmpty(_error))
     {
@@ -21,9 +22,10 @@
     <div class="section-header">
         <MudText Typo="Typo.h5" Class="month-title">Transaction Management</MudText>
         <div class="header-actions">
-            <MudButton Variant="Variant.Filled" Color="Color.Default" Elevation="0" StartIcon="@Icons.Material.Filled.Add" OnClick="@OpenAddTransaction" Style="background-color: black; color: white;">
+            <UiButton StartIcon="@Icons.Material.Filled.Add"
+                      OnClick="@OpenAddTransaction">
                 Add Transaction
-            </MudButton>
+            </UiButton>
         </div>
     </div>
 
@@ -31,42 +33,24 @@
     <div class="summary-section">
         <MudGrid>
             <MudItem xs="12" md="4">
-                <MudCard Class="summary-card" Elevation="0">
-                    <MudCardContent>
-                        <div class="card-header">
-                            <MudIcon Icon="@Icons.Material.Filled.TrendingUp"  />
-                            <MudText Typo="Typo.subtitle1">Monthly Income</MudText>
-                        </div>
-                        <MudText Typo="Typo.h4" Class="card-amount">@_monthIncome.ToString("C", CultureInfo.CurrentCulture)</MudText>
-                        <MudText Typo="Typo.body2" Class="card-meta">@_incomeTransactionCount transactions</MudText>
-                    </MudCardContent>
-                </MudCard>
+                <UiStatCard Icon="@Icons.Material.Filled.TrendingUp"
+                            Title="Monthly Income"
+                            Value="@MonthIncomeDisplay"
+                            Meta="@IncomeTransactionCountDisplay" />
             </MudItem>
 
             <MudItem xs="12" md="4">
-                <MudCard Class="summary-card" Elevation="0">
-                    <MudCardContent>
-                        <div class="card-header">
-                            <MudIcon Icon="@Icons.Material.Filled.TrendingDown" />
-                            <MudText Typo="Typo.subtitle1">Monthly Spending</MudText>
-                        </div>
-                        <MudText Typo="Typo.h4" Class="card-amount">@_monthExpense.ToString("C", CultureInfo.CurrentCulture)</MudText>
-                        <MudText Typo="Typo.body2" Class="card-meta">@_expenseTransactionCount transactions</MudText>
-                    </MudCardContent>
-                </MudCard>
+                <UiStatCard Icon="@Icons.Material.Filled.TrendingDown"
+                            Title="Monthly Spending"
+                            Value="@MonthExpenseDisplay"
+                            Meta="@ExpenseTransactionCountDisplay" />
             </MudItem>
 
             <MudItem xs="12" md="4">
-                <MudCard Class="summary-card" Elevation="0">
-                    <MudCardContent>
-                        <div class="card-header">
-                            <MudIcon Icon="@(NetBalance >= 0 ? Icons.Material.Filled.AccountBalanceWallet : Icons.Material.Filled.Warning)" />
-                            <MudText Typo="Typo.subtitle1">Net Balance</MudText>
-                        </div>
-                        <MudText Typo="Typo.h4" Class="card-amount">@NetBalance.ToString("C", CultureInfo.CurrentCulture)</MudText>
-                        <MudText Typo="Typo.body2" Class="card-meta">@DateTime.Now.ToString("MMMM yyyy", CultureInfo.CurrentCulture)</MudText>
-                    </MudCardContent>
-                </MudCard>
+                <UiStatCard Icon="@(NetBalance >= 0 ? Icons.Material.Filled.AccountBalanceWallet : Icons.Material.Filled.Warning)"
+                            Title="Net Balance"
+                            Value="@NetBalanceDisplay"
+                            Meta="@CurrentMonthDisplay" />
             </MudItem>
         </MudGrid>
     </div>
@@ -115,7 +99,13 @@
                 @if (HasActiveFilters)
                 {
                     <div class="filter-chips">
-                        <MudChip T="string" Text="@GetActiveFiltersText()" Color="Color.Default" Variant="Variant.Outlined" CloseIcon="@Icons.Material.Filled.Clear" OnClose="ClearAllFilters" Style="border-color: black; color: black;" />
+                        <MudChip T="string"
+                                 Text="@GetActiveFiltersText()"
+                                 Color="Color.Default"
+                                 Variant="Variant.Outlined"
+                                 CloseIcon="@Icons.Material.Filled.Clear"
+                                 OnClose="ClearAllFilters"
+                                 Class="filter-chip-active" />
                     </div>
                 }
             </MudCardContent>
@@ -130,9 +120,10 @@
                         <MudIcon Icon="@Icons.Material.Filled.Receipt" Size="Size.Large" Color="Color.Default" />
                         <MudText Typo="Typo.h6" Class="mt-2">No transactions found</MudText>
                         <MudText Typo="Typo.body2" Class="mb-3">@(HasActiveFilters ? "Try adjusting your filters or add a new transaction" : "Get started by adding your first transaction")</MudText>
-                        <MudButton Variant="Variant.Filled" Color="Color.Default" Elevation="0" StartIcon="@Icons.Material.Filled.Add" OnClick="@OpenAddTransaction" Style="background-color: black; color: white;">
+                        <UiButton StartIcon="@Icons.Material.Filled.Add"
+                                  OnClick="@OpenAddTransaction">
                             Add Transaction
-                        </MudButton>
+                        </UiButton>
                     </div>
                 }
                 else
@@ -167,7 +158,7 @@
                             </MudTd>
                             <MudTd>
                                 <div class="member-cell">
-                                    <MudAvatar Size="Size.Small" Color="Color.Default" Style="background-color: black; color: white;">@GetMemberInitial(context.User)</MudAvatar>
+                                    <MudAvatar Size="Size.Small" Color="Color.Default" Class="avatar-dark">@GetMemberInitial(context.User)</MudAvatar>
                                     <MudText Typo="Typo.body2">@DisplayMember(context.User)</MudText>
                                 </div>
                             </MudTd>
@@ -210,6 +201,13 @@
     private string _tableCategory = AllCategoriesOption;
     private string _tableMember = AllMembersOption;
     private string _tableSearch = string.Empty;
+
+    private string MonthIncomeDisplay => _monthIncome.ToString("C", CultureInfo.CurrentCulture);
+    private string MonthExpenseDisplay => _monthExpense.ToString("C", CultureInfo.CurrentCulture);
+    private string NetBalanceDisplay => NetBalance.ToString("C", CultureInfo.CurrentCulture);
+    private string IncomeTransactionCountDisplay => $"{_incomeTransactionCount} transactions";
+    private string ExpenseTransactionCountDisplay => $"{_expenseTransactionCount} transactions";
+    private string CurrentMonthDisplay => DateTime.Now.ToString("MMMM yyyy", CultureInfo.CurrentCulture);
 
     private FinancePeriod TablePeriod
     {
@@ -499,44 +497,6 @@
 .month-title {
     color: #000000;
     font-weight: 700;
-    font-family: 'Inter', sans-serif;
-}
-
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-}
-
-.section-header h6, .section-header .mud-typography-h6 {
-    color: #000000;
-    font-weight: 600;
-    font-family: 'Inter', sans-serif;
-}
-
-.header-actions {
-    display: flex;
-    gap: 12px;
-}
-
-.card-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 16px;
-}
-
-.card-amount {
-    font-weight: 700;
-    margin-bottom: 8px;
-    color: #000000;
-    font-family: 'Inter', sans-serif;
-}
-
-
-.card-meta {
-    color: rgba(0, 0, 0, 0.6);
     font-family: 'Inter', sans-serif;
 }
 

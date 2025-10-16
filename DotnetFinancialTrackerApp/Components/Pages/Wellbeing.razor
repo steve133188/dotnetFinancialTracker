@@ -32,9 +32,10 @@
             </div>
         </div>
         <div class="header-actions">
-            <MudButton Variant="Variant.Filled" Color="Color.Default" Elevation="0" StartIcon="@Icons.Material.Filled.Add" OnClick="@OpenCreateGoalDialog" Style="background-color: black; color: white;">
+            <UiButton StartIcon="@Icons.Material.Filled.Add"
+                      OnClick="@OpenCreateGoalDialog">
                 Create Goal
-            </MudButton>
+            </UiButton>
         </div>
     </div>
 
@@ -42,52 +43,28 @@
     <div class="summary-section">
         <MudGrid>
             <MudItem xs="12" md="3">
-                <MudCard Class="summary-card" Elevation="0">
-                    <MudCardContent>
-                        <div class="card-header">
-                            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" />
-                            <MudText Typo="Typo.subtitle1">Total Goals</MudText>
-                        </div>
-                        <MudText Typo="Typo.h4" Class="card-amount">@_allGoals.Count</MudText>
-                        <MudText Typo="Typo.body2" Class="card-meta">@_activeGoals.Count active</MudText>
-                    </MudCardContent>
-                </MudCard>
+                <UiStatCard Icon="@Icons.Material.Filled.TrendingUp"
+                            Title="Total Goals"
+                            Value="@TotalGoalsDisplay"
+                            Meta="@ActiveGoalsDisplay" />
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudCard Class="summary-card" Elevation="0">
-                    <MudCardContent>
-                        <div class="card-header">
-                            <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" />
-                            <MudText Typo="Typo.subtitle1">Total Saved</MudText>
-                        </div>
-                        <MudText Typo="Typo.h4" Class="card-amount">@_totalSaved.ToString("C", CultureInfo.CurrentCulture)</MudText>
-                        <MudText Typo="Typo.body2" Class="card-meta">across all goals</MudText>
-                    </MudCardContent>
-                </MudCard>
+                <UiStatCard Icon="@Icons.Material.Filled.AccountBalanceWallet"
+                            Title="Total Saved"
+                            Value="@TotalSavedDisplay"
+                            Meta="across all goals" />
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudCard Class="summary-card" Elevation="0">
-                    <MudCardContent>
-                        <div class="card-header">
-                            <MudIcon Icon="@Icons.Material.Filled.Flag" />
-                            <MudText Typo="Typo.subtitle1">Target Amount</MudText>
-                        </div>
-                        <MudText Typo="Typo.h4" Class="card-amount">@_totalTarget.ToString("C", CultureInfo.CurrentCulture)</MudText>
-                        <MudText Typo="Typo.body2" Class="card-meta">remaining: @( (_totalTarget - _totalSaved).ToString("C", CultureInfo.CurrentCulture) )</MudText>
-                    </MudCardContent>
-                </MudCard>
+                <UiStatCard Icon="@Icons.Material.Filled.Flag"
+                            Title="Target Amount"
+                            Value="@TotalTargetDisplay"
+                            Meta="@RemainingTargetDisplay" />
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudCard Class="summary-card" Elevation="0">
-                    <MudCardContent>
-                        <div class="card-header">
-                            <MudIcon Icon="@Icons.Material.Filled.Timeline" />
-                            <MudText Typo="Typo.subtitle1">Progress</MudText>
-                        </div>
-                        <MudText Typo="Typo.h4" Class="card-amount">@_overallProgress.ToString("F1")%</MudText>
-                        <MudText Typo="Typo.body2" Class="card-meta">overall completion</MudText>
-                    </MudCardContent>
-                </MudCard>
+                <UiStatCard Icon="@Icons.Material.Filled.Timeline"
+                            Title="Progress"
+                            Value="@OverallProgressDisplay"
+                            Meta="overall completion" />
             </MudItem>
         </MudGrid>
     </div>
@@ -123,17 +100,13 @@
                     <MudText Typo="Typo.caption" Class="budget-usage-note">@GetBudgetStatusText()</MudText>
 
                     <MudStack Direction="Row" Spacing="2" AlignItems="AlignItems.Center" Class="budget-actions">
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Default"
-                                   Style="background-color: black; color: white;"
-                                   OnClick="@OpenBudgetDialogAsync">
+                        <UiButton OnClick="@OpenBudgetDialogAsync">
                             @(_currentBudget is null ? "Create Budget" : "Update Budget")
-                        </MudButton>
-                        <MudButton Variant="Variant.Outlined"
-                                   Color="Color.Default"
-                                   OnClick="@OpenBudgetHistoryAsync">
+                        </UiButton>
+                        <UiButton Variant="Variant.Outlined"
+                                  OnClick="@OpenBudgetHistoryAsync">
                             View History
-                        </MudButton>
+                        </UiButton>
                     </MudStack>
                     @if (_currentBudget is not null)
                     {
@@ -154,8 +127,7 @@
 
         <MudGrid Class="goal-filter-grid" Spacing="2">
             <MudItem xs="12" sm="6" md="3">
-                <MudStack Spacing="1" Class="goal-filter-field">
-                    <MudText Typo="Typo.caption" Class="goal-filter-label">Category</MudText>
+                <UiFilterField Label="Category">
                     <MudSelect T="string"
                                Dense="true"
                                Variant="Variant.Outlined"
@@ -167,11 +139,10 @@
                             <MudSelectItem Value="@category">@category</MudSelectItem>
                         }
                     </MudSelect>
-                </MudStack>
+                </UiFilterField>
             </MudItem>
             <MudItem xs="12" sm="6" md="3">
-                <MudStack Spacing="1" Class="goal-filter-field">
-                    <MudText Typo="Typo.caption" Class="goal-filter-label">Status</MudText>
+                <UiFilterField Label="Status">
                     <MudSelect T="string"
                                Dense="true"
                                Variant="Variant.Outlined"
@@ -181,7 +152,7 @@
                         <MudSelectItem Value="@StatusActive">Active</MudSelectItem>
                         <MudSelectItem Value="@StatusCompleted">Completed</MudSelectItem>
                     </MudSelect>
-                </MudStack>
+                </UiFilterField>
             </MudItem>
         </MudGrid>
 
@@ -192,9 +163,10 @@
             <MudIcon Icon="@Icons.Material.Filled.Savings" Size="Size.Large" Color="Color.Default" />
                     <MudText Typo="Typo.h6" Class="mt-2">@(_allGoals.Any() ? "No goals match your filters" : "No savings goals yet")</MudText>
                     <MudText Typo="Typo.body2" Class="mb-3">@(_allGoals.Any() ? "Try adjusting your filters or create a new goal" : "Create your first savings goal to start building your future")</MudText>
-                    <MudButton Variant="Variant.Filled" Color="Color.Default" Elevation="0" StartIcon="@Icons.Material.Filled.Add" OnClick="@OpenCreateGoalDialog" Style="background-color: black; color: white;">
+                    <UiButton StartIcon="@Icons.Material.Filled.Add"
+                              OnClick="@OpenCreateGoalDialog">
                         Create Savings Goal
-                    </MudButton>
+                    </UiButton>
                 </MudCardContent>
             </MudCard>
         }
@@ -203,9 +175,8 @@
             <div class="goals-grid">
                 @foreach (var goal in _filteredGoals)
                 {
-                    <MudCard Class="@GetGoalCardClass(goal)"
+                    <MudCard Class="@($"{GetGoalCardClass(goal)} clickable-card")"
                              Elevation="0"
-                             Style="cursor: pointer;"
                              @onclick="@(async () => await OpenGoalHistoryAsync(goal))">
                         <MudCardContent>
                             <div class="goal-header">
@@ -240,15 +211,13 @@
                             </div>
 
                             <div class="goal-actions">
-                                <MudButton Variant="Variant.Text"
-                                           Color="Color.Default"
-                                           Size="Size.Small"
-                                           StartIcon="@Icons.Material.Filled.Add"
-                                           OnClick="@(async () => await OpenContributeDialog(goal))"
-                                           OnClick:StopPropagation="true"
-                                           Style="color: black;">
+                                <UiButton Variant="Variant.Text"
+                                          Size="Size.Small"
+                                          StartIcon="@Icons.Material.Filled.Add"
+                                          OnClick="@(async () => await OpenContributeDialog(goal))"
+                                          OnClick:StopPropagation="true">
                                     Contribute
-                                </MudButton>
+                                </UiButton>
                                 @if (goal.IsCompleted)
                                 {
                                     <MudChip T="string" Text="Completed" Variant="Variant.Outlined" Color="Color.Default" Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" />
@@ -285,6 +254,13 @@
     private decimal _budgetRemaining;
     private double _budgetUsage;
     private string _familyId = string.Empty;
+
+    private string TotalGoalsDisplay => _allGoals.Count.ToString(CultureInfo.CurrentCulture);
+    private string ActiveGoalsDisplay => $"{_activeGoals.Count} active";
+    private string TotalSavedDisplay => _totalSaved.ToString("C", CultureInfo.CurrentCulture);
+    private string TotalTargetDisplay => _totalTarget.ToString("C", CultureInfo.CurrentCulture);
+    private string RemainingTargetDisplay => $"remaining: {(_totalTarget - _totalSaved).ToString("C", CultureInfo.CurrentCulture)}";
+    private string OverallProgressDisplay => $"{_overallProgress.ToString("F1", CultureInfo.CurrentCulture)}%";
 
     protected override async Task OnInitializedAsync()
     {
@@ -732,50 +708,15 @@
     font-family: 'Inter', sans-serif;
 }
 
-.header-actions {
-    display: flex;
-    gap: 12px;
-}
-
 .summary-section {
     margin-bottom: 32px;
-}
-
-.summary-card {
-    background: #FFFFFF;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 20px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-}
-
-.card-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 16px;
-}
-
-.card-amount {
-    font-weight: 700;
-    margin-bottom: 8px;
-    color: #000000;
-    font-family: 'Inter', sans-serif;
-}
-
-.card-meta {
-    color: rgba(0, 0, 0, 0.6);
-    font-family: 'Inter', sans-serif;
 }
 
 .goals-section {
     margin-bottom: 32px;
 }
 
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
+.goals-section .section-header {
     flex-wrap: wrap;
     gap: 16px;
 }
@@ -793,21 +734,6 @@
 
 .goal-filter-grid .mud-input-control {
     width: 100%;
-}
-
-.goal-filter-field {
-    background: #F9FAFB;
-    padding: 12px;
-    border-radius: 12px;
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    gap: 4px;
-}
-
-.goal-filter-label {
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #6B7280;
-    font-weight: 600;
 }
 
 .goals-grid {
