@@ -13,10 +13,11 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.10" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.10" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../DotnetFinancialTrackerApp/DotnetFinancialTrackerApp.csproj" />
+    <ProjectReference Include="../DotnetFinancialTrackerApp.Core/DotnetFinancialTrackerApp.Core.csproj" />
   </ItemGroup>
 
 </Project>
