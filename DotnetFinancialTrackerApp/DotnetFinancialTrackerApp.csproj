@@ -39,6 +39,11 @@
         <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
     </PropertyGroup>
 
+    <!-- Spec requires Windows + Mac build support; keep Windows TF but skip it when building on non-Windows host -->
+    <PropertyGroup Condition="'$(IsWindows)' != 'true'">
+        <TargetFrameworks>net8.0-maccatalyst</TargetFrameworks>
+    </PropertyGroup>
+
     <ItemGroup>
         <!-- App Icon -->
         <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4"/>

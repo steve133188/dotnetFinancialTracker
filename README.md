@@ -24,3 +24,14 @@ dotnet test
 ```
 
 The suite exercises the LINQ-heavy transaction filters, savings goal contributions, and summary analytics to demonstrate the required NUnit coverage.
+
+## Build Commands
+
+- **macOS (MacCatalyst):**
+  ```bash
+  dotnet build DotnetFinancialTrackerApp/DotnetFinancialTrackerApp.csproj -t:Run -f net8.0-maccatalyst -c Debug
+  ```
+- **Windows:**
+  ```powershell
+  dotnet build DotnetFinancialTrackerApp/DotnetFinancialTrackerApp.csproj -t:Run -f net8.0-windows10.0.19041.0 -c Debug
+  ```
