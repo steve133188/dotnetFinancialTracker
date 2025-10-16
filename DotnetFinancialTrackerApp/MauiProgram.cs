@@ -26,7 +26,7 @@ public static class MauiProgram
 
         builder.Services.AddMauiBlazorWebView();
         builder.Services.AddMudServices();
-
+        builder.Services.AddBlazorWebViewDeveloperTools();
         // Initialize SQLite (required on iOS/MacCatalyst)
         Batteries_V2.Init();
 

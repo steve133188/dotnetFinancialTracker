@@ -2,6 +2,8 @@
 @using System.Globalization
 @using System.Linq
 @using DotnetFinancialTrackerApp.Models
+@using DotnetFinancialTrackerApp.Components.Shared
+@using DotnetFinancialTrackerApp.Components.Insight
 @using MudBlazor
 @inject DotnetFinancialTrackerApp.Services.ITransactionsService TxSvc
 @inject DotnetFinancialTrackerApp.Services.IUserService UserSvc
@@ -23,6 +25,7 @@
     </div>
 
     <!-- Filter Controls -->
+    @* TODO - Split into separate component *@
     <MudCard Class="summary-card filter-controls" Elevation="0">
         <MudCardContent>
             <MudGrid Spacing="2" Class="filter-simple-grid" AlignItems="AlignItems.Center">
@@ -87,6 +90,7 @@
     </MudCard>
 
     <!-- Key Metrics Summary -->
+    @* TODO - Split into separate component *@
     <MudGrid Class="metrics-section">
         <MudItem xs="12" md="3">
             <UiStatCard Class="metric-card text-center">
@@ -164,39 +168,17 @@
     <!-- Charts Section -->
     <MudGrid Class="charts-section">
         <!-- Spending Trends Line Chart -->
-        <MudItem xs="12">
-            <MudCard Class="summary-card chart-card" Elevation="0">
-                <MudCardContent>
-                    <div class="chart-header">
-                        <MudText Typo="Typo.h6" Class="chart-title">Spending Trends Over Time</MudText>
-                        <MudText Typo="Typo.caption" Class="chart-subtitle">@GetChartPeriodDescription()</MudText>
-                    </div>
-
-                    @if (_chartData.Count == 0)
-                    {
-                        <div class="empty-chart">
-                            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Large" Color="Color.Default" />
-                            <MudText Typo="Typo.body2" Class="mt-2">No spending data for this period</MudText>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="enhanced-line-chart">
-                            <MudChart ChartType="ChartType.Line"
-                                    ChartSeries="@_lineChartSeries"
-                                    @bind-SelectedIndex="selectedIndex"
-                                    XAxisLabels="@_xAxisLabels.ToArray()"
-                                    Width="100%"
-                                    Height="300px"
-                                    ChartOptions="@_lineChartOptions">
-                            </MudChart>
-                        </div>
-                    }
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
+        <TrendingChart 
+                      chartDataLength="@_chartData.Count"
+                      _xAxisLabels="@_xAxisLabels"
+                      _lineChartSeries="@_lineChartSeries"
+                      _lineChartOptions="@_lineChartOptions" 
+                      description="@GetCurrentPeriodDisplay()"
+                      />
+        
         <!-- Category Breakdown Donut Chart -->
+        @* TODO - Split into separate component *@
+        
         <MudItem xs="12" md="6">
             <MudCard Class="summary-card chart-card" Elevation="0">
                 <MudCardContent>
@@ -249,6 +231,7 @@
         </MudItem>
 
         <!-- Member Income and Expense Donuts -->
+        @* TODO - Split into separate component *@
         <MudItem xs="12" md="6">
             <MudCard Class="summary-card chart-card" Elevation="0">
                 <MudCardContent>
@@ -305,6 +288,7 @@
     </MudGrid>
 
     <!-- Family Member Contributions -->
+    @* TODO - Split into separate component *@
     <div class="member-contributions-section">
         <div class="section-header">
             <MudText Typo="Typo.h6" Class="section-title">Family Member Spending</MudText>
@@ -378,6 +362,8 @@
 </MudContainer>
 
 @code {
+    @* TODO - Split the code into separate dedicaded component *@
+
     private string? _error;
     private PeriodType _selectedPeriodType = PeriodType.Monthly;
     private DateTime _currentPeriodStart = DateTime.Today.AddDays(1 - DateTime.Today.Day); // Start of current month
@@ -965,7 +951,7 @@
 }
 
 <style>
-/* Use Home Page Styling */
+/*TODO : split to different components file */
 .home-container {
     padding: 24px;
     background: #FFFFFF;
