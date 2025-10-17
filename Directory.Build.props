@@ -1,0 +1,35 @@
+<Project>
+  <PropertyGroup>
+    <!-- Global package versions for consistency across platforms -->
+    <MauiVersion>8.0.90</MauiVersion>
+    <!-- Disable lock file for MAUI projects to avoid path issues -->
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+    <RestoreLockedMode>false</RestoreLockedMode>
+
+    <!-- Cross-platform compatibility -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+    <WarningsNotAsErrors />
+
+    <!-- Ensure consistent package resolution -->
+    <DisableImplicitNuGetFallbackFolder>true</DisableImplicitNuGetFallbackFolder>
+
+    <!-- Windows-specific fixes for MAUI -->
+    <UseWinUI Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">true</UseWinUI>
+    <WindowsPackageType Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">None</WindowsPackageType>
+
+    <!-- Prevent NuGet restore issues -->
+    <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
+    <RestoreUseSkipNonexistentTargets>false</RestoreUseSkipNonexistentTargets>
+  </PropertyGroup>
+
+  <!-- Platform-specific package management -->
+  <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
+    <IsWindows>true</IsWindows>
+    <DefaultPlatformTarget>x64</DefaultPlatformTarget>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(OS)' != 'Windows_NT'">
+    <IsWindows>false</IsWindows>
+  </PropertyGroup>
+</Project>

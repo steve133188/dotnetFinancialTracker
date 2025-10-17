@@ -32,7 +32,9 @@
                                  For="@(() => _pinModel.NewPin)"
                                  Adornment="Adornment.End"
                                  AdornmentIcon="@(_showNewPin ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)"
-                                 OnAdornmentClick="@(() => _showNewPin = !_showNewPin)" />
+                                 OnAdornmentClick="@(() => _showNewPin = !_showNewPin)"
+                                 @onkeyup="@ValidatePin"
+                                 @onblur="@ValidatePin" />
 
                     <MudTextField @bind-Value="_pinModel.ConfirmPin"
                                  Label="Confirm New PIN"
@@ -42,7 +44,9 @@
                                  For="@(() => _pinModel.ConfirmPin)"
                                  Adornment="Adornment.End"
                                  AdornmentIcon="@(_showConfirmPin ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)"
-                                 OnAdornmentClick="@(() => _showConfirmPin = !_showConfirmPin)" />
+                                 OnAdornmentClick="@(() => _showConfirmPin = !_showConfirmPin)"
+                                 @onkeyup="@ValidatePin"
+                                 @onblur="@ValidatePin" />
 
                     @if (!string.IsNullOrEmpty(_pinValidationMessage))
                     {
@@ -204,6 +208,10 @@
         ValidatePin();
     }
 
+    /// <summary>
+    /// Enhanced PIN validation demonstrating comprehensive input validation patterns.
+    /// Shows defensive programming, security best practices, and user experience considerations.
+    /// </summary>
     private void ValidatePin()
     {
         if (string.IsNullOrEmpty(_pinModel.NewPin))
@@ -212,70 +220,246 @@
             return;
         }
 
+        // Enhanced validation: Check basic format requirements
         if (_pinModel.NewPin.Length < 4 || _pinModel.NewPin.Length > 6)
         {
             _pinValidationMessage = "PIN must be 4-6 digits long";
             _pinValidationSeverity = Severity.Error;
+            return;
         }
-        else if (!_pinModel.NewPin.All(char.IsDigit))
+
+        // Enhanced validation: Ensure numeric-only input
+        if (!_pinModel.NewPin.All(char.IsDigit))
         {
             _pinValidationMessage = "PIN must contain only numbers";
             _pinValidationSeverity = Severity.Error;
+            return;
         }
-        else if (_pinModel.NewPin != _pinModel.ConfirmPin && !string.IsNullOrEmpty(_pinModel.ConfirmPin))
+
+        // Enhanced validation: Security checks for weak PINs
+        if (IsWeakPin(_pinModel.NewPin))
+        {
+            _pinValidationMessage = "PIN is too weak. Avoid sequential numbers, repeated digits, or common patterns";
+            _pinValidationSeverity = Severity.Warning;
+            return;
+        }
+
+        // Enhanced validation: Check if PIN matches current PIN
+        if (_pinModel.NewPin == _pinModel.CurrentPin && !string.IsNullOrEmpty(_pinModel.CurrentPin))
+        {
+            _pinValidationMessage = "New PIN must be different from current PIN";
+            _pinValidationSeverity = Severity.Error;
+            return;
+        }
+
+        // Enhanced validation: Confirmation matching
+        if (_pinModel.NewPin != _pinModel.ConfirmPin && !string.IsNullOrEmpty(_pinModel.ConfirmPin))
         {
             _pinValidationMessage = "PINs do not match";
             _pinValidationSeverity = Severity.Error;
+            return;
         }
-        else
-        {
-            _pinValidationMessage = "PIN strength: Good";
-            _pinValidationSeverity = Severity.Success;
-        }
+
+        // Success state with strength indication
+        var strength = GetPinStrength(_pinModel.NewPin);
+        _pinValidationMessage = $"PIN strength: {strength}";
+        _pinValidationSeverity = strength == "Strong" ? Severity.Success : Severity.Info;
     }
 
+    /// <summary>
+    /// Demonstrates security validation by checking for weak PIN patterns.
+    /// Shows defensive programming against common security vulnerabilities.
+    /// </summary>
+    private bool IsWeakPin(string pin)
+    {
+        // Check for repeated digits (e.g., "1111", "2222")
+        if (pin.All(c => c == pin[0]))
+            return true;
+
+        // Check for sequential ascending (e.g., "1234", "5678")
+        bool isAscending = true;
+        for (int i = 1; i < pin.Length; i++)
+        {
+            if (pin[i] != pin[i - 1] + 1)
+            {
+                isAscending = false;
+                break;
+            }
+        }
+
+        // Check for sequential descending (e.g., "4321", "8765")
+        bool isDescending = true;
+        for (int i = 1; i < pin.Length; i++)
+        {
+            if (pin[i] != pin[i - 1] - 1)
+            {
+                isDescending = false;
+                break;
+            }
+        }
+
+        // Check for common weak patterns
+        var weakPatterns = new[] { "0000", "1234", "4321", "1111", "2222", "3333", "4444", "5555", "6666", "7777", "8888", "9999" };
+
+        return isAscending || isDescending || weakPatterns.Contains(pin);
+    }
+
+    /// <summary>
+    /// Calculates PIN strength for user feedback.
+    /// Demonstrates business logic encapsulation and user experience enhancement.
+    /// </summary>
+    private string GetPinStrength(string pin)
+    {
+        if (IsWeakPin(pin))
+            return "Weak";
+
+        // Check for digit variety (at least 2 different digits)
+        var uniqueDigits = pin.Distinct().Count();
+
+        if (pin.Length >= 6 && uniqueDigits >= 3)
+            return "Strong";
+        else if (pin.Length >= 5 && uniqueDigits >= 2)
+            return "Good";
+        else
+            return "Fair";
+    }
+
+    /// <summary>
+    /// Enhanced PIN change operation with comprehensive validation and error handling.
+    /// Demonstrates: Input validation, defensive programming, security best practices,
+    /// exception handling, and user experience optimization.
+    /// </summary>
     private async Task ChangePIN()
     {
-        if (CurrentUser == null) return;
+        if (CurrentUser == null)
+        {
+            Snackbar.Add("User session invalid. Please log in again.", Severity.Error);
+            return;
+        }
 
         try
         {
             _isChangingPin = true;
 
-            // Validate PIN format
-            if (_pinModel.NewPin.Length < 4 || _pinModel.NewPin.Length > 6 || !_pinModel.NewPin.All(char.IsDigit))
+            // Enhanced validation: Comprehensive input checks
+            var validationResult = ValidatePinChange();
+            if (!validationResult.IsValid)
             {
-                Snackbar.Add("PIN must be 4-6 digits long", Severity.Error);
+                Snackbar.Add(validationResult.ErrorMessage, Severity.Error);
                 return;
             }
 
-            if (_pinModel.NewPin != _pinModel.ConfirmPin)
+            // Enhanced validation: Security policy enforcement
+            if (IsWeakPin(_pinModel.NewPin))
             {
-                Snackbar.Add("New PIN and confirmation do not match", Severity.Error);
+                Snackbar.Add("PIN is too weak. Please choose a stronger PIN to protect your account.", Severity.Error);
                 return;
             }
 
+            // Enhanced validation: Business rule checks
+            if (_pinModel.NewPin == _pinModel.CurrentPin)
+            {
+                Snackbar.Add("New PIN must be different from your current PIN.", Severity.Error);
+                return;
+            }
+
+            // Execute PIN update with enhanced error handling
             var success = await UserService.UpdatePinAsync(CurrentUser.Id, _pinModel.CurrentPin, _pinModel.NewPin);
 
             if (success)
             {
+                // Success: Clean up form and notify user
                 _pinModel = new PinChangeModel();
+                _pinValidationMessage = string.Empty;
                 await OnPinUpdated.InvokeAsync();
-                Snackbar.Add("PIN updated successfully", Severity.Success);
+                Snackbar.Add("PIN updated successfully. Your account is now more secure.", Severity.Success);
             }
             else
             {
-                Snackbar.Add("Failed to update PIN. Please check your current PIN.", Severity.Error);
+                // Enhanced error messaging for failed authentication
+                Snackbar.Add("Current PIN is incorrect. Please verify and try again.", Severity.Error);
             }
+        }
+        catch (ArgumentException ex)
+        {
+            // Enhanced exception handling: Specific error types
+            Snackbar.Add($"Invalid input: {ex.Message}", Severity.Error);
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Enhanced exception handling: Business logic errors
+            Snackbar.Add($"Operation failed: {ex.Message}", Severity.Error);
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error updating PIN: {ex.Message}", Severity.Error);
+            // Enhanced exception handling: Generic error with logging suggestion
+            Snackbar.Add("An unexpected error occurred. Please try again or contact support.", Severity.Error);
+            // In production: Log the actual exception details
+            Console.WriteLine($"PIN change error: {ex}");
         }
         finally
         {
             _isChangingPin = false;
         }
+    }
+
+    /// <summary>
+    /// Comprehensive validation method demonstrating structured validation patterns.
+    /// Shows separation of concerns and reusable validation logic.
+    /// </summary>
+    private ValidationResult ValidatePinChange()
+    {
+        var result = new ValidationResult { IsValid = true };
+
+        // Validate current PIN
+        if (string.IsNullOrWhiteSpace(_pinModel.CurrentPin))
+        {
+            result.IsValid = false;
+            result.ErrorMessage = "Current PIN is required.";
+            return result;
+        }
+
+        // Validate new PIN format
+        if (string.IsNullOrWhiteSpace(_pinModel.NewPin))
+        {
+            result.IsValid = false;
+            result.ErrorMessage = "New PIN is required.";
+            return result;
+        }
+
+        if (_pinModel.NewPin.Length < 4 || _pinModel.NewPin.Length > 6)
+        {
+            result.IsValid = false;
+            result.ErrorMessage = "PIN must be between 4 and 6 digits long.";
+            return result;
+        }
+
+        if (!_pinModel.NewPin.All(char.IsDigit))
+        {
+            result.IsValid = false;
+            result.ErrorMessage = "PIN must contain only numeric characters.";
+            return result;
+        }
+
+        // Validate confirmation
+        if (_pinModel.NewPin != _pinModel.ConfirmPin)
+        {
+            result.IsValid = false;
+            result.ErrorMessage = "New PIN and confirmation do not match.";
+            return result;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Validation result class demonstrating structured error handling.
+    /// Shows custom result types for clean validation patterns.
+    /// </summary>
+    private class ValidationResult
+    {
+        public bool IsValid { get; set; }
+        public string ErrorMessage { get; set; } = string.Empty;
     }
 
     private async Task SaveSecuritySettings()
@@ -331,21 +515,63 @@
         }
     }
 
+    /// <summary>
+    /// PIN change model with comprehensive data annotation validation.
+    /// Demonstrates: Data annotations, validation attributes, custom error messages,
+    /// defensive programming, and input validation best practices.
+    /// </summary>
     public class PinChangeModel
     {
-        [Required(ErrorMessage = "Current PIN is required")]
-        [StringLength(6, MinimumLength = 4, ErrorMessage = "PIN must be 4-6 digits")]
-        [RegularExpression(@"^\d+$", ErrorMessage = "PIN must contain only numbers")]
+        [Required(ErrorMessage = "Current PIN is required to verify your identity")]
+        [StringLength(6, MinimumLength = 4, ErrorMessage = "Current PIN must be 4-6 digits long")]
+        [RegularExpression(@"^\d+$", ErrorMessage = "Current PIN must contain only numeric characters")]
+        [Display(Name = "Current PIN", Description = "Enter your existing PIN for security verification")]
         public string CurrentPin { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "New PIN is required")]
-        [StringLength(6, MinimumLength = 4, ErrorMessage = "PIN must be 4-6 digits")]
-        [RegularExpression(@"^\d+$", ErrorMessage = "PIN must contain only numbers")]
+        [Required(ErrorMessage = "New PIN is required to secure your account")]
+        [StringLength(6, MinimumLength = 4, ErrorMessage = "New PIN must be between 4 and 6 digits long")]
+        [RegularExpression(@"^\d+$", ErrorMessage = "New PIN must contain only numeric characters (0-9)")]
+        [Display(Name = "New PIN", Description = "Choose a secure PIN that's easy for you to remember")]
         public string NewPin { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "PIN confirmation is required")]
-        [Compare(nameof(NewPin), ErrorMessage = "PINs do not match")]
+        [Required(ErrorMessage = "PIN confirmation is required to prevent typing errors")]
+        [Compare(nameof(NewPin), ErrorMessage = "Confirmation PIN must match the new PIN exactly")]
+        [Display(Name = "Confirm New PIN", Description = "Re-enter your new PIN to confirm it's correct")]
         public string ConfirmPin { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Additional validation method for business rules not covered by data annotations.
+        /// Demonstrates custom validation logic and security policy enforcement.
+        /// </summary>
+        public bool IsCurrentPinValid()
+        {
+            return !string.IsNullOrWhiteSpace(CurrentPin) &&
+                   CurrentPin.Length >= 4 &&
+                   CurrentPin.Length <= 6 &&
+                   CurrentPin.All(char.IsDigit);
+        }
+
+        /// <summary>
+        /// Validates new PIN against security policies.
+        /// Shows business rule validation beyond basic format checks.
+        /// </summary>
+        public bool IsNewPinSecure()
+        {
+            if (string.IsNullOrWhiteSpace(NewPin)) return false;
+
+            // Basic format validation
+            if (NewPin.Length < 4 || NewPin.Length > 6 || !NewPin.All(char.IsDigit))
+                return false;
+
+            // Security policy: PIN cannot be the same as current PIN
+            if (NewPin == CurrentPin) return false;
+
+            // Security policy: No common weak patterns
+            var weakPatterns = new[] { "1234", "4321", "0000", "1111", "2222", "3333", "4444", "5555", "6666", "7777", "8888", "9999" };
+            if (weakPatterns.Contains(NewPin)) return false;
+
+            return true;
+        }
     }
 }
 
