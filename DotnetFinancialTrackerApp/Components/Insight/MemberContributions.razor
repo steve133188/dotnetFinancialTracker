@@ -1,0 +1,94 @@
+@using DotnetFinancialTrackerApp.Services
+@using MudBlazor
+
+<div class="member-contributions-section">
+    <div class="section-header">
+        <MudText Typo="Typo.h6" Class="section-title">Family Member Spending</MudText>
+    </div>
+
+    @if (!MemberExpenseSummaries.Any())
+    {
+        <MudCard Class="empty-card" Elevation="0">
+            <MudCardContent Class="text-center">
+                <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Color="Color.Default" />
+                <MudText Typo="Typo.h6" Class="mt-2">No member data</MudText>
+                <MudText Typo="Typo.body2" Class="mb-3">No family member spending data for this period</MudText>
+            </MudCardContent>
+        </MudCard>
+    }
+    else
+    {
+        <MudCard Class="member-contributions-card" Elevation="0">
+            <MudCardContent>
+                <div class="member-contributions-grid">
+                    @foreach (var (member, index) in MemberExpenseSummaries.Select((m, i) => (m, i)))
+                    {
+                        <div class="member-contribution-item">
+                            <div class="member-header">
+                                <MudAvatar Size="Size.Medium"
+                                           Class="member-avatar"
+                                           Style="@($"background-color: {GetMemberColorHex(index)};")">
+                                    @GetMemberInitial(member.Name)
+                                </MudAvatar>
+                                <div class="member-info">
+                                    <MudText Typo="Typo.subtitle1" Class="member-name">@member.Name</MudText>
+                                    <MudText Typo="Typo.caption" Class="member-transactions">@member.TransactionCount transactions</MudText>
+                                </div>
+                                <div class="member-amount">
+                                    <MudText Typo="Typo.h6" Class="amount-text">@member.TotalAmount.ToString("C0")</MudText>
+                                    <MudText Typo="Typo.caption" Class="percentage-text">@member.Percentage.ToString("P1")</MudText>
+                                </div>
+                            </div>
+
+                            <div class="member-progress">
+                                <MudProgressLinear Value="@member.Percentage"
+                                                 Size="Size.Medium"
+                                                 Color="Color.Default"
+                                                 Style="@($"--mud-palette-default: {GetMemberColorHex(index)};")" />
+                            </div>
+
+                            @if (member.TopCategories.Any())
+                            {
+                                <div class="member-top-categories">
+                                    <MudText Typo="Typo.caption" Class="categories-label">Top spending:</MudText>
+                                    <div class="categories-list">
+                                        @foreach (var category in member.TopCategories.Take(3))
+                                        {
+                                            <MudChip Size="Size.Small"
+                                                   Color="Color.Default"
+                                                   Variant="Variant.Text"
+                                                   Class="category-chip">
+                                                @category.CategoryName (@category.Amount.ToString("C0"))
+                                            </MudChip>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </MudCardContent>
+        </MudCard>
+    }
+</div>
+
+@code {
+    [Parameter] public List<MemberSummary> MemberExpenseSummaries { get; set; } = new();
+
+    private readonly string[] _memberPalette = new[]
+    {
+        "#2563EB",
+        "#EC4899",
+        "#14B8A6",
+        "#F97316",
+        "#8B5CF6",
+        "#22C55E",
+        "#FACC15",
+        "#0EA5E9"
+    };
+
+    private string GetMemberColorHex(int index) => _memberPalette[index % _memberPalette.Length];
+
+    private static string GetMemberInitial(string? name)
+        => string.IsNullOrWhiteSpace(name) ? "?" : name.Trim()[0].ToString().ToUpperInvariant();
+}

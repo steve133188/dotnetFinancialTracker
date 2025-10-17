@@ -1,0 +1,74 @@
+@using DotnetFinancialTrackerApp.Services
+@using MudBlazor
+
+<MudItem xs="12" md="6">
+    <MudCard Class="summary-card chart-card" Elevation="0">
+        <MudCardContent>
+            <div class="chart-header">
+                <MudText Typo="Typo.h6" Class="chart-title">Family Member Breakdown</MudText>
+                <MudText Typo="Typo.caption" Class="chart-subtitle">Income vs. expense share</MudText>
+            </div>
+
+            <div class="member-donut-section">
+                <div class="member-donut-column">
+                    <MudText Typo="Typo.subtitle2" Class="member-donut-title">Family Income</MudText>
+                    @if (!MemberIncomeSummaries.Any())
+                    {
+                        <div class="empty-chart small">
+                            <MudIcon Icon="@Icons.Material.Filled.Savings" Size="Size.Medium" Color="Color.Default" />
+                            <MudText Typo="Typo.caption" Class="mt-1">No income data</MudText>
+                        </div>
+                    }
+                    else
+                    {
+                        <MudChart ChartType="ChartType.Donut"
+                                  InputData="@GetMemberIncomeDonutData().ToArray()"
+                                  InputLabels="@GetMemberIncomeLabels().ToArray()"
+                                  Width="220px"
+                                  Height="220px"
+                                  ChartOptions="@MemberChartOptions">
+                        </MudChart>
+                    }
+                </div>
+                <div class="member-donut-column">
+                    <MudText Typo="Typo.subtitle2" Class="member-donut-title">Family Expense</MudText>
+                    @if (!MemberExpenseSummaries.Any())
+                    {
+                        <div class="empty-chart small">
+                            <MudIcon Icon="@Icons.Material.Filled.ShoppingBag" Size="Size.Medium" Color="Color.Default" />
+                            <MudText Typo="Typo.caption" Class="mt-1">No expense data</MudText>
+                        </div>
+                    }
+                    else
+                    {
+                        <MudChart ChartType="ChartType.Donut"
+                                  InputData="@GetMemberExpenseDonutData().ToArray()"
+                                  InputLabels="@GetMemberExpenseLabels().ToArray()"
+                                  Width="220px"
+                                  Height="220px"
+                                  ChartOptions="@MemberChartOptions">
+                        </MudChart>
+                    }
+                </div>
+            </div>
+        </MudCardContent>
+    </MudCard>
+</MudItem>
+
+@code {
+    [Parameter] public List<MemberSummary> MemberIncomeSummaries { get; set; } = new();
+    [Parameter] public List<MemberSummary> MemberExpenseSummaries { get; set; } = new();
+    [Parameter] public ChartOptions MemberChartOptions { get; set; } = new();
+
+    private List<double> GetMemberIncomeDonutData() =>
+        MemberIncomeSummaries.OrderByDescending(m => m.TotalAmount).Select(m => (double)m.TotalAmount).ToList();
+
+    private List<string> GetMemberIncomeLabels() =>
+        MemberIncomeSummaries.OrderByDescending(m => m.TotalAmount).Select(m => m.Name).ToList();
+
+    private List<double> GetMemberExpenseDonutData() =>
+        MemberExpenseSummaries.OrderByDescending(m => m.TotalAmount).Select(m => (double)m.TotalAmount).ToList();
+
+    private List<string> GetMemberExpenseLabels() =>
+        MemberExpenseSummaries.OrderByDescending(m => m.TotalAmount).Select(m => m.Name).ToList();
+}

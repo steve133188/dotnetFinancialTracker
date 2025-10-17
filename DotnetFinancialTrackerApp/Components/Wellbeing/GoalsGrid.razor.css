@@ -1,0 +1,127 @@
+.goals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 24px;
+}
+
+.goal-card {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s ease;
+}
+
+.goal-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.goal-card.completed {
+    background: rgba(76, 175, 80, 0.05);
+    border-color: rgba(76, 175, 80, 0.2);
+}
+
+.goal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.goal-title-section {
+    flex: 1;
+}
+
+.goal-title {
+    color: #000000;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    font-family: 'Inter', sans-serif;
+}
+
+.goal-category {
+    border-color: black;
+    color: black;
+}
+
+.goal-subtitle {
+    color: rgba(0, 0, 0, 0.7);
+    margin: 0 0 16px 0;
+    font-family: 'Inter', sans-serif;
+}
+
+.goal-progress {
+    margin-bottom: 16px;
+}
+
+.progress-amounts {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.current-amount {
+    font-weight: 600;
+    color: #000000;
+}
+
+.target-amount {
+    color: rgba(0, 0, 0, 0.7);
+}
+
+.goal-progress-bar {
+    margin-bottom: 8px;
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.progress-text {
+    font-weight: 600;
+    color: #000000;
+}
+
+.target-date {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.goal-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.remaining-amount {
+    color: rgba(0, 0, 0, 0.7);
+    font-weight: 500;
+}
+
+.empty-state-card {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    padding: 48px 24px;
+}
+
+@media (max-width: 768px) {
+    .goals-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .goal-header {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .goal-actions {
+        flex-direction: column;
+        gap: 8px;
+        align-items: stretch;
+    }
+}

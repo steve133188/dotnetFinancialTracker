@@ -1,0 +1,41 @@
+@using MudBlazor
+@using System.Globalization
+
+<div class="summary-section">
+    <MudGrid>
+        <MudItem xs="12" md="3">
+            <UiStatCard Icon="@Icons.Material.Filled.TrendingUp"
+                        Title="Total Goals"
+                        Value="@TotalGoals.ToString(CultureInfo.CurrentCulture)"
+                        Meta="@($"{ActiveGoals} active")" />
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <UiStatCard Icon="@Icons.Material.Filled.AccountBalanceWallet"
+                        Title="Total Saved"
+                        Value="@TotalSaved.ToString("C", CultureInfo.CurrentCulture)"
+                        Meta="across all goals" />
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <UiStatCard Icon="@Icons.Material.Filled.Flag"
+                        Title="Target Amount"
+                        Value="@TotalTarget.ToString("C", CultureInfo.CurrentCulture)"
+                        Meta="@($"remaining: {RemainingTarget.ToString("C", CultureInfo.CurrentCulture)}")" />
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <UiStatCard Icon="@Icons.Material.Filled.Timeline"
+                        Title="Progress"
+                        Value="@($"{OverallProgress.ToString("F1", CultureInfo.CurrentCulture)}%")"
+                        Meta="overall completion" />
+        </MudItem>
+    </MudGrid>
+</div>
+
+@code {
+    [Parameter] public int TotalGoals { get; set; }
+    [Parameter] public int ActiveGoals { get; set; }
+    [Parameter] public decimal TotalSaved { get; set; }
+    [Parameter] public decimal TotalTarget { get; set; }
+    [Parameter] public double OverallProgress { get; set; }
+
+    private decimal RemainingTarget => TotalTarget - TotalSaved;
+}

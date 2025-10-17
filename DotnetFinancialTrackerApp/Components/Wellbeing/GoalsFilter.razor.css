@@ -1,0 +1,13 @@
+.goal-filter-grid {
+    margin-bottom: 16px;
+}
+
+.goal-filter-grid .mud-input-control {
+    width: 100%;
+}
+
+@media (max-width: 767px) {
+    .goal-filter-grid .mud-input-control {
+        width: 100%;
+    }
+}

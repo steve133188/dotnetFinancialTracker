@@ -1,0 +1,21 @@
+@using MudBlazor
+
+<div class="savings-header">
+    <div class="header-content">
+        <MudIcon Icon="@Icons.Material.Filled.Savings" Size="Size.Large" Class="header-icon" />
+        <div class="header-text">
+            <MudText Typo="Typo.h4" Class="header-title">Savings Goals</MudText>
+            <MudText Typo="Typo.body1" Class="header-subtitle">Track and achieve your family's financial dreams</MudText>
+        </div>
+    </div>
+    <div class="header-actions">
+        <UiButton StartIcon="@Icons.Material.Filled.Add"
+                  OnClick="@OnCreateGoal">
+            Create Goal
+        </UiButton>
+    </div>
+</div>
+
+@code {
+    [Parameter] public EventCallback OnCreateGoal { get; set; }
+}

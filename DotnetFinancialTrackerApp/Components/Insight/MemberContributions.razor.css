@@ -1,0 +1,117 @@
+/* Member Contributions Section - uses global summary-card styles */
+.member-contributions-section {
+    margin-bottom: var(--space-8);
+}
+
+.member-contributions-grid {
+    display: grid;
+    gap: var(--space-6);
+}
+
+.member-contribution-item {
+    padding: var(--space-5);
+    background: var(--background-subtle);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    transition: all var(--transition-fast);
+}
+
+.member-contribution-item:hover {
+    background: var(--glass-background-light);
+    border-color: var(--glass-border-strong);
+}
+
+.member-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
+}
+
+.member-avatar {
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.member-info {
+    flex: 1;
+}
+
+.member-name {
+    color: var(--primary-color);
+    font-weight: 600;
+    font-family: var(--font-family);
+    margin: 0 !important;
+}
+
+.member-transactions {
+    color: var(--secondary-color);
+    margin: var(--space-1) 0 0 0 !important;
+}
+
+.member-amount {
+    text-align: right;
+}
+
+.amount-text {
+    color: var(--primary-color);
+    font-weight: 700;
+    font-family: var(--font-family);
+    margin: 0 !important;
+}
+
+.percentage-text {
+    color: var(--secondary-color);
+    margin: var(--space-1) 0 0 0 !important;
+}
+
+.member-progress {
+    margin-bottom: var(--space-4);
+}
+
+.member-top-categories {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.categories-label {
+    color: var(--secondary-color);
+    font-weight: 600;
+    font-family: var(--font-family);
+    margin: 0 !important;
+}
+
+.categories-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.category-chip {
+    background-color: var(--glass-background-light) !important;
+    color: var(--primary-color) !important;
+    border: 1px solid var(--glass-border-strong) !important;
+    font-size: var(--font-size-xs) !important;
+    font-family: var(--font-family) !important;
+}
+
+@media (max-width: 768px) {
+    .member-header {
+        flex-direction: column;
+        text-align: center;
+        gap: var(--space-3);
+    }
+
+    .member-info, .member-amount {
+        text-align: center;
+    }
+
+    .member-contributions-grid {
+        gap: var(--space-4);
+    }
+
+    .member-contribution-item {
+        padding: var(--space-4);
+    }
+}

@@ -1,0 +1,42 @@
+@using MudBlazor
+
+<MudGrid Class="goal-filter-grid" Spacing="2">
+    <MudItem xs="12" sm="6" md="3">
+        <UiFilterField Label="Category">
+            <MudSelect T="string"
+                       Dense="true"
+                       Variant="Variant.Outlined"
+                       Placeholder="All categories"
+                       Value="@SelectedCategory"
+                       ValueChanged="@OnCategoryChanged">
+                <MudSelectItem Value="@string.Empty">All Categories</MudSelectItem>
+                @foreach (var category in Categories)
+                {
+                    <MudSelectItem Value="@category">@category</MudSelectItem>
+                }
+            </MudSelect>
+        </UiFilterField>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <UiFilterField Label="Status">
+            <MudSelect T="string"
+                       Dense="true"
+                       Variant="Variant.Outlined"
+                       Placeholder="All status"
+                       Value="@SelectedStatus"
+                       ValueChanged="@OnStatusChanged">
+                <MudSelectItem Value="@string.Empty">All Status</MudSelectItem>
+                <MudSelectItem Value="@("Active")">Active</MudSelectItem>
+                <MudSelectItem Value="@("Completed")">Completed</MudSelectItem>
+            </MudSelect>
+        </UiFilterField>
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter] public List<string> Categories { get; set; } = new();
+    [Parameter] public string SelectedCategory { get; set; } = string.Empty;
+    [Parameter] public string SelectedStatus { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> OnCategoryChanged { get; set; }
+    [Parameter] public EventCallback<string> OnStatusChanged { get; set; }
+}

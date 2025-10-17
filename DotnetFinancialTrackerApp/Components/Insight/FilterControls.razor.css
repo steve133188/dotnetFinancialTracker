@@ -1,0 +1,110 @@
+/* Filter Controls - uses global summary-card styles from consolidated-app.css */
+
+.filter-controls {
+    margin-bottom: var(--space-8);
+}
+
+/* Uses global .filter-label styles from consolidated-app.css */
+
+.filter-simple-grid {
+    width: 100%;
+}
+
+.range-button-group {
+    border-radius: 50px;
+    /*background: var(--glass-background);*/
+    padding: 4px;
+    gap: 4px;
+    /*border: 1px solid var(--glass-border);*/
+    box-shadow: var(--shadow-card);
+}
+
+.range-button-group .mud-button-root {
+    min-width: 0;
+    /*border-radius: 50px;*/
+    font-weight: 500;
+    padding: 8px 16px;
+    text-transform: none;
+    transition: var(--transition-fast);
+    border: none;
+    /*background: transparent;*/
+    color: var(--secondary-color);
+}
+
+/*.range-button-group .mud-button-root:hover {*/
+/*    background: var(--glass-background-light);*/
+/*    color: var(--primary-color);*/
+/*}*/
+
+.range-button {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--space-3);
+    color: var(--primary-color);
+}
+
+.range-button .mud-icon-root {
+    color: var(--secondary-color);
+}
+
+.range-button-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.1;
+    text-align: center;
+}
+
+.range-button-title {
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family);
+}
+
+.range-button-subtitle {
+    font-size: var(--font-size-xs);
+    color: inherit;
+    opacity: 0.7;
+    font-family: var(--font-family);
+}
+
+/*.range-button--active,*/
+/*.range-button--active.mud-button-root,*/
+/*.range-button--active.mud-button-filled {*/
+/*    background-color: black !important;*/
+/*    color: white !important;*/
+/*    box-shadow: var(--shadow-card) !important;*/
+/*}*/
+
+/*.range-button--active .mud-icon-root {*/
+/*    color: white !important;*/
+/*}*/
+
+/*.range-button--active .range-button-subtitle {*/
+/*    color: rgba(255, 255, 255, 0.8) !important;*/
+/*}*/
+
+.current-period-label {
+    color: var(--secondary-color);
+}
+
+@media (max-width: 960px) {
+    .range-button-group .mud-button-root {
+        flex: 1 1 auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .range-button-group {
+        width: 100%;
+    }
+
+    .range-button-group .mud-button-root {
+        flex: 1 1 auto;
+    }
+
+    .current-period-label {
+        font-size: var(--font-size-sm);
+    }
+}

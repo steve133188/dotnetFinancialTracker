@@ -1,0 +1,145 @@
+/* Category Breakdown - uses global chart-card styles from consolidated-app.css */
+
+.chart-header {
+    margin-bottom: var(--space-6);
+}
+
+/* Uses global .empty-chart styles from consolidated-app.css */
+
+.enhanced-donut-chart-container {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: var(--space-6);
+    align-items: start;
+    margin-top: var(--space-4);
+}
+
+.donut-chart-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.enhanced-category-legend {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.enhanced-legend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    background: var(--glass-background);
+    transition: all var(--transition-fast);
+    margin-bottom: 0;
+}
+
+.enhanced-legend-item:hover {
+    background: var(--glass-background-light);
+    border-color: var(--glass-border-strong);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-card);
+}
+
+.legend-color-indicator {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    flex: 0 0 auto;
+}
+
+.legend-content {
+    flex: 1;
+}
+
+.legend-content {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.legend-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.legend-category-name {
+    color: var(--primary-color);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    margin: 0 !important;
+    line-height: 1.2;
+}
+
+.legend-percentage {
+    color: var(--secondary-color);
+    font-size: var(--font-size-xs);
+    margin: 0 !important;
+    line-height: 1.2;
+}
+
+.legend-amount {
+    color: var(--primary-color);
+    font-weight: 700;
+    font-size: var(--font-size-sm);
+    margin: 0 !important;
+    text-align: right;
+}
+
+@media (max-width: 960px) {
+    .enhanced-donut-chart-container {
+        grid-template-columns: 1fr;
+        gap: var(--space-5);
+    }
+
+    .donut-chart-section {
+        order: 1;
+    }
+
+    .enhanced-category-legend {
+        order: 2;
+    }
+}
+
+@media (max-width: 768px) {
+    .enhanced-legend-item {
+        padding: var(--space-2);
+        gap: var(--space-2);
+    }
+
+    .legend-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-1);
+    }
+
+    .legend-amount {
+        text-align: left;
+    }
+}
+
+@media (max-width: 480px) {
+    .enhanced-donut-chart-container {
+        padding: 8px;
+    }
+
+    .donut-chart-section {
+        margin-bottom: 12px;
+    }
+
+    .enhanced-legend-item {
+        padding: 10px;
+        gap: 10px;
+    }
+
+    .legend-color-indicator {
+        width: 16px;
+        height: 16px;
+    }
+}

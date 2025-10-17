@@ -1,0 +1,417 @@
+/* =============================================================================
+   FAMILY FINANCIAL TRACKER - CONSOLIDATED DESIGN SYSTEM
+   Modern, clean financial app styling with Inter font and glass morphism
+   ============================================================================= */
+
+/* Import Inter font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* -----------------------------------------------------------------------------
+   DESIGN TOKENS - Core Variables
+   ----------------------------------------------------------------------------- */
+:root {
+  /* Brand Colors */
+  --primary-color: #000000;
+  --primary-dark: #111111;
+  --primary-light: #444444;
+  --secondary-color: #666666;
+  --background: #FFFFFF;
+  --background-subtle: #FAFBFC;
+
+  /* Glass Morphism System */
+  --glass-background: rgba(255, 255, 255, 0.95);
+  --glass-background-light: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-border-strong: rgba(0, 0, 0, 0.12);
+  --glass-backdrop-blur: blur(20px);
+
+  /* Shadow System */
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 6px 20px rgba(0, 0, 0, 0.1);
+  --shadow-floating: 0 8px 32px rgba(0, 0, 0, 0.08);
+
+  /* Typography */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 2rem;
+
+  /* Spacing - 8px Grid */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-spring: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* -----------------------------------------------------------------------------
+   BASE STYLES
+   ----------------------------------------------------------------------------- */
+html, body {
+  font-family: var(--font-family);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(180deg, var(--background) 0%, var(--background-subtle) 100%);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+  color: var(--primary-color);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* -----------------------------------------------------------------------------
+   CARD SYSTEM
+   ----------------------------------------------------------------------------- */
+.summary-card, .chart-card, .empty-card {
+  background: var(--glass-background);
+  backdrop-filter: var(--glass-backdrop-blur);
+  -webkit-backdrop-filter: var(--glass-backdrop-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  transition: all var(--transition-normal);
+  position: relative;
+  overflow: hidden;
+}
+
+.summary-card:hover, .chart-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+  border-color: var(--glass-border-strong);
+}
+
+.glass-card {
+  background: var(--glass-background);
+  backdrop-filter: var(--glass-backdrop-blur);
+  -webkit-backdrop-filter: var(--glass-backdrop-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  transition: all var(--transition-normal);
+}
+
+/* -----------------------------------------------------------------------------
+   BUTTON SYSTEM
+   ----------------------------------------------------------------------------- */
+.ui-button, .btn-primary {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  font-weight: 600;
+  font-family: var(--font-family);
+  letter-spacing: -0.01em;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  padding: var(--space-3) var(--space-5);
+  text-transform: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  box-shadow: var(--shadow-card);
+}
+
+.ui-button:hover, .btn-primary:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.ui-button:active, .btn-primary:active {
+  transform: translateY(0);
+}
+
+.ui-button.variant-outlined {
+  background: transparent;
+  color: var(--primary-color);
+  border: 1px solid var(--glass-border-strong);
+  border-radius: 50px;
+}
+
+.ui-button.variant-outlined:hover {
+  background: var(--glass-background-light);
+  border-color: var(--primary-color);
+  transform: translateY(-1px);
+}
+
+.ui-button.variant-text {
+  background: transparent;
+  color: var(--primary-color);
+  border: none;
+  border-radius: 50px;
+}
+
+.ui-button.variant-text:hover {
+  background: var(--glass-background-light);
+  transform: translateY(-1px);
+}
+
+/* -----------------------------------------------------------------------------
+   MUDBLAZOR OVERRIDES
+   ----------------------------------------------------------------------------- */
+.mud-button-root {
+  border-radius: 50px !important;
+  font-weight: 600 !important;
+  font-family: var(--font-family) !important;
+  letter-spacing: -0.01em !important;
+  text-transform: none !important;
+  transition: all var(--transition-fast) !important;
+}
+
+.mud-button-filled.mud-button-filled-primary {
+  background-color: var(--primary-color) !important;
+  color: white !important;
+  box-shadow: var(--shadow-card) !important;
+  border: none !important;
+}
+
+.mud-button-filled.mud-button-filled-primary:hover {
+  background-color: var(--primary-dark) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: var(--shadow-card-hover) !important;
+}
+
+.mud-card {
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-card) !important;
+  border: 1px solid var(--glass-border) !important;
+  transition: all var(--transition-normal) !important;
+}
+
+.mud-card:hover {
+  box-shadow: var(--shadow-card-hover) !important;
+}
+
+.mud-select, .mud-textfield {
+  border-radius: var(--radius-md) !important;
+}
+
+.mud-input-root {
+  font-family: var(--font-family) !important;
+}
+
+/* -----------------------------------------------------------------------------
+   TYPOGRAPHY
+   ----------------------------------------------------------------------------- */
+.header-title {
+  color: var(--primary-color);
+  font-weight: 700;
+  font-family: var(--font-family);
+  font-size: var(--font-size-3xl);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.section-title {
+  color: var(--primary-color);
+  font-weight: 600;
+  font-family: var(--font-family);
+  font-size: var(--font-size-xl);
+  margin: 0;
+}
+
+.chart-title {
+  color: var(--primary-color);
+  font-weight: 600;
+  font-family: var(--font-family);
+  font-size: var(--font-size-lg);
+  margin-bottom: var(--space-1);
+}
+
+.chart-subtitle {
+  color: var(--secondary-color);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+}
+
+.text-muted {
+  color: var(--secondary-color) !important;
+}
+
+/* -----------------------------------------------------------------------------
+   LAYOUT COMPONENTS
+   ----------------------------------------------------------------------------- */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.charts-section {
+  margin-bottom: var(--space-8);
+}
+
+/* Empty States */
+.empty-chart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 150px;
+  color: var(--secondary-color);
+  padding: var(--space-12) var(--space-5);
+  text-align: center;
+}
+
+/* Filter Controls */
+.filter-controls {
+  margin-bottom: var(--space-8);
+}
+
+.filter-label {
+  color: var(--primary-color);
+  font-weight: 600;
+  font-family: var(--font-family);
+  margin-bottom: var(--space-1);
+  display: block;
+}
+
+/* Progress Bars */
+.progress-bar {
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-sm);
+  height: 8px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  background-color: var(--primary-color);
+  height: 100%;
+  border-radius: var(--radius-sm);
+  transition: width var(--transition-normal);
+}
+
+/* -----------------------------------------------------------------------------
+   RESPONSIVE DESIGN
+   ----------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-4);
+  }
+
+  .header-title {
+    font-size: var(--font-size-2xl);
+  }
+
+  .charts-section .mud-item {
+    margin-bottom: var(--space-4);
+  }
+
+  .empty-chart {
+    height: 120px;
+    padding: var(--space-8) var(--space-4);
+  }
+}
+
+@media (max-width: 480px) {
+  .ui-button {
+    font-size: var(--font-size-sm);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .header-title {
+    font-size: var(--font-size-xl);
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   UTILITY CLASSES
+   ----------------------------------------------------------------------------- */
+.clickable-card {
+  cursor: pointer;
+}
+
+.clickable-card:hover {
+  transform: translateY(-2px);
+}
+
+.text-center {
+  text-align: center;
+}
+
+.d-flex {
+  display: flex;
+}
+
+.align-items-center {
+  align-items: center;
+}
+
+.justify-content-between {
+  justify-content: space-between;
+}
+
+.gap-2 {
+  gap: var(--space-2);
+}
+
+.gap-4 {
+  gap: var(--space-4);
+}
+
+.mb-2 {
+  margin-bottom: var(--space-2);
+}
+
+.mb-4 {
+  margin-bottom: var(--space-4);
+}
+
+.mb-8 {
+  margin-bottom: var(--space-8);
+}
+
+.mt-2 {
+  margin-top: var(--space-2);
+}
+
+.mt-4 {
+  margin-top: var(--space-4);
+}
+
+/* -----------------------------------------------------------------------------
+   PERFORMANCE OPTIMIZATIONS
+   ----------------------------------------------------------------------------- */
+.chart-card, .summary-card {
+  will-change: transform, box-shadow;
+}
+
+.ui-button {
+  will-change: transform, background-color;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

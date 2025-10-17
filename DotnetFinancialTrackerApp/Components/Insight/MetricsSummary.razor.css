@@ -1,0 +1,40 @@
+/* Metrics Section - uses global styles from consolidated-app.css */
+.metrics-section {
+    margin-bottom: var(--space-8);
+}
+
+.metric-card {
+    text-align: center;
+}
+
+.metric-amount {
+    font-weight: 700;
+    font-family: var(--font-family);
+    font-size: var(--font-size-3xl);
+    margin-bottom: var(--space-2);
+    color: var(--primary-color);
+}
+
+.metric-label {
+    color: var(--secondary-color);
+    font-family: var(--font-family);
+    font-weight: 600;
+    margin-bottom: var(--space-1);
+}
+
+.metric-comparison {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.comparison-detail {
+    color: var(--secondary-color) !important;
+    font-size: var(--font-size-xs);
+}
+
+@media (max-width: 768px) {
+    .metric-amount {
+        font-size: var(--font-size-2xl);
+    }
+}

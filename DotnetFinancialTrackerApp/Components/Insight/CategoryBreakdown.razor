@@ -1,0 +1,82 @@
+@using DotnetFinancialTrackerApp.Services
+@using MudBlazor
+
+<MudItem xs="12" md="6">
+    <MudCard Class="summary-card chart-card" Elevation="0">
+        <MudCardContent>
+            <div class="chart-header">
+                <MudText Typo="Typo.h6" Class="chart-title">Spending by Category</MudText>
+                <MudText Typo="Typo.caption" Class="chart-subtitle">Top categories</MudText>
+            </div>
+
+            @if (!TopCategories.Any())
+            {
+                <div class="empty-chart">
+                    <MudIcon Icon="@Icons.Material.Filled.PieChart" Size="Size.Large" Color="Color.Default" />
+                    <MudText Typo="Typo.body2" Class="mt-2">No categories to display</MudText>
+                </div>
+            }
+            else
+            {
+                <div class="enhanced-donut-chart-container">
+                    <!-- MudBlazor Donut Chart -->
+                    <div class="donut-chart-section">
+                        <MudChart ChartType="ChartType.Donut"
+                                InputData="@GetDonutData().ToArray()"
+                                InputLabels="@GetDonutLabels().ToArray()"
+                                Width="250px"
+                                Height="250px"
+                                ChartOptions="@ChartOptions">
+                        </MudChart>
+                    </div>
+
+                    <!-- Enhanced Category Legend -->
+                    <div class="enhanced-category-legend">
+                        @foreach (var (category, index) in TopCategories.Take(5).Select((c, i) => (c, i)))
+                        {
+                            <div class="enhanced-legend-item">
+                                <div class="legend-color-indicator" style="background-color: @GetCategoryColorHex(index);"></div>
+                                <div class="legend-content">
+                                    <div class="legend-main">
+                                        <MudText Typo="Typo.subtitle2" Class="legend-category-name">@category.Name</MudText>
+                                        <MudText Typo="Typo.body1" Class="legend-amount">@category.Amount.ToString("C0")</MudText>
+                                    </div>
+                                    <MudText Typo="Typo.caption" Class="legend-percentage">@category.Percentage.ToString("P1") of total</MudText>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </MudCardContent>
+    </MudCard>
+</MudItem>
+
+@code {
+    [Parameter] public List<CategorySummary> TopCategories { get; set; } = new();
+    [Parameter] public ChartOptions ChartOptions { get; set; } = new();
+
+    private readonly string[] _categoryPalette = new[]
+    {
+        "#1F2937", // Slate
+        "#9333EA", // Purple
+        "#F97316", // Orange
+        "#0EA5E9", // Sky
+        "#10B981", // Emerald
+        "#F59E0B", // Amber
+        "#EF4444", // Red
+        "#3B82F6"  // Blue
+    };
+
+    private List<double> GetDonutData()
+    {
+        return TopCategories.Take(5).Select(c => (double)c.Amount).ToList();
+    }
+
+    private List<string> GetDonutLabels()
+    {
+        return TopCategories.Take(5).Select(c => c.Name).ToList();
+    }
+
+    private string GetCategoryColorHex(int index) => _categoryPalette[index % _categoryPalette.Length];
+}

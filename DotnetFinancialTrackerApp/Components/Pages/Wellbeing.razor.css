@@ -1,0 +1,33 @@
+.savings-container {
+    padding: 24px;
+    background: #FFFFFF;
+    min-height: 100vh;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+.goals-section {
+    margin-bottom: 32px;
+}
+
+.goals-section .section-header {
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.section-title {
+    color: #000000;
+    font-weight: 600;
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+}
+
+@media (max-width: 768px) {
+    .savings-container {
+        padding: 16px;
+    }
+
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

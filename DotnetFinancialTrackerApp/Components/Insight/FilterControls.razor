@@ -1,0 +1,105 @@
+@using DotnetFinancialTrackerApp.Models
+@using DotnetFinancialTrackerApp.Services
+@using MudBlazor
+
+<MudCard Class="summary-card filter-controls" Elevation="0">
+    <MudCardContent>
+        <MudGrid Spacing="2" Class="filter-simple-grid" AlignItems="AlignItems.Center">
+            <MudItem xs="12" md="6">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.subtitle2" Class="filter-label">Time Range</MudText>
+                    <MudButtonGroup Class="range-button" Color="Color.Dark" Elevation="0">
+                        <MudButton Variant="@GetRangeVariant(PeriodType.Weekly)"
+                                   StartIcon="@GetRangeButtonIcon(PeriodType.Weekly)"
+                                   Class="@GetRangeButtonClass(PeriodType.Weekly)"
+                                   DisableElevation="true"
+                                   OnClick="@(() => OnPeriodTypeChanged.InvokeAsync(PeriodType.Weekly))">
+                            <div class="range-button-content">
+                                <span class="range-button-title">Weekly</span>
+                                <span class="range-button-subtitle">7-day snapshot</span>
+                            </div>
+                        </MudButton>
+                        <MudButton Variant="@GetRangeVariant(PeriodType.Monthly)"
+                                   StartIcon="@GetRangeButtonIcon(PeriodType.Monthly)"
+                                   Class="@GetRangeButtonClass(PeriodType.Monthly)"
+                                   DisableElevation="true"
+                                   OnClick="@(() => OnPeriodTypeChanged.InvokeAsync(PeriodType.Monthly))">
+                            <div class="range-button-content">
+                                <span class="range-button-title">Monthly</span>
+                                <span class="range-button-subtitle">Week-over-week</span>
+                            </div>
+                        </MudButton>
+                        <MudButton Variant="@GetRangeVariant(PeriodType.Yearly)"
+                                   StartIcon="@GetRangeButtonIcon(PeriodType.Yearly)"
+                                   Class="@GetRangeButtonClass(PeriodType.Yearly)"
+                                   DisableElevation="true"
+                                   OnClick="@(() => OnPeriodTypeChanged.InvokeAsync(PeriodType.Yearly))">
+                            <div class="range-button-content">
+                                <span class="range-button-title">Yearly</span>
+                                <span class="range-button-subtitle">Month-over-month</span>
+                            </div>
+                        </MudButton>
+                    </MudButtonGroup>
+                    <MudText Typo="Typo.caption" Class="current-period-label">
+                        @CurrentPeriodDisplay
+                    </MudText>
+                </MudStack>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.subtitle2" Class="filter-label">Family Member</MudText>
+                    <MudSelect T="string"
+                               Value="@SelectedUserId"
+                               ValueChanged="@HandleUserChanged"
+                               Variant="Variant.Outlined"
+                               Dense="true">
+                        <MudSelectItem Value="@string.Empty">All Members</MudSelectItem>
+                        @foreach (var user in FamilyUsers)
+                        {
+                            <MudSelectItem Value="@user.Id.ToString()">@user.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public PeriodType SelectedPeriodType { get; set; } = PeriodType.Monthly;
+    [Parameter] public EventCallback<PeriodType> OnPeriodTypeChanged { get; set; }
+    [Parameter] public string SelectedUserId { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> OnUserChanged { get; set; }
+    [Parameter] public List<FamilyMember> FamilyUsers { get; set; } = new();
+    [Parameter] public string CurrentPeriodDisplay { get; set; } = "";
+    private async Task OnPeriodClicked(PeriodType period)
+    {
+        await OnPeriodTypeChanged.InvokeAsync(period);
+        StateHasChanged(); 
+    }
+    private Variant GetRangeVariant(PeriodType period) => SelectedPeriodType == period ? Variant.Filled : Variant.Outlined;
+
+    private string GetRangeButtonClass(PeriodType period)
+    {
+        var classes = new List<string> { "range-button" };
+        if (SelectedPeriodType == period)
+        {
+            classes.Add("range-button--active");
+        }
+
+        return string.Join(" ", classes);
+    }
+
+    private string GetRangeButtonIcon(PeriodType period) => period switch
+    {
+        PeriodType.Weekly => Icons.Material.Filled.ViewWeek,
+        PeriodType.Monthly => Icons.Material.Filled.DateRange,
+        PeriodType.Yearly => Icons.Material.Filled.CalendarMonth,
+        _ => Icons.Material.Filled.Timeline
+    };
+
+    private async Task HandleUserChanged(string userId)
+    {
+        await OnUserChanged.InvokeAsync(userId);
+    }
+}

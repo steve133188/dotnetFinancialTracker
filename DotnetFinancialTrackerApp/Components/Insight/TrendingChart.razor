@@ -1,10 +1,11 @@
 @using MudBlazor
+@using DotnetFinancialTrackerApp.Services
 
 <MudItem xs="12">
     <MudCard Class="summary-card chart-card" Elevation="0">
         <MudCardContent>
             <div class="chart-header">
-                <MudText Typo="Typo.h6" Class="chart-title">Spending Trends Over Time</MudText>
+                <MudText Typo="Typo.h6" Class="chart-title">Financial Trends Over Time</MudText>
                 <MudText Typo="Typo.caption" Class="chart-subtitle">@description</MudText>
             </div>
 
@@ -12,14 +13,14 @@
             {
                 <div class="empty-chart">
                     <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Large" Color="Color.Default" />
-                    <MudText Typo="Typo.body2" Class="mt-2">No spending data for this period</MudText>
+                    <MudText Typo="Typo.body2" Class="mt-2">No financial data for this period</MudText>
                 </div>
             }
             else
             {
                 <div class="enhanced-line-chart">
                     <MudChart ChartType="ChartType.Line"
-                              ChartSeries="@_lineChartSeries"
+                              ChartSeries="@ConvertToMudBlazorSeries()"
                               @bind-SelectedIndex="_selectedIndex"
                               XAxisLabels="@_xAxisLabels.ToArray()"
                               Width="100%"
@@ -36,8 +37,17 @@
     [Parameter] public int chartDataLength { get; set; } = 0;
     [Parameter] public EventCallback<int> OnPointSelected { get; set; }
     [Parameter] public List<string> _xAxisLabels  { get; set; }  = new();
-    [Parameter] public List<ChartSeries> _lineChartSeries  { get; set; }  = new();
+    [Parameter] public List<DotnetFinancialTrackerApp.Services.ChartSeries> _lineChartSeries  { get; set; }  = new();
     [Parameter] public ChartOptions _lineChartOptions  { get; set; }  = new();
-    
+
     private int _selectedIndex = -1;
+
+    private List<MudBlazor.ChartSeries> ConvertToMudBlazorSeries()
+    {
+        return _lineChartSeries.Select(series => new MudBlazor.ChartSeries
+        {
+            Name = series.Name,
+            Data = series.Data
+        }).ToList();
+    }
 }

@@ -40,6 +40,9 @@ public static class MauiProgram
         builder.Services.AddScoped<ISavingsGoalService, SavingsGoalService>();
         builder.Services.AddScoped<IFamilyMemberService, FamilyMemberService>();
         builder.Services.AddScoped<IUserService, UserService>();
+        builder.Services.AddScoped<IInsightService, InsightService>();
+        builder.Services.AddScoped<IWellbeingDataService, WellbeingDataService>();
+        builder.Services.AddScoped(typeof(IFilterService<>), typeof(FilterService<>));
 
 
         builder.Services.AddSingleton<AuthState>();

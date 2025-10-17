@@ -1,0 +1,104 @@
+@using System.Globalization
+@using DotnetFinancialTrackerApp.Components.Shared
+@using DotnetFinancialTrackerApp.Services
+@using MudBlazor
+
+<MudGrid Class="metrics-section">
+    <MudItem xs="12" md="3">
+        <UiStatCard Class="metric-card text-center">
+            <BodyContent>
+                <MudText Typo="Typo.h4" Class="metric-amount expense">
+                    @FilteredExpense.ToString("C0", CultureInfo.CurrentCulture)
+                </MudText>
+                <MudText Typo="Typo.body2" Class="metric-label">Total Spent</MudText>
+                <div class="metric-comparison">
+                    <MudText Typo="Typo.caption" Class="@GetTrendClass(ExpenseTrend)">
+                        @GetTrendText(ExpenseTrend)
+                        @if (ShowComparison && PreviousExpense > 0)
+                        {
+                            <MudText Typo="Typo.caption" Class="comparison-detail">
+                                 @PreviousExpense.ToString("C0")
+                            </MudText>
+                        }
+                    </MudText>
+
+                </div>
+            </BodyContent>
+        </UiStatCard>
+    </MudItem>
+
+    <MudItem xs="12" md="3">
+        <UiStatCard Class="metric-card text-center">
+            <BodyContent>
+                <MudText Typo="Typo.h4" Class="metric-amount income">
+                    @FilteredIncome.ToString("C0", CultureInfo.CurrentCulture)
+                </MudText>
+                <MudText Typo="Typo.body2" Class="metric-label">Total Income</MudText>
+                <div class="metric-comparison">
+                    <MudText Typo="Typo.caption" Class="@GetTrendClass(IncomeTrend)">
+                        @GetTrendText(IncomeTrend)
+                        @if (ShowComparison && PreviousIncome > 0)
+                        {
+                            <MudText Typo="Typo.caption" Class="comparison-detail">
+                                 @PreviousIncome.ToString("C0")
+                            </MudText>
+                        }
+                    </MudText>
+
+                </div>
+            </BodyContent>
+        </UiStatCard>
+    </MudItem>
+
+    <MudItem xs="12" md="3">
+        <UiStatCard Class="metric-card text-center">
+            <BodyContent>
+                <MudText Typo="Typo.h4" Class="@GetBalanceClass()">
+                    @NetBalance.ToString("C0", CultureInfo.CurrentCulture)
+                </MudText>
+                <MudText Typo="Typo.body2" Class="metric-label">Net Balance</MudText>
+                <MudText Typo="Typo.caption">@GetBalanceStatus()</MudText>
+            </BodyContent>
+        </UiStatCard>
+    </MudItem>
+
+    <MudItem xs="12" md="3">
+        <UiStatCard Class="metric-card text-center">
+            <BodyContent>
+                <MudText Typo="Typo.h4" Class="metric-amount">
+                    @TransactionCount
+                </MudText>
+                <MudText Typo="Typo.body2" Class="metric-label">Transactions</MudText>
+                <MudText Typo="Typo.caption" Class="text-muted">
+                    This period
+                </MudText>
+            </BodyContent>
+        </UiStatCard>
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter] public decimal FilteredIncome { get; set; }
+    [Parameter] public decimal FilteredExpense { get; set; }
+    [Parameter] public decimal PreviousExpense { get; set; }
+    [Parameter] public decimal PreviousIncome { get; set; }
+    [Parameter] public TrendDirection ExpenseTrend { get; set; }
+    [Parameter] public TrendDirection IncomeTrend { get; set; }
+    [Parameter] public int TransactionCount { get; set; }
+    [Parameter] public bool ShowComparison { get; set; } = true;
+
+    private decimal NetBalance => FilteredIncome - FilteredExpense;
+
+    private string GetBalanceClass() => NetBalance >= 0 ? "metric-amount income" : "metric-amount expense";
+
+    private string GetBalanceStatus() => NetBalance >= 0 ? "Positive" : "Deficit";
+
+    private string GetTrendClass(TrendDirection trend) => "text-muted";
+
+    private string GetTrendText(TrendDirection trend) => trend switch
+    {
+        TrendDirection.Up => "↑ ",
+        TrendDirection.Down => "↓ ",
+        _ => "- "
+    };
+}

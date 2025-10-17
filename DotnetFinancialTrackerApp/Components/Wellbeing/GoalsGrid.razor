@@ -1,0 +1,94 @@
+@using MudBlazor
+@using DotnetFinancialTrackerApp.Models
+@using System.Globalization
+
+@if (!Goals.Any())
+{
+    <MudCard Class="empty-state-card" Elevation="0">
+        <MudCardContent Class="text-center">
+            <MudIcon Icon="@Icons.Material.Filled.Savings" Size="Size.Large" Color="Color.Default" />
+            <MudText Typo="Typo.h6" Class="mt-2">@(HasAnyGoals ? "No goals match your filters" : "No savings goals yet")</MudText>
+            <MudText Typo="Typo.body2" Class="mb-3">@(HasAnyGoals ? "Try adjusting your filters or create a new goal" : "Create your first savings goal to start building your future")</MudText>
+            <UiButton StartIcon="@Icons.Material.Filled.Add"
+                      OnClick="@OnCreateGoal">
+                Create Savings Goal
+            </UiButton>
+        </MudCardContent>
+    </MudCard>
+}
+else
+{
+    <div class="goals-grid">
+        @foreach (var goal in Goals)
+        {
+            <MudCard Class="@($"{GetGoalCardClass(goal)} clickable-card")"
+                     Elevation="0"
+                     @onclick="@(async () => await OnGoalHistory.InvokeAsync(goal))">
+                <MudCardContent>
+                    <div class="goal-header">
+                        <div class="goal-title-section">
+                            <MudText Typo="Typo.h6" Class="goal-title">@goal.Title</MudText>
+                            <MudChip T="string" Text="@goal.Category" Size="Size.Small" Variant="Variant.Outlined" Class="goal-category" />
+                        </div>
+                        <MudIconButton Icon="@Icons.Material.Filled.MoreVert"
+                                       Size="Size.Small"
+                                       OnClick="@(async () => await OnGoalActions.InvokeAsync(goal))"
+                                       OnClick:StopPropagation="true" />
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(goal.Subtitle))
+                    {
+                        <MudText Typo="Typo.body2" Class="goal-subtitle">@goal.Subtitle</MudText>
+                    }
+
+                    <div class="goal-progress">
+                        <div class="progress-amounts">
+                            <MudText Typo="Typo.body2" Class="current-amount">@goal.CurrentAmount.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                            <MudText Typo="Typo.body2" Class="target-amount">@goal.TargetAmount.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                        </div>
+                        <MudProgressLinear Value="@goal.ProgressPercentage" Size="Size.Medium" Color="Color.Default" Class="goal-progress-bar" />
+                        <div class="progress-info">
+                            <MudText Typo="Typo.caption" Class="progress-text">@goal.ProgressPercentage.ToString("F1")% complete</MudText>
+                            @if (goal.TargetDate.HasValue)
+                            {
+                                <MudText Typo="Typo.caption" Class="target-date">Target: @goal.TargetDate.Value.ToString("MMM dd, yyyy")</MudText>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="goal-actions">
+                        <UiButton Variant="Variant.Text"
+                                  Size="Size.Small"
+                                  StartIcon="@Icons.Material.Filled.Add"
+                                  OnClick="@(async () => await OnContribute.InvokeAsync(goal))"
+                                  OnClick:StopPropagation="true">
+                            Contribute
+                        </UiButton>
+                        @if (goal.IsCompleted)
+                        {
+                            <MudChip T="string" Text="Completed" Variant="Variant.Outlined" Color="Color.Default" Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" />
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.caption" Class="remaining-amount">@goal.RemainingAmount.ToString("C", CultureInfo.CurrentCulture) to go</MudText>
+                        }
+                    </div>
+                </MudCardContent>
+            </MudCard>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public List<SavingsGoal> Goals { get; set; } = new();
+    [Parameter] public bool HasAnyGoals { get; set; }
+    [Parameter] public EventCallback OnCreateGoal { get; set; }
+    [Parameter] public EventCallback<SavingsGoal> OnGoalHistory { get; set; }
+    [Parameter] public EventCallback<SavingsGoal> OnGoalActions { get; set; }
+    [Parameter] public EventCallback<SavingsGoal> OnContribute { get; set; }
+
+    private string GetGoalCardClass(SavingsGoal goal)
+    {
+        return $"goal-card {(goal.IsCompleted ? "completed" : "")}";
+    }
+}

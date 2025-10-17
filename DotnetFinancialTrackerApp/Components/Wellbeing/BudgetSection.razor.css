@@ -1,0 +1,70 @@
+.budget-section {
+    margin-bottom: 32px;
+}
+
+.budget-card {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+}
+
+.budget-title {
+    font-weight: 600;
+    color: #000000;
+}
+
+.budget-description {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.budget-metrics {
+    margin-top: 8px;
+}
+
+.budget-metric-label {
+    color: rgba(0, 0, 0, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.budget-metric-value {
+    font-weight: 600;
+}
+
+.budget-actions {
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.budget-actions .mud-button-root {
+    min-width: 160px;
+}
+
+.budget-meta {
+    color: rgba(0, 0, 0, 0.5);
+}
+
+.budget-progress {
+    margin-top: 8px;
+    height: 8px;
+    border-radius: 4px;
+}
+
+.budget-usage-note {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+@media (max-width: 767px) {
+    .budget-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .budget-actions .mud-button-root {
+        width: 100%;
+    }
+
+    .budget-metrics {
+        margin-top: 4px;
+    }
+}

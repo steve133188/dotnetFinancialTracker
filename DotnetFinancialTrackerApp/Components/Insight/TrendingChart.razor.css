@@ -1,0 +1,17 @@
+/* Trending Chart - uses global chart-card styles from consolidated-app.css */
+
+.chart-header {
+    margin-bottom: var(--space-6);
+}
+
+/* Uses global .empty-chart styles from consolidated-app.css */
+
+.enhanced-line-chart {
+    margin-top: var(--space-4);
+}
+
+@media (max-width: 768px) {
+    .chart-header {
+        margin-bottom: var(--space-4);
+    }
+}

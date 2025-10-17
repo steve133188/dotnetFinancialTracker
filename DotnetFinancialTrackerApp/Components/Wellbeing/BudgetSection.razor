@@ -1,0 +1,82 @@
+@using MudBlazor
+@using DotnetFinancialTrackerApp.Models
+@using System.Globalization
+
+<div class="budget-section">
+    <MudCard Class="budget-card" Elevation="0">
+        <MudCardContent>
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.subtitle1" Class="budget-title">Monthly Budget · @DateTime.Today.ToString("MMMM yyyy")</MudText>
+                <MudText Typo="Typo.caption" Class="budget-description">
+                    Set a spending cap to keep savings goals on track.
+                </MudText>
+                <MudGrid Class="budget-metrics" Spacing="2">
+                    <MudItem xs="12" md="4">
+                        <MudText Typo="Typo.caption" Class="budget-metric-label">Budget Set</MudText>
+                        <MudText Typo="Typo.h6" Class="budget-metric-value">
+                            @(MonthlyBudget > 0 ? MonthlyBudget.ToString("C", CultureInfo.CurrentCulture) : "Not set")
+                        </MudText>
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudText Typo="Typo.caption" Class="budget-metric-label">Spent This Month</MudText>
+                        <MudText Typo="Typo.h6" Class="budget-metric-value">@MonthlySpending.ToString("C", CultureInfo.CurrentCulture)</MudText>
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudText Typo="Typo.caption" Class="budget-metric-label">Remaining</MudText>
+                        <MudText Typo="Typo.h6" Class="budget-metric-value">
+                            @(MonthlyBudget > 0 ? BudgetRemaining.ToString("C", CultureInfo.CurrentCulture) : "--")
+                        </MudText>
+                    </MudItem>
+                </MudGrid>
+                <MudProgressLinear Value="@BudgetUsage" Color="Color.Default" Class="budget-progress" />
+                <MudText Typo="Typo.caption" Class="budget-usage-note">@GetBudgetStatusText()</MudText>
+
+                <MudStack Direction="Row" Spacing="2" AlignItems="AlignItems.Center" Class="budget-actions">
+                    <UiButton OnClick="@OnManageBudget">
+                        @(CurrentBudget is null ? "Create Budget" : "Update Budget")
+                    </UiButton>
+                    <UiButton Variant="Variant.Outlined"
+                              OnClick="@OnViewHistory">
+                        View History
+                    </UiButton>
+                </MudStack>
+                @if (CurrentBudget is not null)
+                {
+                    <MudText Typo="Typo.caption" Class="budget-meta">
+                        Last updated @(CurrentBudget.UpdatedAt.ToLocalTime().ToString("MMM dd, HH:mm"))
+                    </MudText>
+                }
+            </MudStack>
+        </MudCardContent>
+    </MudCard>
+</div>
+
+@code {
+    [Parameter] public Budget? CurrentBudget { get; set; }
+    [Parameter] public decimal MonthlyBudget { get; set; }
+    [Parameter] public decimal MonthlySpending { get; set; }
+    [Parameter] public decimal BudgetRemaining { get; set; }
+    [Parameter] public double BudgetUsage { get; set; }
+    [Parameter] public EventCallback OnManageBudget { get; set; }
+    [Parameter] public EventCallback OnViewHistory { get; set; }
+
+    private string GetBudgetStatusText()
+    {
+        if (MonthlyBudget <= 0)
+        {
+            return "Set a budget to start tracking progress.";
+        }
+
+        if (MonthlySpending <= 0)
+        {
+            return "No spending recorded for this month yet.";
+        }
+
+        if (BudgetRemaining < 0)
+        {
+            return $"Over budget by {Math.Abs(BudgetRemaining).ToString("C", CultureInfo.CurrentCulture)}.";
+        }
+
+        return $"{BudgetRemaining.ToString("C", CultureInfo.CurrentCulture)} remaining this month.";
+    }
+}
