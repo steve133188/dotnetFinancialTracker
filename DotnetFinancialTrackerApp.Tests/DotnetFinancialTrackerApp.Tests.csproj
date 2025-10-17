@@ -17,7 +17,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../DotnetFinancialTrackerApp.Core/DotnetFinancialTrackerApp.Core.csproj" />
+    <Compile Include="../DotnetFinancialTrackerApp/Models/*.cs" Link="Models/%(Filename)%(Extension)" />
+    <Compile Include="../DotnetFinancialTrackerApp/Services/*.cs" Link="Services/%(Filename)%(Extension)" />
+    <Compile Include="../DotnetFinancialTrackerApp/Data/*.cs" Link="Data/%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>
