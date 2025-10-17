@@ -1,4 +1,23 @@
 <Project>
+  <!-- .NET 8 SDK Version Enforcement -->
+  <PropertyGroup>
+    <!-- Enforce .NET 8.0 SDK minimum version -->
+    <NetCoreSdkVersion>8.0.100</NetCoreSdkVersion>
+    <RequiredNETFrameworkVersion>8.0</RequiredNETFrameworkVersion>
+
+    <!-- Validate SDK version at build time -->
+    <MSBuildSDKsPath Condition="'$(MSBuildRuntimeVersion)' != '' AND $([MSBuild]::VersionLessThan($(MSBuildRuntimeVersion), '17.8.0'))">ERROR: This project requires MSBuild 17.8.0 or later (Visual Studio 2022 17.8+). Current version: $(MSBuildRuntimeVersion)</MSBuildSDKsPath>
+  </PropertyGroup>
+
+  <!-- Validate .NET SDK Version -->
+  <Target Name="ValidateDotNetSDKVersion" BeforeTargets="Build;Restore">
+    <Error Condition="$([MSBuild]::VersionLessThan('$(NETCoreSdkVersion)', '8.0.100'))"
+           Text="ERROR: This project requires .NET 8.0 SDK (8.0.100 or later). Current SDK: $(NETCoreSdkVersion). Please install .NET 8.0 SDK from https://dotnet.microsoft.com/download/dotnet/8.0" />
+
+    <Message Text="✅ .NET SDK Version: $(NETCoreSdkVersion) - Compatible with .NET 8.0 requirements" Importance="high"
+             Condition="!$([MSBuild]::VersionLessThan('$(NETCoreSdkVersion)', '8.0.100'))" />
+  </Target>
+
   <PropertyGroup>
     <!-- Global package versions for consistency across platforms -->
     <MauiVersion>8.0.90</MauiVersion>

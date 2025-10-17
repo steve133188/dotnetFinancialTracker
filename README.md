@@ -60,12 +60,36 @@ A comprehensive .NET MAUI family budget and wellbeing companion application buil
 
 ## System Requirements
 
-### Prerequisites
-- **.NET 8.0 SDK** (version 8.0.100 or later) - **REQUIRED**
+### Prerequisites - ⚠️ **STRICT REQUIREMENTS**
+- **.NET 8.0 SDK** (version 8.0.100 or later) - **MANDATORY - NO EXCEPTIONS**
 - **Visual Studio 2022 17.8+** (recommended) or **VS Code** with C# extension
 - **Platform-Specific Requirements**:
   - **Windows:** Windows 10 version 1903+ or Windows 11, Windows SDK 10.0.19041.0+
   - **macOS:** macOS 11.0+, Xcode 13.0+ for macOS targets
+
+### 🚨 **SDK Version Enforcement**
+This project **ENFORCES** .NET 8.0 SDK usage through:
+- `global.json` with `rollForward: "latestPatch"` (prevents major version drift)
+- MSBuild targets that **fail the build** if wrong SDK version detected
+- Automated version validation before restore/build operations
+
+**The build will FAIL with clear error messages if:**
+- .NET SDK < 8.0.100 is detected
+- Non-.NET 8 SDK versions are used
+- Required workloads are missing
+
+### 🔧 **Version Check Scripts**
+Before building, run these validation scripts:
+
+**Windows PowerShell:**
+```powershell
+.\check-dotnet-version.ps1
+```
+
+**Windows Command Prompt:**
+```cmd
+check-dotnet-version.cmd
+```
 
 ### Supported Platforms
 - **macOS** (MacCatalyst)
@@ -81,10 +105,14 @@ If you encounter NU1105 errors during `dotnet restore` on Windows:
    dotnet nuget locals all --clear
    ```
 
-2. **Ensure correct .NET SDK version:**
+2. **Validate .NET SDK version (MANDATORY):**
    ```cmd
+   # Check version
    dotnet --version
    # Should be 8.0.100 or later
+
+   # Run validation script
+   check-dotnet-version.cmd
    ```
 
 3. **Install/Update .NET MAUI workload:**
@@ -309,5 +337,3 @@ DotnetFinancialTrackerApp.Tests/
 4. **`Data/AppDbContext.cs`** - Entity Framework + SQLite
 5. **`Components/Pages/Finance.razor`** - Complex UI with multiple elements
 6. **`MauiProgram.cs`** - Blazor WebView setup + DI configuration
-
-For detailed marking guide compliance and enhancement roadmap, see [TODO.md](TODO.md).
