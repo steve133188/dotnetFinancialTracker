@@ -1,13 +1,14 @@
 {
   "profiles": {
-    "Windows Machine": {
-      "commandName": "MsixPackage",
-      "nativeDebugging": false
-    },
-    "Windows (Unpackaged)": {
+    "Windows": {
       "commandName": "Project",
       "nativeDebugging": false,
-      "commandLineArgs": "--framework net8.0-windows10.0.19041.0"
+      "commandLineArgs": "--framework net8.0-windows"
+    },
+    "Windows (Debug)": {
+      "commandName": "Project",
+      "nativeDebugging": true,
+      "commandLineArgs": "--framework net8.0-windows"
     }
   }
 }
