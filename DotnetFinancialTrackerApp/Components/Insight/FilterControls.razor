@@ -8,38 +8,41 @@
             <MudItem xs="12" md="6">
                 <MudStack Spacing="1">
                     <MudText Typo="Typo.subtitle2" Class="filter-label">Time Range</MudText>
-                    <MudButtonGroup Class="range-button" Color="Color.Dark" Elevation="0">
-                        <MudButton Variant="@GetRangeVariant(PeriodType.Weekly)"
+                    <div class="range-buttons-container">
+                        <MudButton Variant="@(SelectedPeriodType == PeriodType.Weekly ? Variant.Filled : Variant.Text)"
                                    StartIcon="@GetRangeButtonIcon(PeriodType.Weekly)"
                                    Class="@GetRangeButtonClass(PeriodType.Weekly)"
+                                   Color="@(SelectedPeriodType == PeriodType.Weekly ? Color.Dark : Color.Default)"
                                    DisableElevation="true"
-                                   OnClick="@(() => OnPeriodTypeChanged.InvokeAsync(PeriodType.Weekly))">
+                                   OnClick="@(() => OnPeriodClicked(PeriodType.Weekly))">
                             <div class="range-button-content">
                                 <span class="range-button-title">Weekly</span>
                                 <span class="range-button-subtitle">7-day snapshot</span>
                             </div>
                         </MudButton>
-                        <MudButton Variant="@GetRangeVariant(PeriodType.Monthly)"
+                        <MudButton Variant="@(SelectedPeriodType == PeriodType.Monthly ? Variant.Filled : Variant.Text)"
                                    StartIcon="@GetRangeButtonIcon(PeriodType.Monthly)"
                                    Class="@GetRangeButtonClass(PeriodType.Monthly)"
+                                   Color="@(SelectedPeriodType == PeriodType.Monthly ? Color.Dark : Color.Default)"
                                    DisableElevation="true"
-                                   OnClick="@(() => OnPeriodTypeChanged.InvokeAsync(PeriodType.Monthly))">
+                                   OnClick="@(() => OnPeriodClicked(PeriodType.Monthly))">
                             <div class="range-button-content">
                                 <span class="range-button-title">Monthly</span>
                                 <span class="range-button-subtitle">Week-over-week</span>
                             </div>
                         </MudButton>
-                        <MudButton Variant="@GetRangeVariant(PeriodType.Yearly)"
+                        <MudButton Variant="@(SelectedPeriodType == PeriodType.Yearly ? Variant.Filled : Variant.Text)"
                                    StartIcon="@GetRangeButtonIcon(PeriodType.Yearly)"
                                    Class="@GetRangeButtonClass(PeriodType.Yearly)"
+                                   Color="@(SelectedPeriodType == PeriodType.Yearly ? Color.Dark : Color.Default)"
                                    DisableElevation="true"
-                                   OnClick="@(() => OnPeriodTypeChanged.InvokeAsync(PeriodType.Yearly))">
+                                   OnClick="@(() => OnPeriodClicked(PeriodType.Yearly))">
                             <div class="range-button-content">
                                 <span class="range-button-title">Yearly</span>
                                 <span class="range-button-subtitle">Month-over-month</span>
                             </div>
                         </MudButton>
-                    </MudButtonGroup>
+                    </div>
                     <MudText Typo="Typo.caption" Class="current-period-label">
                         @CurrentPeriodDisplay
                     </MudText>
@@ -77,7 +80,6 @@
         await OnPeriodTypeChanged.InvokeAsync(period);
         StateHasChanged(); 
     }
-    private Variant GetRangeVariant(PeriodType period) => SelectedPeriodType == period ? Variant.Filled : Variant.Outlined;
 
     private string GetRangeButtonClass(PeriodType period)
     {

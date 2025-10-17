@@ -10,31 +10,11 @@
     width: 100%;
 }
 
-.range-button-group {
-    border-radius: 50px;
-    /*background: var(--glass-background);*/
-    padding: 4px;
-    gap: 4px;
-    /*border: 1px solid var(--glass-border);*/
-    box-shadow: var(--shadow-card);
+.range-buttons-container {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
 }
-
-.range-button-group .mud-button-root {
-    min-width: 0;
-    /*border-radius: 50px;*/
-    font-weight: 500;
-    padding: 8px 16px;
-    text-transform: none;
-    transition: var(--transition-fast);
-    border: none;
-    /*background: transparent;*/
-    color: var(--secondary-color);
-}
-
-/*.range-button-group .mud-button-root:hover {*/
-/*    background: var(--glass-background-light);*/
-/*    color: var(--primary-color);*/
-/*}*/
 
 .range-button {
     display: flex;
@@ -42,6 +22,14 @@
     justify-content: flex-start;
     gap: var(--space-3);
     color: var(--primary-color);
+    border-radius: 48px !important;
+    padding: 8px 16px !important;
+    font-weight: 500;
+    text-transform: none;
+    transition: all 0.2s ease;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
 }
 
 .range-button .mud-icon-root {
@@ -69,39 +57,53 @@
     font-family: var(--font-family);
 }
 
-/*.range-button--active,*/
-/*.range-button--active.mud-button-root,*/
-/*.range-button--active.mud-button-filled {*/
-/*    background-color: black !important;*/
-/*    color: white !important;*/
-/*    box-shadow: var(--shadow-card) !important;*/
-/*}*/
+/* Active state - black solid button */
+.range-button--active {
+    background-color: black !important;
+    color: white !important;
+    box-shadow: none !important;
+    border: none !important;
+}
 
-/*.range-button--active .mud-icon-root {*/
-/*    color: white !important;*/
-/*}*/
+.range-button--active .mud-icon-root {
+    color: white !important;
+}
 
-/*.range-button--active .range-button-subtitle {*/
-/*    color: rgba(255, 255, 255, 0.8) !important;*/
-/*}*/
+.range-button--active .range-button-subtitle {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Hover state for inactive buttons */
+.range-button:not(.range-button--active):hover {
+    background: rgba(0, 0, 0, 0.05) !important;
+    color: var(--primary-color);
+    transform: translateY(-1px);
+    box-shadow: none !important;
+}
 
 .current-period-label {
     color: var(--secondary-color);
 }
 
 @media (max-width: 960px) {
-    .range-button-group .mud-button-root {
+    .range-buttons-container {
+        width: 100%;
+    }
+
+    .range-button {
         flex: 1 1 auto;
     }
 }
 
 @media (max-width: 768px) {
-    .range-button-group {
+    .range-buttons-container {
         width: 100%;
+        flex-direction: column;
     }
 
-    .range-button-group .mud-button-root {
+    .range-button {
         flex: 1 1 auto;
+        width: 100%;
     }
 
     .current-period-label {

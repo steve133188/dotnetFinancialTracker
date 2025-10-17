@@ -4,25 +4,47 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DotnetFinancialTrackerApp.Services;
 
+/// <summary>
+/// Savings goal service implementing ISavingsGoalService interface.
+/// Demonstrates: Generic collections (IEnumerable&lt;T&gt;, List&lt;T&gt;), LINQ with lambda expressions,
+/// complex Entity Framework queries, and advanced data aggregation patterns.
+/// </summary>
 public class SavingsGoalService : ISavingsGoalService
 {
     private readonly AppDbContext _context;
 
+    /// <summary>
+    /// Constructor using dependency injection for testability and loose coupling.
+    /// Follows SOLID principles with dependency inversion.
+    /// </summary>
     public SavingsGoalService(AppDbContext context)
     {
         _context = context;
     }
 
-    // Basic CRUD operations
+    /// <summary>
+    /// Retrieves all savings goals for a family using generic collections.
+    /// Demonstrates: IEnumerable&lt;T&gt; return type, LINQ with lambda expressions,
+    /// Entity Framework Include for eager loading, and defensive programming.
+    /// </summary>
+    /// <param name="familyId">Family identifier for filtering goals</param>
+    /// <returns>Generic IEnumerable&lt;SavingsGoal&gt; collection</returns>
     public async Task<IEnumerable<SavingsGoal>> GetAllAsync(string familyId)
     {
-        // Spec: LINQ with lambda expressions & generic collections satisfy "Anonymous method with LINQ" + "Generics" requirement.
+        // Enhanced error handling: Validate input parameter
+        if (string.IsNullOrWhiteSpace(familyId))
+        {
+            throw new ArgumentException("Family ID cannot be null or empty.", nameof(familyId));
+        }
+
+        // Generics demonstration: IEnumerable<T> and List<T> collections
+        // LINQ with Lambda: Complex query building with method chaining
         return await _context.SavingsGoals
-            .Where(g => g.FamilyId == familyId)
-            .Include(g => g.Contributions)
-            .Include(g => g.CreatedBy)
-            .OrderByDescending(g => g.CreatedDate)
-            .ToListAsync();
+            .Where(g => g.FamilyId == familyId)           // Lambda expression for filtering
+            .Include(g => g.Contributions)                // Eager loading related data
+            .Include(g => g.CreatedBy)                    // Navigation property inclusion
+            .OrderByDescending(g => g.CreatedDate)        // Lambda for ordering
+            .ToListAsync();                               // Async execution returning List<T>
     }
 
     public async Task<SavingsGoal?> GetByIdAsync(int id)

@@ -1,37 +1,121 @@
-# Dotnet Financial Tracker – Assignment Spec Mapping
+# .NET Family Financial Tracker
 
-The table below maps each requirement from the Spring 2025 Assignment‑2 specification to the concrete implementation in this repository so markers can jump straight to the evidence.
+## Project Overview
+A comprehensive .NET MAUI family budget and wellbeing companion application built with Blazor WebView, targeting macOS and Windows platforms. The app provides financial tracking, wellbeing monitoring, and gamification features with SQLite persistence via Entity Framework Core.
 
-| Spec Requirement | Implementation Summary | Key Paths |
-| - | - | - |
-| GUI / Interface design (≥4 responsive screens & ≥6 UI element categories) | MudBlazor pages for Home, Finance, Reports, Wellbeing and Settings deliver responsive layouts with cards, charts, tables, button groups, dialogs and selectors. | `DotnetFinancialTrackerApp/Components/Pages/Home.razor`, `.../Finance.razor`, `.../Reports.razor`, `.../Wellbeing.razor`, `.../Settings.razor` |
-| Communication between interfaces | Shared `AuthState` plus `NavigationManager` and injected services coordinate navigation and cross-page state (e.g. finance filters updating charts). | `DotnetFinancialTrackerApp/Services/AuthState.cs`, `DotnetFinancialTrackerApp/Components/Layout/MainLayout.razor`, `DotnetFinancialTrackerApp/Components/Pages/Finance.razor` |
-| Collections, generics, delegates / LINQ | Services compose generic collections with LINQ/lambda filters for budgeting & savings analytics. | `DotnetFinancialTrackerApp/Services/TransactionsService.cs#L18-L66`, `DotnetFinancialTrackerApp/Services/SavingsGoalService.cs#L24-L108` |
-| Enumerators, properties, extension methods | Enum-driven workflow with extension helpers for display metadata. | `DotnetFinancialTrackerApp/Models/TransactionType.cs` |
-| File / database I/O & Entity Framework | SQLite-backed EF Core context seeds data and is consumed via dependency-injected services. | `DotnetFinancialTrackerApp/Data/AppDbContext.cs`, `DotnetFinancialTrackerApp/MauiProgram.cs` |
-| High cohesion & low coupling (interfaces, DI) | Service interfaces with scoped registrations keep UI separated from persistence logic. | `DotnetFinancialTrackerApp/Services/ISavingsGoalService.cs`, `DotnetFinancialTrackerApp/MauiProgram.cs` |
-| Polymorphism (inheritance / overloading) | `TransactionsService.GetAsync()` overloads enable flexible retrieval for dashboards and satisfy the polymorphism requirement. | `DotnetFinancialTrackerApp/Services/TransactionsService.cs#L13-L62` |
-| Anonymous methods with LINQ | Filtering & projection use lambda expressions over EF Core queries and in-page analytics. | `DotnetFinancialTrackerApp/Services/TransactionsService.cs#L24-L62`, `DotnetFinancialTrackerApp/Components/Pages/Reports.razor#L220-L360` |
-| Interfaces (≥2 examples) | Multiple service contracts drive DI (budgets, savings, transactions, users). | `DotnetFinancialTrackerApp/Services/IBudgetsService.cs`, `DotnetFinancialTrackerApp/Services/ISavingsGoalService.cs` |
-| Generics / generic collections | Application models and services rely on `List<>`, `IEnumerable<>`, and EF Core generics. | `DotnetFinancialTrackerApp/Services/SavingsGoalService.cs`, `DotnetFinancialTrackerApp/Models/SavingsGoal.cs` |
-| NUnit test cases | Automated tests cover transaction querying, contribution logic, and summary analytics. Run with `dotnet test`. | `DotnetFinancialTrackerApp.Tests/TransactionsServiceTests.cs`, `DotnetFinancialTrackerApp.Tests/SavingsGoalServiceTests.cs` |
-| Bonus – Entity Framework / external DB | SQLite database with EF Core migration seeding satisfies bonus database criterion. | `DotnetFinancialTrackerApp/MauiProgram.cs`, `DotnetFinancialTrackerApp/Data/AppDbContext.cs` |
+## Marking Guide Code References
 
-## Tests
+| Assignment Requirement | Implementation Location | Description |
+|------------------------|-------------------------|-------------|
+| **Polymorphism** | `Services/TransactionsService.cs:16-17` | Method overloading for `GetAsync()` |
+| **Interface #1** | `Services/ITransactionsService.cs` | Transaction management interface |
+| **Interface #2** | `Services/ISavingsGoalService.cs` | Savings goal management interface |
+| **NUnit Tests** | `DotnetFinancialTrackerApp.Tests/TransactionsServiceTests.cs` | Comprehensive test coverage |
+| **LINQ + Lambda** | `Services/TransactionsService.cs:21-51` | Data filtering with lambda expressions |
+| **Generics** | `Services/ISavingsGoalService.cs:8-29` | `IEnumerable<T>`, `List<T>` collections |
+| **GUI Screen #1** | `Components/Pages/Home.razor` | Home dashboard |
+| **GUI Screen #2** | `Components/Pages/Finance.razor` | Finance management |
+| **GUI Screen #3** | `Components/Pages/Reports.razor` | Reports & analytics |
+| **GUI Screen #4** | `Components/Pages/Wellbeing.razor` | Wellbeing tracking |
+| **GUI Screen #5** | `Components/Pages/Settings.razor` | Settings & configuration |
+| **UI Elements** | Throughout `Components/` | Cards, charts, tables, buttons, dialogs, navigation, forms, progress |
+| **Bonus: Blazor** | `MauiProgram.cs:13-14` | Blazor WebView implementation |
+| **Bonus: Entity Framework** | `Data/AppDbContext.cs` | SQLite with EF Core |
 
+## System Requirements
+
+### Prerequisites
+- **.NET 8.0 SDK** (required)
+- **Visual Studio 2022** (recommended) or **VS Code**
+- **Platform SDKs**:
+  - macOS: Xcode for macOS targets
+  - Windows: Windows SDK for Windows targets
+
+### Supported Platforms
+- **macOS** (MacCatalyst)
+- **Windows** (Windows 10/11)
+
+## Build & Run Commands
+
+### Development Build
 ```bash
+# Restore dependencies
+dotnet restore
+
+# Build all projects
+dotnet build
+
+# Run tests
 dotnet test
+
+# Clean build artifacts
+dotnet clean
 ```
 
-The suite exercises the LINQ-heavy transaction filters, savings goal contributions, and summary analytics to demonstrate the required NUnit coverage.
+### Platform-Specific Builds
 
-## Build Commands
+#### macOS (MacCatalyst)
+```bash
+dotnet build -f net8.0-maccatalyst
+dotnet build -f net8.0-maccatalyst -t:Run
+```
 
-- **macOS (MacCatalyst):**
-  ```bash
-  dotnet build DotnetFinancialTrackerApp/DotnetFinancialTrackerApp.csproj -t:Run -f net8.0-maccatalyst -c Debug
-  ```
-- **Windows:**
-  ```powershell
-  dotnet build DotnetFinancialTrackerApp/DotnetFinancialTrackerApp.csproj -t:Run -f net8.0-windows10.0.19041.0 -c Debug
-  ```
+#### Windows
+```bash
+dotnet build -f net8.0-windows10.0.19041.0
+dotnet build -f net8.0-windows10.0.19041.0 -t:Run
+```
+
+
+## Quick Start
+
+1. **Clone the repository**
+   ```bash
+   git clone [repository-url]
+   cd DotnetFinancialTrackerApp
+   ```
+
+2. **Install dependencies**
+   ```bash
+   dotnet restore
+   ```
+
+3. **Run tests to verify setup**
+   ```bash
+   dotnet test
+   ```
+
+4. **Build and run (macOS example)**
+   ```bash
+   dotnet build -f net8.0-maccatalyst -t:Run
+   ```
+
+5. **Login with default PIN: `1234`**
+
+## Key Features
+- **Multi-user financial tracking** with transaction management
+- **Budget planning and monitoring** with visual analytics
+- **Savings goals** with contribution tracking
+- **Wellbeing integration** for holistic family management
+- **Responsive design** with MudBlazor components
+- **Cross-platform** support for macOS and Windows via .NET MAUI + Blazor
+- **Comprehensive error handling** and input validation
+- **SQLite database** with Entity Framework Core integration
+
+## Project Structure
+```
+DotnetFinancialTrackerApp/
+├── Components/
+│   ├── Pages/           # Main application screens
+│   ├── Layout/          # Navigation and layout components
+│   └── Dialogs/         # Modal dialogs
+├── Data/                # Entity Framework context
+├── Models/              # Data models
+├── Services/            # Business logic and interfaces
+└── wwwroot/            # Static assets and CSS
+
+DotnetFinancialTrackerApp.Tests/
+└── *.cs                # NUnit test files
+```
+
+For detailed marking guide compliance and enhancement roadmap, see [TODO.md](TODO.md).
