@@ -1,14 +1,27 @@
 {
   "profiles": {
-    "Windows": {
+    "Windows Machine": {
+      "commandName": "MsixPackage",
+      "nativeDebugging": false,
+      "alwaysReinstallApp": false,
+      "launchBrowser": false
+    },
+    "Windows (Unpackaged)": {
       "commandName": "Project",
       "nativeDebugging": false,
-      "commandLineArgs": "--framework net8.0-windows"
+      "launchBrowser": false,
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
     },
-    "Windows (Debug)": {
+    "Windows (Framework)": {
       "commandName": "Project",
-      "nativeDebugging": true,
-      "commandLineArgs": "--framework net8.0-windows"
+      "nativeDebugging": false,
+      "useFramework": "net8.0-windows",
+      "launchBrowser": false,
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
     }
   }
 }

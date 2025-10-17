@@ -1,19 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
 
     <PropertyGroup>
-        <!-- Set EnableiOSTarget to true when the iOS workload is installed locally. -->
-        <EnableiOSTarget>false</EnableiOSTarget>
-        <TargetFrameworks>net8.0-maccatalyst;net8.0-windows</TargetFrameworks>
-        <TargetFrameworks Condition="'$(EnableiOSTarget)' == 'true'">$(TargetFrameworks);net8.0-ios</TargetFrameworks>
-        <!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
-        <!-- <TargetFrameworks>$(TargetFrameworks);net8.0-tizen</TargetFrameworks> -->
+        <!-- Windows-only target framework -->
+        <TargetFrameworks>net8.0-windows10.0.19041.0</TargetFrameworks>
 
-        <!-- Note for MacCatalyst:
+        <!-- macOS support disabled for Windows development environment -->
+        <!-- <TargetFrameworks Condition="'$(OS)' != 'Windows_NT'">net8.0-maccatalyst</TargetFrameworks> -->
+        <!-- <TargetFrameworks Condition="'$(MacOnly)' == 'true'">net8.0-maccatalyst</TargetFrameworks> -->
+
+        <!-- macOS/MacCatalyst configurations disabled for Windows-only builds -->
+        <!-- Note for MacCatalyst (DISABLED):
             The default runtime is maccatalyst-x64, except in Release config, in which case the default is maccatalyst-x64;maccatalyst-arm64.
             When specifying both architectures, use the plural <RuntimeIdentifiers> instead of the singular <RuntimeIdentifier>.
             The Mac App Store will NOT accept apps with ONLY maccatalyst-arm64 indicated;
-            either BOTH runtimes must be indicated or ONLY macatalyst-x64. -->
-        <!-- For example: <RuntimeIdentifiers>maccatalyst-x64;maccatalyst-arm64</RuntimeIdentifiers> -->
+            either BOTH runtimes must be indicated or ONLY macatalyst-x64.
+            Example: <RuntimeIdentifiers>maccatalyst-x64;maccatalyst-arm64</RuntimeIdentifiers> -->
 
         <OutputType>Exe</OutputType>
         <RootNamespace>DotnetFinancialTrackerApp</RootNamespace>
@@ -22,6 +23,15 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <EnableDefaultCssItems>false</EnableDefaultCssItems>
         <Nullable>enable</Nullable>
+
+        <!-- Enable cross-platform Windows targeting -->
+        <EnableWindowsTargeting>true</EnableWindowsTargeting>
+
+        <!-- Disable XAML compilation for Blazor WebView projects -->
+        <EnableMsixTooling>true</EnableMsixTooling>
+        <UseWPF>false</UseWPF>
+        <UseWinUI>true</UseWinUI>
+        <EnablePreviewMsixTooling>true</EnablePreviewMsixTooling>
 
         <!-- Display name -->
         <ApplicationTitle>DotnetFinancialTrackerApp</ApplicationTitle>
@@ -33,20 +43,15 @@
         <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
         <ApplicationVersion>1</ApplicationVersion>
 
-        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">14.2</SupportedOSPlatformVersion>
-        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">14.0</SupportedOSPlatformVersion>
-        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">7.0</SupportedOSPlatformVersion>
-
-        <!-- Simplified Windows settings - no packaging required -->
-        <WindowsPackageType Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">None</WindowsPackageType>
-        <WindowsAppSDKSelfContained Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">true</WindowsAppSDKSelfContained>
-        <UseWinUI Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">true</UseWinUI>
+        <!-- iOS and macOS platform versions disabled for Windows-only builds -->
+        <!-- <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">14.2</SupportedOSPlatformVersion> -->
+        <!-- <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">14.0</SupportedOSPlatformVersion> -->
+        <!-- Windows platform versions for MAUI -->
+        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
+        <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+        <WindowsSdkPackageVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.19041.41</WindowsSdkPackageVersion>
     </PropertyGroup>
 
-    <!-- Spec requires Windows + Mac build support; keep Windows TF but skip it when building on non-Windows host -->
-    <PropertyGroup Condition="'$(IsWindows)' != 'true'">
-        <TargetFrameworks>net8.0-maccatalyst</TargetFrameworks>
-    </PropertyGroup>
 
     <ItemGroup>
         <!-- App Icon -->

@@ -25,7 +25,7 @@
     <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
     <RestoreLockedMode>false</RestoreLockedMode>
 
-    <!-- Cross-platform compatibility -->
+    <!-- Windows-only compatibility -->
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <WarningsAsErrors />
     <WarningsNotAsErrors />
@@ -33,22 +33,23 @@
     <!-- Ensure consistent package resolution -->
     <DisableImplicitNuGetFallbackFolder>true</DisableImplicitNuGetFallbackFolder>
 
-    <!-- Windows-specific fixes for MAUI -->
-    <UseWinUI Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">true</UseWinUI>
-    <WindowsPackageType Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">None</WindowsPackageType>
+    <!-- Windows-specific MAUI configuration -->
+    <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
 
     <!-- Prevent NuGet restore issues -->
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
     <RestoreUseSkipNonexistentTargets>false</RestoreUseSkipNonexistentTargets>
   </PropertyGroup>
 
-  <!-- Platform-specific package management -->
-  <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
+  <!-- Windows-only platform configuration -->
+  <PropertyGroup>
     <IsWindows>true</IsWindows>
     <DefaultPlatformTarget>x64</DefaultPlatformTarget>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(OS)' != 'Windows_NT'">
+  <!-- macOS platform management disabled for Windows-only builds -->
+  <!-- <PropertyGroup Condition="'$(OS)' != 'Windows_NT'">
     <IsWindows>false</IsWindows>
-  </PropertyGroup>
+  </PropertyGroup> -->
 </Project>
