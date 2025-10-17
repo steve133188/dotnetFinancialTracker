@@ -18,8 +18,8 @@
     }
     else
     {
-        <MudCard Class="member-contributions-card" Elevation="0">
-            <MudCardContent>
+        @* <MudCard Class="member-contributions-card" Elevation="0"> *@
+        @*     <MudCardContent> *@
                 <div class="member-contributions-grid">
                     @foreach (var (member, index) in MemberExpenseSummaries.Select((m, i) => (m, i)))
                     {
@@ -67,8 +67,8 @@
                         </div>
                     }
                 </div>
-            </MudCardContent>
-        </MudCard>
+        //     </MudCardContent>
+        // </MudCard>
     }
 </div>
 
