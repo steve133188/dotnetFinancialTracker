@@ -2,7 +2,7 @@ using DotnetFinancialTrackerApp.Models;
 
 namespace DotnetFinancialTrackerApp.Services;
 
-// Also demonstrates Generics with IEnumerable<T> generic collections
+// Savings goal service interface with generic collections.
 public interface ISavingsGoalService
 {
     // Basic CRUD operations

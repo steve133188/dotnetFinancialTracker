@@ -4,49 +4,36 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DotnetFinancialTrackerApp.Services;
 
-/// <summary>
-/// Savings goal service implementing ISavingsGoalService interface.
-/// Demonstrates: Generic collections (IEnumerable&lt;T&gt;, List&lt;T&gt;), LINQ with lambda expressions,
-/// complex Entity Framework queries, and advanced data aggregation patterns.
-/// </summary>
+// Savings goal service with generic collections and LINQ operations.
 public class SavingsGoalService : ISavingsGoalService
 {
     private readonly AppDbContext _context;
 
-    /// <summary>
-    /// Constructor using dependency injection for testability and loose coupling.
-    /// Follows SOLID principles with dependency inversion.
-    /// </summary>
+    // Constructor with dependency injection.
     public SavingsGoalService(AppDbContext context)
     {
         _context = context;
     }
 
-    /// <summary>
-    /// Retrieves all savings goals for a family using generic collections.
-    /// Demonstrates: IEnumerable&lt;T&gt; return type, LINQ with lambda expressions,
-    /// Entity Framework Include for eager loading, and defensive programming.
-    /// </summary>
-    /// <param name="familyId">Family identifier for filtering goals</param>
-    /// <returns>Generic IEnumerable&lt;SavingsGoal&gt; collection</returns>
+    // Returns all savings goals for a family.
     public async Task<IEnumerable<SavingsGoal>> GetAllAsync(string familyId)
     {
-        // Enhanced error handling: Validate input parameter
+        // Validate input
         if (string.IsNullOrWhiteSpace(familyId))
         {
             throw new ArgumentException("Family ID cannot be null or empty.", nameof(familyId));
         }
 
-        // Generics demonstration: IEnumerable<T> and List<T> collections
-        // LINQ with Lambda: Complex query building with method chaining
+        // Query with LINQ lambda expressions and eager loading
         return await _context.SavingsGoals
-            .Where(g => g.FamilyId == familyId)           // Lambda expression for filtering
-            .Include(g => g.Contributions)                // Eager loading related data
-            .Include(g => g.CreatedBy)                    // Navigation property inclusion
-            .OrderByDescending(g => g.CreatedDate)        // Lambda for ordering
-            .ToListAsync();                               // Async execution returning List<T>
+            .Where(g => g.FamilyId == familyId)
+            .Include(g => g.Contributions)
+            .Include(g => g.CreatedBy)
+            .OrderByDescending(g => g.CreatedDate)
+            .ToListAsync();
     }
 
+    // Returns savings goal by ID.
     public async Task<SavingsGoal?> GetByIdAsync(int id)
     {
         return await _context.SavingsGoals
@@ -57,6 +44,7 @@ public class SavingsGoalService : ISavingsGoalService
             .FirstOrDefaultAsync(g => g.Id == id);
     }
 
+    // Creates new savings goal.
     public async Task<SavingsGoal> CreateAsync(SavingsGoal savingsGoal)
     {
         savingsGoal.CreatedDate = DateTime.UtcNow;
@@ -65,6 +53,7 @@ public class SavingsGoalService : ISavingsGoalService
         return savingsGoal;
     }
 
+    // Updates existing savings goal.
     public async Task<SavingsGoal> UpdateAsync(SavingsGoal savingsGoal)
     {
         _context.SavingsGoals.Update(savingsGoal);
@@ -72,6 +61,7 @@ public class SavingsGoalService : ISavingsGoalService
         return savingsGoal;
     }
 
+    // Deletes savings goal by ID.
     public async Task<bool> DeleteAsync(int id)
     {
         var goal = await _context.SavingsGoals.FindAsync(id);
@@ -83,6 +73,7 @@ public class SavingsGoalService : ISavingsGoalService
     }
 
     // Goal-specific operations
+    // Returns active incomplete savings goals.
     public async Task<IEnumerable<SavingsGoal>> GetActiveGoalsAsync(string familyId)
     {
         return await _context.SavingsGoals
@@ -92,6 +83,7 @@ public class SavingsGoalService : ISavingsGoalService
             .ToListAsync();
     }
 
+    // Returns completed savings goals.
     public async Task<IEnumerable<SavingsGoal>> GetCompletedGoalsAsync(string familyId)
     {
         return await _context.SavingsGoals
@@ -101,6 +93,7 @@ public class SavingsGoalService : ISavingsGoalService
             .ToListAsync();
     }
 
+    // Returns savings goals by category.
     public async Task<IEnumerable<SavingsGoal>> GetGoalsByCategoryAsync(string familyId, string category)
     {
         return await _context.SavingsGoals
@@ -111,6 +104,7 @@ public class SavingsGoalService : ISavingsGoalService
     }
 
     // Contribution operations
+    // Adds contribution to savings goal.
     public async Task<bool> AddContributionAsync(int goalId, decimal amount, string contributorMemberId, string? description = null)
     {
         var goal = await _context.SavingsGoals.FindAsync(goalId);
@@ -126,6 +120,7 @@ public class SavingsGoalService : ISavingsGoalService
         return true;
     }
 
+    // Adds budget surplus contribution to goal.
     public async Task<bool> AddBudgetSurplusContributionAsync(int goalId, decimal amount, string contributorMemberId, int? sourceTransactionId = null)
     {
         var description = sourceTransactionId.HasValue
@@ -141,6 +136,7 @@ public class SavingsGoalService : ISavingsGoalService
         return await AddContributionAsync(goalId, amount, contributorMemberId, description);
     }
 
+    // Returns contributions for a goal.
     public async Task<IEnumerable<SavingsGoalContribution>> GetContributionsAsync(int goalId)
     {
         return await _context.SavingsGoalContributions
@@ -150,6 +146,7 @@ public class SavingsGoalService : ISavingsGoalService
             .ToListAsync();
     }
 
+    // Returns member contributions with date filtering.
     public async Task<IEnumerable<SavingsGoalContribution>> GetMemberContributionsAsync(string memberId, DateTime? fromDate = null, DateTime? toDate = null)
     {
         var query = _context.SavingsGoalContributions
@@ -168,6 +165,7 @@ public class SavingsGoalService : ISavingsGoalService
     }
 
     // Analytics and insights
+    // Returns total active savings amount.
     public async Task<decimal> GetTotalSavingsAsync(string familyId)
     {
         return await _context.SavingsGoals
@@ -175,6 +173,7 @@ public class SavingsGoalService : ISavingsGoalService
             .SumAsync(g => g.CurrentAmount);
     }
 
+    // Returns total contributions for a month.
     public async Task<decimal> GetMonthlyContributionsAsync(string familyId, DateTime month)
     {
         var monthStart = new DateTime(month.Year, month.Month, 1);
@@ -188,6 +187,7 @@ public class SavingsGoalService : ISavingsGoalService
             .SumAsync(c => c.Amount);
     }
 
+    // Returns comprehensive savings goal summary.
     public async Task<SavingsGoalSummary> GetSavingsGoalSummaryAsync(string familyId)
     {
         var goals = await GetAllAsync(familyId);
@@ -197,7 +197,7 @@ public class SavingsGoalService : ISavingsGoalService
         var totalTarget = activeGoals.Sum(g => g.TargetAmount);
         var totalCurrent = activeGoals.Sum(g => g.CurrentAmount);
 
-        // Calculate monthly contribution average over last 6 months
+        // Calculate 6-month contribution average
         var sixMonthsAgo = DateTime.UtcNow.AddMonths(-6);
         var monthlyContributions = new List<decimal>();
 
@@ -221,6 +221,7 @@ public class SavingsGoalService : ISavingsGoalService
         };
     }
 
+    // Returns progress report for date range.
     public async Task<IEnumerable<SavingsGoalProgress>> GetProgressReportAsync(string familyId, DateTime? fromDate = null, DateTime? toDate = null)
     {
         fromDate ??= DateTime.UtcNow.AddMonths(-1);
@@ -254,12 +255,13 @@ public class SavingsGoalService : ISavingsGoalService
     }
 
     // Goal management
+    // Marks goal as completed if target reached.
     public async Task<bool> MarkAsCompletedAsync(int goalId)
     {
         var goal = await _context.SavingsGoals.FindAsync(goalId);
         if (goal == null) return false;
 
-        // Update calculated current amount based on contributions
+        // Update progress based on contributions
         goal.UpdateProgress();
 
         if (goal.CurrentAmount >= goal.TargetAmount)
@@ -272,6 +274,7 @@ public class SavingsGoalService : ISavingsGoalService
         return true;
     }
 
+    // Activates a goal.
     public async Task<bool> ActivateGoalAsync(int goalId)
     {
         var goal = await _context.SavingsGoals.FindAsync(goalId);
@@ -283,6 +286,7 @@ public class SavingsGoalService : ISavingsGoalService
         return true;
     }
 
+    // Deactivates a goal.
     public async Task<bool> DeactivateGoalAsync(int goalId)
     {
         var goal = await _context.SavingsGoals.FindAsync(goalId);

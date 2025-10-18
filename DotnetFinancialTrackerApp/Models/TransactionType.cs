@@ -6,7 +6,7 @@ public enum TransactionType
     Income = 1      // Money coming in
 }
 
-// Spec: extension methods satisfy "Enumerators, properties, extension methods" requirement.
+// Extension methods for TransactionType enum.
 public static class TransactionTypeExtensions
 {
     public static string GetDisplayName(this TransactionType type) => type switch

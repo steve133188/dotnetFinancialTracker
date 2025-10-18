@@ -3,9 +3,7 @@ using DotnetFinancialTrackerApp.Models;
 
 namespace DotnetFinancialTrackerApp.Services;
 
-/// <summary>
-/// Fluent builder for creating filter criteria with type safety
-/// </summary>
+// Fluent builder for creating filter criteria with type safety.
 public class FilterBuilder<T>
 {
     private readonly FilterCriteria<T> _criteria = new();
@@ -77,9 +75,7 @@ public class FilterBuilder<T>
     public FilterCriteria<T> Build() => _criteria;
 }
 
-/// <summary>
-/// Predefined filters for common domain objects
-/// </summary>
+// Predefined filters for common domain objects.
 public static class TransactionFilters
 {
     public static FilterExpression<Transaction> ByDateRange(DateTime from, DateTime to, string? name = null)
@@ -209,9 +205,7 @@ public static class BudgetFilters
         };
 }
 
-/// <summary>
-/// Helper methods for common filtering patterns
-/// </summary>
+// Helper methods for common filtering patterns.
 public static class FilterHelpers
 {
     public static FilterExpression<T> SearchText<T>(Expression<Func<T, string?>> textProperty, string searchTerm, string? name = null)
@@ -219,7 +213,7 @@ public static class FilterHelpers
         var parameter = textProperty.Parameters[0];
         var property = textProperty.Body;
 
-        // Create expression: textProperty != null && textProperty.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+        // Create null check and contains expression
         var nullCheck = Expression.NotEqual(property, Expression.Constant(null));
         var containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string), typeof(StringComparison) });
         var containsCall = Expression.Call(
@@ -245,7 +239,7 @@ public static class FilterHelpers
         var parameter = property.Parameters[0];
         var propertyAccess = property.Body;
 
-        // Create expression: values.Contains(property)
+        // Create contains expression for list
         var valuesConstant = Expression.Constant(values);
         var containsMethod = typeof(Enumerable).GetMethods()
             .First(m => m.Name == "Contains" && m.GetParameters().Length == 2)

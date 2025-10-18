@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DotnetFinancialTrackerApp.Data;
 
-// Spec: central Entity Framework context covering "File/database reading and writing and Entity Framework".
+// Entity Framework database context.
 public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
@@ -80,7 +80,6 @@ public class AppDbContext : DbContext
             .HasForeignKey(b => b.FamilyId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Budget no longer has category relationship
 
         modelBuilder.Entity<Budget>()
             .HasOne(b => b.CreatedBy)

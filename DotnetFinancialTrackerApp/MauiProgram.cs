@@ -33,7 +33,7 @@ public static class MauiProgram
         // SQLite EF Core setup
         var dbPath = Path.Combine(FileSystem.AppDataDirectory, "financial-tracker.db");
         builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite($"Data Source={dbPath}"));
-        // Spec: interfaces + dependency injection highlight high cohesion/low coupling.
+        // Register service interfaces with dependency injection.
         builder.Services.AddScoped<ITransactionsService, TransactionsService>();
         builder.Services.AddScoped<ITransactionTemplateService, TransactionTemplateService>();
         builder.Services.AddScoped<IBudgetsService, BudgetsService>();

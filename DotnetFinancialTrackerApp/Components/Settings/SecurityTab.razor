@@ -208,10 +208,7 @@
         ValidatePin();
     }
 
-    /// <summary>
-    /// Enhanced PIN validation demonstrating comprehensive input validation patterns.
-    /// Shows defensive programming, security best practices, and user experience considerations.
-    /// </summary>
+    // Enhanced PIN validation with security checks.
     private void ValidatePin()
     {
         if (string.IsNullOrEmpty(_pinModel.NewPin))
@@ -220,7 +217,7 @@
             return;
         }
 
-        // Enhanced validation: Check basic format requirements
+        // Check format requirements
         if (_pinModel.NewPin.Length < 4 || _pinModel.NewPin.Length > 6)
         {
             _pinValidationMessage = "PIN must be 4-6 digits long";
@@ -228,7 +225,7 @@
             return;
         }
 
-        // Enhanced validation: Ensure numeric-only input
+        // Ensure numeric-only input
         if (!_pinModel.NewPin.All(char.IsDigit))
         {
             _pinValidationMessage = "PIN must contain only numbers";
@@ -236,7 +233,7 @@
             return;
         }
 
-        // Enhanced validation: Security checks for weak PINs
+        // Security checks for weak PINs
         if (IsWeakPin(_pinModel.NewPin))
         {
             _pinValidationMessage = "PIN is too weak. Avoid sequential numbers, repeated digits, or common patterns";
@@ -244,7 +241,7 @@
             return;
         }
 
-        // Enhanced validation: Check if PIN matches current PIN
+        // Check if PIN matches current PIN
         if (_pinModel.NewPin == _pinModel.CurrentPin && !string.IsNullOrEmpty(_pinModel.CurrentPin))
         {
             _pinValidationMessage = "New PIN must be different from current PIN";
@@ -252,7 +249,7 @@
             return;
         }
 
-        // Enhanced validation: Confirmation matching
+        // Confirmation matching
         if (_pinModel.NewPin != _pinModel.ConfirmPin && !string.IsNullOrEmpty(_pinModel.ConfirmPin))
         {
             _pinValidationMessage = "PINs do not match";
@@ -266,10 +263,7 @@
         _pinValidationSeverity = strength == "Strong" ? Severity.Success : Severity.Info;
     }
 
-    /// <summary>
-    /// Demonstrates security validation by checking for weak PIN patterns.
-    /// Shows defensive programming against common security vulnerabilities.
-    /// </summary>
+    // Checks for weak PIN patterns.
     private bool IsWeakPin(string pin)
     {
         // Check for repeated digits (e.g., "1111", "2222")
@@ -304,10 +298,7 @@
         return isAscending || isDescending || weakPatterns.Contains(pin);
     }
 
-    /// <summary>
-    /// Calculates PIN strength for user feedback.
-    /// Demonstrates business logic encapsulation and user experience enhancement.
-    /// </summary>
+    // Calculates PIN strength for user feedback.
     private string GetPinStrength(string pin)
     {
         if (IsWeakPin(pin))
@@ -324,11 +315,7 @@
             return "Fair";
     }
 
-    /// <summary>
-    /// Enhanced PIN change operation with comprehensive validation and error handling.
-    /// Demonstrates: Input validation, defensive programming, security best practices,
-    /// exception handling, and user experience optimization.
-    /// </summary>
+    // Enhanced PIN change operation with validation.
     private async Task ChangePIN()
     {
         if (CurrentUser == null)
@@ -403,10 +390,7 @@
         }
     }
 
-    /// <summary>
-    /// Comprehensive validation method demonstrating structured validation patterns.
-    /// Shows separation of concerns and reusable validation logic.
-    /// </summary>
+    // Comprehensive validation method with structured patterns.
     private ValidationResult ValidatePinChange()
     {
         var result = new ValidationResult { IsValid = true };
@@ -452,10 +436,7 @@
         return result;
     }
 
-    /// <summary>
-    /// Validation result class demonstrating structured error handling.
-    /// Shows custom result types for clean validation patterns.
-    /// </summary>
+    // Validation result class for structured error handling.
     private class ValidationResult
     {
         public bool IsValid { get; set; }
@@ -515,11 +496,7 @@
         }
     }
 
-    /// <summary>
-    /// PIN change model with comprehensive data annotation validation.
-    /// Demonstrates: Data annotations, validation attributes, custom error messages,
-    /// defensive programming, and input validation best practices.
-    /// </summary>
+    // PIN change model with data annotation validation.
     public class PinChangeModel
     {
         [Required(ErrorMessage = "Current PIN is required to verify your identity")]
@@ -539,10 +516,7 @@
         [Display(Name = "Confirm New PIN", Description = "Re-enter your new PIN to confirm it's correct")]
         public string ConfirmPin { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Additional validation method for business rules not covered by data annotations.
-        /// Demonstrates custom validation logic and security policy enforcement.
-        /// </summary>
+        // Additional validation for business rules.
         public bool IsCurrentPinValid()
         {
             return !string.IsNullOrWhiteSpace(CurrentPin) &&
@@ -551,10 +525,7 @@
                    CurrentPin.All(char.IsDigit);
         }
 
-        /// <summary>
-        /// Validates new PIN against security policies.
-        /// Shows business rule validation beyond basic format checks.
-        /// </summary>
+        // Validates new PIN against security policies.
         public bool IsNewPinSecure()
         {
             if (string.IsNullOrWhiteSpace(NewPin)) return false;

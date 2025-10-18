@@ -32,6 +32,6 @@ namespace DotnetFinancialTrackerApp.Models
         // Simplified calculated properties for MVP
         public int ActiveMemberCount => Members?.Count() ?? 0;
 
-        // Complex calculations moved to service layer per user requirements
+        // Calculations moved to service layer
     }
 }

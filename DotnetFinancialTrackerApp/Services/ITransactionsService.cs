@@ -2,9 +2,7 @@ using DotnetFinancialTrackerApp.Models;
 
 namespace DotnetFinancialTrackerApp.Services;
 
-// MARKING GUIDE: Interface Example #1 - ITransactionsService
-// Demonstrates interface design for transaction management operations
-// Points: Code Requirement - At least two examples of Interface (2/6 points)
+// Transaction service interface with CRUD operations.
 public interface ITransactionsService
 {
     Task<List<Transaction>> GetAsync(string? user = null, string? category = null, DateTime? from = null, DateTime? to = null);
